@@ -1,0 +1,242 @@
+[build-dependencies.substrate-build-script-utils]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '3.0.0'
+
+[dependencies]
+async-trait = '0.1'
+futures = '0.3'
+jsonrpc-core = '18.0.0'
+jsonrpc-pubsub = '18.0.0'
+log = '0.4.8'
+
+[dependencies.clap]
+features = ['derive']
+version = '3.0'
+
+[dependencies.fc-consensus]
+git = 'https://github.com/ferrumnet/frontier.git'
+rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
+
+[dependencies.fc-db]
+git = 'https://github.com/ferrumnet/frontier.git'
+rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
+
+[dependencies.fc-mapping-sync]
+git = 'https://github.com/ferrumnet/frontier.git'
+rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
+
+[dependencies.fc-rpc]
+git = 'https://github.com/ferrumnet/frontier.git'
+rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
+
+[dependencies.fc-rpc-core]
+git = 'https://github.com/ferrumnet/frontier.git'
+rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
+
+[dependencies.fp-consensus]
+git = 'https://github.com/ferrumnet/frontier.git'
+rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
+
+[dependencies.fp-rpc]
+git = 'https://github.com/ferrumnet/frontier.git'
+rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
+
+[dependencies.fp-storage]
+git = 'https://github.com/ferrumnet/frontier.git'
+rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
+
+[dependencies.frame-benchmarking]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '4.0.0-dev'
+
+[dependencies.frame-benchmarking-cli]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '4.0.0-dev'
+
+[dependencies.frontier-template-runtime]
+default-features = false
+features = ['std']
+path = '../runtime'
+
+[dependencies.pallet-base-fee]
+git = 'https://github.com/ferrumnet/frontier.git'
+rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
+
+[dependencies.pallet-dynamic-fee]
+git = 'https://github.com/ferrumnet/frontier.git'
+rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
+
+[dependencies.pallet-ethereum]
+git = 'https://github.com/ferrumnet/frontier.git'
+rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
+
+[dependencies.pallet-evm]
+git = 'https://github.com/ferrumnet/frontier.git'
+rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
+
+[dependencies.pallet-transaction-payment-rpc]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '4.0.0-dev'
+
+[dependencies.sc-basic-authorship]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '0.10.0-dev'
+
+[dependencies.sc-cli]
+branch = 'master'
+features = ['wasmtime']
+git = 'https://github.com/paritytech/substrate'
+version = '0.10.0-dev'
+
+[dependencies.sc-client-api]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '4.0.0-dev'
+
+[dependencies.sc-consensus]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '0.10.0-dev'
+
+[dependencies.sc-consensus-aura]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '0.10.0-dev'
+
+[dependencies.sc-consensus-manual-seal]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '0.10.0-dev'
+
+[dependencies.sc-executor]
+branch = 'master'
+features = ['wasmtime']
+git = 'https://github.com/paritytech/substrate'
+version = '0.10.0-dev'
+
+[dependencies.sc-finality-grandpa]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '0.10.0-dev'
+
+[dependencies.sc-keystore]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '4.0.0-dev'
+
+[dependencies.sc-network]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '0.10.0-dev'
+
+[dependencies.sc-rpc]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '4.0.0-dev'
+
+[dependencies.sc-rpc-api]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '0.10.0-dev'
+
+[dependencies.sc-service]
+branch = 'master'
+features = ['wasmtime']
+git = 'https://github.com/paritytech/substrate'
+version = '0.10.0-dev'
+
+[dependencies.sc-telemetry]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '4.0.0-dev'
+
+[dependencies.sc-transaction-pool]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '4.0.0-dev'
+
+[dependencies.sc-transaction-pool-api]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '4.0.0-dev'
+
+[dependencies.sp-api]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '4.0.0-dev'
+
+[dependencies.sp-block-builder]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '4.0.0-dev'
+
+[dependencies.sp-blockchain]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '4.0.0-dev'
+
+[dependencies.sp-consensus]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '0.10.0-dev'
+
+[dependencies.sp-consensus-aura]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '0.10.0-dev'
+
+[dependencies.sp-core]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '5.0.0'
+
+[dependencies.sp-finality-grandpa]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '4.0.0-dev'
+
+[dependencies.sp-inherents]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '4.0.0-dev'
+
+[dependencies.sp-runtime]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '5.0.0'
+
+[dependencies.sp-timestamp]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '4.0.0-dev'
+
+[dependencies.substrate-frame-rpc-system]
+branch = 'master'
+git = 'https://github.com/paritytech/substrate'
+version = '4.0.0-dev'
+
+[package]
+authors = ['Ferrum Network <https://github.com/ferrumnet>']
+build = 'build.rs'
+description = 'Ferrum Network Poc Testnet'
+edition = '2022'
+homepage = 'https://ferrum.network'
+license = 'Unlicense'
+name = 'ferrum-x-network'
+publish = false
+repository = 'https://github.com/ferrumnet/ferrum-x-network/'
+version = '0.0.1'
+[package.metadata.docs.rs]
+targets = ['x86_64-unknown-linux-gnu']
+
+[features]
+aura = ['frontier-template-runtime/aura']
+default = ['aura']
+manual-seal = ['frontier-template-runtime/manual-seal']
+rpc_binary_search_estimate = ['fc-rpc/rpc_binary_search_estimate']
+runtime-benchmarks = ['frontier-template-runtime/runtime-benchmarks']

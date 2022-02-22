@@ -16,7 +16,7 @@
 // limitations under the License.
 
 use clap::Parser;
-use frontier_template_runtime::Block;
+use ferrum_x_runtime::Block;
 use sc_cli::{ChainSpec, RuntimeVersion, SubstrateCli};
 use sc_service::PartialComponents;
 
@@ -62,7 +62,7 @@ impl SubstrateCli for Cli {
 	}
 
 	fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-		&frontier_template_runtime::VERSION
+		&ferrum_x_runtime::VERSION
 	}
 }
 

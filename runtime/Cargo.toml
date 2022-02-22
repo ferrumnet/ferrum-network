@@ -280,12 +280,12 @@ std = [
     'frame-system-benchmarking/std',
 ]
 
-[:package]
+[package]
 authors = ['Ferrum Network <https://github.com/ferrumnet/ferrum-x-network>']
-edition = '2022'
+edition = '2021'
 homepage = 'https://ferrum.network'
 license = 'Unlicense'
-name = 'ferrum-x-network-runtime'
+name = 'ferrum-x-runtime'
 publish = false
 repository = 'https://github.com/ferrumnet/ferrum-x-network'
 version = '0.0.1'

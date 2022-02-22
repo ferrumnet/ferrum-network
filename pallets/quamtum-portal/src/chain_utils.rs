@@ -9,6 +9,7 @@ pub enum ChainRequestError {
     BadRemoteData,
     ConversionError,
 	ErrorCreatingTransaction,
+	RemoteBlockAlreadyMined,
 }
 
 pub type ChainRequestResult<T> = Result<T, ChainRequestError>;

@@ -5,6 +5,7 @@ pub use pallet::*;
 mod chain_queries;
 mod chain_utils;
 mod qp_types;
+mod erc_20_client;
 
 #[frame_support::pallet]
 pub mod pallet {

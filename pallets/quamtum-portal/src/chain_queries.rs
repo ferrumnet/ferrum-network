@@ -16,10 +16,10 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::json;
 use sp_runtime::offchain::http::HttpResult;
 use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
-use crate::chain_utils::{ChainRequestError, ChainRequestResult};
+use crate::chain_utils::{ChainRequestError, ChainRequestResult, ToJson};
 use crate::chain_utils::ChainUtils;
 use sp_core::{ H256 };
-use ethereum::{TransactionV2};
+use ethereum::{LegacyTransaction, TransactionV2};
 use crate::qp_types::{QpContext, QpLocalBlock, QpRemoteBlock, QpTransaction};
 
 const FETCH_TIMEOUT_PERIOD: u64 = 30000; // in milli-seconds
@@ -48,19 +48,42 @@ pub fn de_string_to_bytes<'de, D>(de: D) -> Result<Vec<u8>, D::Error>
 // -X POST localhost:8545
 #[derive(Debug, Deserialize, Serialize, Encode, Decode)]
 pub struct JsonRpcRequest {
-	id: u32,
+	pub id: u32,
 	#[serde(deserialize_with = "de_string_to_bytes")]
-	method: Vec<u8>,
+	pub method: Vec<u8>,
 	#[serde(deserialize_with = "de_string_list_to_bytes_list")]
-	params: Vec<Vec<u8>>,
+	pub params: Vec<Vec<u8>>,
 }
 
 #[derive(Deserialize, Encode, Decode)]
 pub struct  JsonRpcResponse<T> {
-	id: u32,
+	pub id: u32,
 	#[serde(deserialize_with = "de_string_to_bytes")]
-	jsonrpc: Vec<u8>,
-	response: T,
+	pub jsonrpc: Vec<u8>,
+	pub response: T,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CallResponse {
+	#[serde(deserialize_with = "de_string_to_bytes")]
+	result: Vec<u8>,
+}
+
+impl ToJson for TransactionV2 {
+	type BaseType = TransactionV2;
+	fn to_json(&self) -> Vec<u8> {
+		let j = match self {
+			TransactionV2::Legacy(tx) => json!({
+			}),
+			TransactionV2::EIP1559(tx) => json!({
+
+			}),
+			TransactionV2::EIP2930(tx) => json!({
+
+			})
+		};
+		Vec::from(j.as_str().unwrap().as_bytes())
+	}
 }
 
 fn fetch_json_rpc_body(
@@ -194,7 +217,7 @@ impl QuantumPortalContract {
 		finalizers: &[H256],
 		context: &QpContext,
 	) -> ChainRequestResult<TransactionV2> {
-		// TODO: We need to encode the method. 'ethabi' cannot be imported
+		// TODO: We need to encode the method. 'ethabi-nostd' cannot be imported
 		// because of sp_std, so here are the alternatives:
 		// - Manually construct the function call as [u8].
 		// function finalize(

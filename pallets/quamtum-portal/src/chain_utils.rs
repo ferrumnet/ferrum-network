@@ -2,6 +2,7 @@ use crate::chain_utils::ChainRequestError::ConversionError;
 
 pub struct ChainUtils;
 use sp_std::{str};
+use sp_std::prelude::*; //vec::{Vec};
 
 #[derive(Debug)]
 pub enum ChainRequestError {
@@ -10,6 +11,11 @@ pub enum ChainRequestError {
     ConversionError,
 	ErrorCreatingTransaction,
 	RemoteBlockAlreadyMined,
+}
+
+pub trait ToJson {
+    type BaseType;
+    fn to_json(&self) -> Vec<u8>;
 }
 
 pub type ChainRequestResult<T> = Result<T, ChainRequestError>;

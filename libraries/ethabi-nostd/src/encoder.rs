@@ -9,7 +9,7 @@
 //! ABI encoder.
 
 use crate::{util::pad_u32, Token, Word};
-use tiny_keccak::{Hasher, Sha3, Keccak};
+use tiny_keccak::{Hasher, Keccak};
 use sp_std::prelude::*; //vec::{Vec};
 
 fn pad_bytes(bytes: &[u8]) -> Vec<Word> {
@@ -130,9 +130,13 @@ pub fn encode(tokens: &[Token]) -> Vec<u8> {
 }
 
 pub fn encode_function(signature: &str, inputs: &[Token]) -> Vec<u8> {
+    encode_function_u8(signature.as_bytes(), inputs)
+}
+
+pub fn encode_function_u8(signature: &[u8], inputs: &[Token]) -> Vec<u8> {
     let mut signed: [u8; 4] = [0; 4];
     let mut sponge = Keccak::v256();
-    sponge.update(signature.as_ref());
+    sponge.update(signature);
     sponge.finalize(&mut signed);
     let encoded = encode(inputs);
     signed.to_vec().into_iter().chain(encoded.into_iter()).collect()

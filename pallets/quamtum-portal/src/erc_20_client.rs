@@ -1,71 +1,82 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use crate::chain_queries::{ChainQueries, fetch_json_rpc, JsonRpcRequest, CallResponse};
+use crate::chain_queries::{ChainQueries, fetch_json_rpc, JsonRpcRequest, CallResponse, de_string_to_bytes};
 use sp_core::{ H256, U256 };
 use sp_std::{str};
 use ethereum::{Account, LegacyTransaction, TransactionAction, TransactionSignature, TransactionV2};
 use hex_literal::hex;
 use serde_json::json;
 use ethabi_nostd::encoder;
-use crate::chain_utils::{ChainRequestError, ToJson};
+use crate::chain_utils::{ChainRequestError, ChainUtils, JsonSer, ToJson};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sp_core::crypto::{AccountId32};
-use sp_std::prelude::*; //vec::{Vec};
+use sp_std::prelude::*;
+use crate::contract_client::ContractClient; //vec::{Vec};
 
-struct Erc20Client {
-    http_api: &'static str,
-    contract_address: AccountId32,
+#[derive(Debug, Deserialize)]
+struct TotalSupplyResponse {
+    #[serde(deserialize_with = "de_string_to_bytes")]
+    pub result: Vec<u8>,
 }
 
-// fn encode_input(
-//     path: &str,
-//     name_or_signature: &str,
-//     values: &[Vec<u8>],
-//     lenient: bool) -> anyhow::Result<Vec<u8>> {
-//     let function = load_function(path, name_or_signature)?;
-//
-//     let params: Vec<_> =
-//         function.inputs.iter().map(|param| param.kind.clone()).zip(values.iter().map(|v| v as &str)).collect();
-//
-//     let tokens = parse_tokens(&params, lenient)?;
-//     let result = function.encode_input(&tokens)?;
-//
-//     Ok(result)
-// }
-//
+pub struct Erc20Client {
+    contract: ContractClient,
+}
+
 impl Erc20Client {
-    pub fn new(
-        http_api: &'static str,
-        contract_address: &AccountId32,
-    ) -> Self {
+    pub fn new(client: ContractClient) -> Self {
         Erc20Client {
-            http_api,
-            contract_address: contract_address.clone(),
+            contract: client,
         }
     }
 
     pub fn total_supply(&self) -> Result<U256, ChainRequestError> {
-        let signature = "totalSupply()";
-        let encoded = encoder::encode_function(signature, &[]);
-        // let addr = self.contract_address.as_slice();
-        // log::info!("About to get total supply for {}", &str::from_utf8(addr).unwrap());
-        let call = TransactionV2::Legacy(LegacyTransaction {
-            nonce: Default::default(),
-            gas_price: Default::default(),
-            gas_limit: Default::default(),
-            action: TransactionAction::Create,
-            value: Default::default(),
-            input: vec![],
-            signature: TransactionSignature::new(0, H256::zero(), H256::zero()).unwrap()
-        });
-        let req = JsonRpcRequest {
-            id: 1,
-            params: Vec::from([call.to_json(), Vec::from("latest".as_bytes())]),
-            method: b"eth_call".to_vec(),
-        };
-        log::info!("Have request {:?}", &req);
-        let res: Box<CallResponse> = fetch_json_rpc(self.http_api, &req)?;
-        log::info!("Result is {:?}", &res);
-        Ok(U256::zero())
+        let signature = b"totalSupply()";
+        let mut res: Box<TotalSupplyResponse> = self.contract.call(signature, &[])?;
+        let res_str = str::from_utf8(res.result.as_slice()).unwrap();
+        log::info!("result {}", res_str);
+        let mut bytes: [u8;32] = [0 as u8;32];
+        res.result.remove(0);
+        res.result.remove(1);
+        log::info!("result as u256 {:?}", &res.result);
+        hex::decode_to_slice(res.result.as_slice(), &mut bytes);
+        log::info!("result as u256 {:?}", &bytes);
+        Ok(U256::from(bytes))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::erc_20_client::{Erc20Client};
+    use sp_std::prelude::*; //vec::{Vec};
+    use sp_core::crypto::{AccountId32, ByteArray};
+    use ethereum::{TransactionRecoveryId, TransactionSignature, TransactionV2,
+                   LegacyTransaction, TransactionAction};
+    use sp_core::H256;
+    use crate::chain_queries::{CallResponse, fetch_json_rpc, JsonRpcRequest};
+    use sp_io::TestExternalities;
+    use sp_core::offchain::{testing, OffchainWorkerExt};
+
+    #[test]
+    fn test_total_supply() {
+        let (offchain, state) = testing::TestOffchainExt::new();
+        let mut t = TestExternalities::default();
+        t.register_extension(OffchainWorkerExt::new(offchain));
+
+        t.execute_with(|| {
+            let rpc_endpoint = "https://rinkeby.infura.io/v3/18b15ac5b3e8447191c6b233dcd2ce14";
+            // println!("==<>====<>===<>===<>===<>===<>===<>===<>===<>===<>==========");
+            // println!("USING {}", &rpc_endpoint);
+            let mut addr_f = [0u8; 32];
+            hex::decode_to_slice("f6832ea221ebfdc2363729721a146e6745354b14000000000000000000000000", &mut addr_f as &mut [u8]);
+            let contract_f = AccountId32::from_slice(&addr_f).unwrap();
+            let erc_20 = Erc20Client::new(
+                rpc_endpoint.clone(),
+                &contract_f
+            );
+            log::info!("Erc20 address got");
+            let ts = erc_20.total_supply();
+            log::info!("Total supply got {:?}", &ts);
+        })
     }
 }

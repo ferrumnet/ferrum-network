@@ -16,7 +16,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::json;
 use sp_runtime::offchain::http::HttpResult;
 use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
-use crate::chain_utils::{ChainRequestError, ChainRequestResult, ToJson};
+use crate::chain_utils::{ChainRequestError, ChainRequestResult, ToJson, JsonSer};
 use crate::chain_utils::ChainUtils;
 use sp_core::{ H256 };
 use ethereum::{LegacyTransaction, TransactionV2};
@@ -66,23 +66,46 @@ pub struct  JsonRpcResponse<T> {
 #[derive(Debug, Deserialize)]
 pub struct CallResponse {
 	#[serde(deserialize_with = "de_string_to_bytes")]
-	result: Vec<u8>,
+	pub result: Vec<u8>,
 }
 
 impl ToJson for TransactionV2 {
 	type BaseType = TransactionV2;
 	fn to_json(&self) -> Vec<u8> {
+		let mut j = JsonSer::new();
 		let j = match self {
-			TransactionV2::Legacy(tx) => json!({
-			}),
-			TransactionV2::EIP1559(tx) => json!({
-
-			}),
-			TransactionV2::EIP2930(tx) => json!({
-
-			})
+			TransactionV2::Legacy(tx) =>
+				j
+					.start()
+					.string("nonce",
+							str::from_utf8(ChainUtils::u256_to_hex_0x(&tx.nonce).as_slice()).unwrap())
+					.string("gas_price",
+							str::from_utf8(ChainUtils::u256_to_hex_0x(&tx.gas_price).as_slice()).unwrap())
+					.string("gas_limit",
+							str::from_utf8(ChainUtils::u256_to_hex_0x(&tx.gas_limit).as_slice()).unwrap())
+					// .string("action",
+					// 		str::from_utf8(ChainUtils::u256_to_hex_0x(&tx.action).as_slice()).unwrap())
+					.string("value",
+							str::from_utf8(ChainUtils::u256_to_hex_0x(&tx.value).as_slice()).unwrap())
+					.string("input", str::from_utf8(&tx.input).unwrap())
+					.val("signature",
+						str::from_utf8(
+						JsonSer::new()
+							.start()
+							.string("r", str::from_utf8(ChainUtils::h256_to_hex_0x(tx.signature.r()).as_slice()).unwrap())
+							.string("s", str::from_utf8(ChainUtils::h256_to_hex_0x(tx.signature.s()).as_slice()).unwrap())
+							.num("v", tx.signature.v())
+							.end()
+							.to_vec().as_slice()
+						).unwrap()
+					)
+					.end()
+					.to_vec()
+			,
+			TransactionV2::EIP1559(tx) => Vec::new(),
+			TransactionV2::EIP2930(tx) => Vec::new()
 		};
-		Vec::from(j.as_str().unwrap().as_bytes())
+		Vec::from(j)
 	}
 }
 
@@ -90,39 +113,63 @@ fn fetch_json_rpc_body(
 	base_url: &str,
 	req: &JsonRpcRequest,
 ) -> Result<Vec<u8>, ChainRequestError> {
-	let json_req = json!({
-		"id": req.id,
-		"method": str::from_utf8(&req.method).unwrap(),
-		"jsonrpc": "2.0"
+	let mut params = JsonSer::new();
+	(&req.params).into_iter().for_each(|p| {
+		params.arr_val(str::from_utf8(p.as_slice()).unwrap());
+		()
 	});
-	let json_req_s = serde_json::to_vec(&json_req).unwrap();
-	log::info!("About to submit {}", str::from_utf8(&json_req_s).unwrap());
-	let request = http::Request::post(base_url, [&json_req_s]);
+	let mut json_req = JsonSer::new();
+	let json_req_s = json_req
+		.start()
+		.num("id", req.id as u64)
+		.string("method", str::from_utf8(&req.method).unwrap())
+		.string("jsonrpc", "2.0")
+		.arr("params",
+			str::from_utf8(params.to_vec().as_slice()).unwrap()
+		)
+		.end()
+		.to_vec();
+	// let json_req_s = serde_json::to_vec(&json_req).unwrap();
+	// println!("About to submit {}", str::from_utf8(&json_req_s).unwrap());
+	let json_req_str = str::from_utf8(&json_req_s).unwrap();
+	log::info!("About to submit {}, {} == {:?}", json_req_str, json_req_s.len(), json_req_s);
+	let request: http::Request<Vec<&[u8]>> = http::Request::post(base_url,
+	 Vec::from([json_req_s.as_slice()]));
+	// let request = http::Request::post(base_url,
+	//  Vec::from(["{\"id\":1,\"method\":\"eth_chainId\",\"jsonrpc\":\"2.0\",\"params\":[]}".as_bytes()]));
+	// let request: http::Request<Vec<&[u8]>> = http::Request::post(base_url,
+	// 	 vec![Vec::from("{\"id\":1,\"method\":\"eth_chainId\",\"jsonrpc\":\"2.0\"}".as_bytes())]);
 	// Keeping the offchain worker execution time reasonable, so limiting the call to be within 3s.
 	let timeout = sp_io::offchain::timestamp()
 		.add(Duration::from_millis(FETCH_TIMEOUT_PERIOD));
 
 	let pending = request
 		// .deadline(timeout) // Setting the timeout time
+		.add_header("Content-Type", "application/json")
 		.send() // Sending the request out by the host
 		.map_err(|e| {
 			log::info!("An ERROR HAPPNED!");
+			// println!("ERRROOOORRRR {:?}", e);
 			log::error!("{:?}", e);
 			ChainRequestError::ErrorGettingJsonRpcResponse
 		})?;
 
 	log::info!("Pendool!");
+	// println!("Pendool!");
 	// By default, the http request is async from the runtime perspective. So we are asking the
 	//   runtime to wait here
 	// The returning value here is a `Result` of `Result`, so we are unwrapping it twice by two `?`
 	//   ref: https://docs.substrate.io/rustdocs/latest/sp_runtime/offchain/http/struct.PendingRequest.html#method.try_wait
 	let response_a = pending.try_wait(timeout);
+	// let response_0 = pending.wait();
 	let response_0 = match response_a {
 		Ok(r) => {
+			// println!("Result got");
 			log::info!("Result got");
 			Ok(r)
 		},
 		Err(e) => {
+			// println!("ERRROOOORRRR AFDTER {:?}", e);
 			log::info!("An ERROR HAPPNED!");
 			log::info!("An ERROR HAPPNED UYPOOOOOOOOOOO ! {:?}", e);
 			Err(ChainRequestError::ErrorGettingJsonRpcResponse)
@@ -154,14 +201,15 @@ fn fetch_json_rpc_body(
 	// 	})?;
 
 	log::info!("Response is ready!");
-	log::info!("Response code got : {}", &response.code);
+	let body = response.body().collect::<Vec<u8>>().clone();
+	log::info!("Response code got : {}-{}", &response.code, str::from_utf8(&body.as_slice()).unwrap());
 
 	if response.code != 200 {
 		log::error!("Unexpected http request status code: {}", response.code);
 		return Err(ChainRequestError::ErrorGettingJsonRpcResponse)
 	}
 
-	Ok(response.body().collect::<Vec<u8>>().clone())
+	Ok(body)
 }
 
 pub fn fetch_json_rpc<T>(
@@ -169,8 +217,10 @@ pub fn fetch_json_rpc<T>(
 	req: &JsonRpcRequest,
 ) -> Result<Box<T>, ChainRequestError>
 where T: for<'de> Deserialize<'de> {
+	// println!("fetchin {} : {:?}", base_url, req);
 	let body = fetch_json_rpc_body(base_url, req)?;
-	// log::info!("Response body got : {}", str::from_utf8(&body).unwrap());
+	// println!("Response body got : {}", str::from_utf8(&body).unwrap());
+	log::info!("Response body got : {}", str::from_utf8(&body).unwrap());
 	let rv: serde_json::Result<T> = serde_json::from_slice(&body);
 	match rv {
 		Err(err) => {

@@ -6,11 +6,13 @@ mod chain_queries;
 mod chain_utils;
 mod qp_types;
 mod erc_20_client;
+mod contract_client;
 
 #[frame_support::pallet]
 pub mod pallet {
 	//! A demonstration of an offchain worker that sends onchain callbacks
 	use core::{convert::TryInto};
+	use sp_std::ops::Div;
 	use parity_scale_codec::{Decode, Encode};
 	use frame_support::pallet_prelude::*;
 	use frame_system::{
@@ -20,7 +22,7 @@ pub mod pallet {
 			SignedPayload, Signer, SigningTypes, SubmitTransaction,
 		},
 	};
-	use sp_core::{crypto::KeyTypeId};
+	use sp_core::{crypto::KeyTypeId, U256};
 	use sp_runtime::{
 		offchain::{
 			http,
@@ -37,7 +39,10 @@ pub mod pallet {
 	use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
 
 	use serde::{Deserialize, Deserializer};
+	use sp_core::crypto::{AccountId32, ByteArray};
 	use crate::chain_queries::ChainQueries;
+	use crate::contract_client::ContractClient;
+	use crate::erc_20_client::Erc20Client;
 
 	/// Defines application identifier for crypto keys of this module.
 	///
@@ -181,13 +186,30 @@ pub mod pallet {
 
 			log::info!("Hello from pallet-ocw.");
 			// Run a chain query as an example.
+			// let rpc_endpoint = "https://test1234.requestcatcher.com/test";
 			let rpc_endpoint = "https://rinkeby.infura.io/v3/18b15ac5b3e8447191c6b233dcd2ce14";
-			let chain_id = ChainQueries::chain_id(rpc_endpoint);
-			match chain_id {
-				Ok(cid) =>
-					log::info!("Chain ID fetched: {} ", cid),
+			// let chain_id = ChainQueries::chain_id(rpc_endpoint);
+			// match chain_id {
+			// 	Ok(cid) =>
+			// 		log::info!("Chain ID fetched: {} ", cid),
+			// 	Err(e) =>
+			// 		log::error!("Error!: {:?} ", e)
+			// }
+			let contract_f = "0x34dcdf527bf0933d63b648c771cba1a1cce1ff15";
+			log::info!("Contract address got: {:?}", contract_f);
+			let client = ContractClient::new(rpc_endpoint.clone(), contract_f);
+			let erc_20 = Erc20Client::new(client);
+			log::info!("Erc20 address got");
+			let ts = erc_20.total_supply();
+			log::info!("Total supply got {:?}", &ts);
+			match ts {
+				Ok(cid) => {
+					log::info!("Total Supply fetched: {} ", cid);
+					let num = cid.div(U256::from((10 as u64).pow(18))).as_u64();
+					log::info!("Total Supply fetched human readable: {} ", num);
+				},
 				Err(e) =>
-					log::error!("Error!: {:?} ", e)
+					log::error!("Error getting ts!: {:?} ", e)
 			}
 
 			// const TX_TYPES: u32 = 1;

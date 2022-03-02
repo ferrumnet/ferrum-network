@@ -33,13 +33,13 @@ impl Erc20Client {
     pub fn total_supply(&self) -> Result<U256, ChainRequestError> {
         let signature = b"totalSupply()";
         let mut res: Box<TotalSupplyResponse> = self.contract.call(signature, &[])?;
+        res.result.remove(0);
+        res.result.remove(0);
         let res_str = str::from_utf8(res.result.as_slice()).unwrap();
         log::info!("result {}", res_str);
         let mut bytes: [u8;32] = [0 as u8;32];
-        res.result.remove(0);
-        res.result.remove(1);
         log::info!("result as u256 {:?}", &res.result);
-        hex::decode_to_slice(res.result.as_slice(), &mut bytes);
+        hex::decode_to_slice(res_str, &mut bytes);
         log::info!("result as u256 {:?}", &bytes);
         Ok(U256::from(bytes))
     }

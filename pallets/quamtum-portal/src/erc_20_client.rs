@@ -1,12 +1,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use crate::chain_queries::{ChainQueries, fetch_json_rpc, JsonRpcRequest, CallResponse, de_string_to_bytes};
-use sp_core::{ H256, U256 };
+use sp_core::{ecdsa, H160, H256, U256};
 use sp_std::{str};
 use ethereum::{Account, LegacyTransaction, TransactionAction, TransactionSignature, TransactionV2};
 use hex_literal::hex;
 use serde_json::json;
-use ethabi_nostd::encoder;
+use ethabi_nostd::{Address, encoder, Token};
 use crate::chain_utils::{ChainRequestError, ChainUtils, JsonSer, ToJson};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sp_core::crypto::{AccountId32};
@@ -43,6 +43,30 @@ impl Erc20Client {
         log::info!("result as u256 {:?}", &bytes);
         Ok(U256::from(bytes))
     }
+
+    pub fn approve(&self,
+        pair: ecdsa::Public,
+        from: Address,
+        approvee: Address,
+        amount: U256,
+    ) -> Result<H256, ChainRequestError> {
+        let signature = b"approve(address,uint256)";
+        let res = self.contract.send(
+        signature,
+            &[
+                Token::Address(approvee), // TODO convert address
+                Token::Uint(amount),
+            ],
+            pair,
+            self.contract.chain_id,
+            from,
+            None,
+            U256::zero(), // TODO: Get the gas priuce
+            U256::zero(),
+            None
+        )?;
+        Ok(res)
+    }
 }
 
 #[cfg(test)]
@@ -56,6 +80,7 @@ mod tests {
     use crate::chain_queries::{CallResponse, fetch_json_rpc, JsonRpcRequest};
     use sp_io::TestExternalities;
     use sp_core::offchain::{testing, OffchainWorkerExt};
+    use crate::contract_client::ContractClient;
 
     #[test]
     fn test_total_supply() {
@@ -70,10 +95,11 @@ mod tests {
             let mut addr_f = [0u8; 32];
             hex::decode_to_slice("f6832ea221ebfdc2363729721a146e6745354b14000000000000000000000000", &mut addr_f as &mut [u8]);
             let contract_f = AccountId32::from_slice(&addr_f).unwrap();
-            let erc_20 = Erc20Client::new(
+            let client = ContractClient::new(
                 rpc_endpoint.clone(),
-                &contract_f
-            );
+                "",
+                4 as u64);
+            let erc_20 = Erc20Client::new(client);
             log::info!("Erc20 address got");
             let ts = erc_20.total_supply();
             log::info!("Total supply got {:?}", &ts);

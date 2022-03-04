@@ -193,6 +193,18 @@ fn testnet_genesis(
 						storage: Default::default(),
 					},
 				);
+				map.insert(
+					// H160 address of CI test runner account
+					H160::from_str("0bdb79846e8331a19a65430363f240ec8acc2a52")
+						.expect("internal H160 is valid; qed"),
+					pallet_evm::GenesisAccount {
+						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
+							.expect("internal U256 is valid; qed"),
+						code: Default::default(),
+						nonce: Default::default(),
+						storage: Default::default(),
+					},
+				);
 				map
 			},
 		},

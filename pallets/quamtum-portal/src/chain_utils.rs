@@ -1,3 +1,4 @@
+use ethereum::TransactionSignature;
 use parity_scale_codec::Encode;
 use crate::chain_utils::ChainRequestError::ConversionError;
 
@@ -6,6 +7,12 @@ use sp_std::{str};
 use sp_std::prelude::*;
 use ethabi_nostd::{U256, H256}; //vec::{Vec};
 use numtoa::NumToA;
+use sp_core::{ecdsa};
+use sp_io::crypto;
+use libsecp256k1;
+use frame_system::offchain::CreateSignedTransaction;
+use libsecp256k1::Signature;
+use crate::KEY_TYPE;
 
 #[derive(Debug)]
 pub enum ChainRequestError {
@@ -98,6 +105,43 @@ impl ChainUtils {
         zx.extend(fmted.into_iter().map(|i| i + '0' as u8));
         zx
     }
+
+    pub fn empty_signature() -> TransactionSignature {
+        const LOWER: H256 = H256([
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01,
+        ]);
+        TransactionSignature::new(28, LOWER, LOWER).unwrap()
+    }
+
+    pub fn sign_transaction_hash (
+        key_pair: &ecdsa::Public,
+        hash: &H256,
+        chain_id: u64) -> ChainRequestResult<TransactionSignature> {
+        let sig: ecdsa::Signature = crypto::ecdsa_sign(
+            KEY_TYPE,
+            key_pair,
+            &hash.0,
+        ).unwrap();
+        let signature = sig.0;
+        let sig = libsecp256k1::Signature::parse_standard_slice(&signature[..64])
+            .map_err(|e| {
+                log::error!("Error sign_transaction_hash {:?}", e);
+                ChainRequestError::ErrorCreatingTransaction
+            })?;
+        let recovery_id = libsecp256k1::RecoveryId::parse(signature[64])
+            .map_err(|e| {
+                log::error!("Error sign_transaction_hash {:?}", e);
+                ChainRequestError::ErrorCreatingTransaction
+            })?;
+        let rid = chain_id * 2 + 35 + recovery_id.serialize() as u64;
+        Ok(TransactionSignature::new(
+            rid,
+            H256::from_slice(&signature[0..32]),
+            H256::from_slice(&signature[32..64]),
+        ).ok_or_else(|| ChainRequestError::ErrorCreatingTransaction)?)
+    }
 }
 
 pub struct JsonSer {
@@ -160,6 +204,12 @@ impl JsonSer {
         self.buff.push('"' as u8);
         self.empty = false;
         self
+    }
+
+    pub fn u256(&mut self, name: &str, value: &U256) -> &mut Self {
+        self.string(
+            name,
+            str::from_utf8(ChainUtils::u256_to_hex_0x(&value).as_slice()).unwrap())
     }
 
     pub fn num(&mut self, name: &str, val: u64) -> &mut Self {

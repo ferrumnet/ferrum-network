@@ -197,7 +197,8 @@ pub mod pallet {
 			// }
 			let contract_f = "0x34dcdf527bf0933d63b648c771cba1a1cce1ff15";
 			log::info!("Contract address got: {:?}", contract_f);
-			let client = ContractClient::new(rpc_endpoint.clone(), contract_f);
+			let client = ContractClient::new(
+				rpc_endpoint.clone(), contract_f, 4);
 			let erc_20 = Erc20Client::new(client);
 			log::info!("Erc20 address got");
 			let ts = erc_20.total_supply();

@@ -4,6 +4,7 @@ use crate::chain_queries::{ChainQueries, fetch_json_rpc, JsonRpcRequest, CallRes
 use sp_core::{ecdsa, H160, H256, U256};
 use sp_std::{str};
 use ethereum::{Account, LegacyTransaction, TransactionAction, TransactionSignature, TransactionV2};
+use frame_system::offchain::SigningTypes;
 use hex_literal::hex;
 use serde_json::json;
 use ethabi_nostd::{Address, encoder, Token};
@@ -45,10 +46,10 @@ impl Erc20Client {
     }
 
     pub fn approve(&self,
-        pair: ecdsa::Public,
-        from: Address,
         approvee: Address,
         amount: U256,
+        from: Address,
+        signer: fn(&H256) -> ecdsa::Signature,
     ) -> Result<H256, ChainRequestError> {
         let signature = b"approve(address,uint256)";
         let res = self.contract.send(
@@ -57,13 +58,12 @@ impl Erc20Client {
                 Token::Address(approvee), // TODO convert address
                 Token::Uint(amount),
             ],
-            pair,
-            self.contract.chain_id,
-            from,
-            None,
-            U256::zero(), // TODO: Get the gas priuce
+            Some(U256::from(100000)),
+            U256::from(2000000000 as u64), // TODO: Get the gas price
             U256::zero(),
-            None
+            None,
+            from,
+            signer,
         )?;
         Ok(res)
     }

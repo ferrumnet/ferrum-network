@@ -129,17 +129,10 @@ fn fetch_json_rpc_body(
 		)
 		.end()
 		.to_vec();
-	// let json_req_s = serde_json::to_vec(&json_req).unwrap();
-	// println!("About to submit {}", str::from_utf8(&json_req_s).unwrap());
 	let json_req_str = str::from_utf8(&json_req_s).unwrap();
-	log::info!("About to submit {}, {} == {:?}", json_req_str, json_req_s.len(), json_req_s);
+	log::info!("About to submit {}", json_req_str);
 	let request: http::Request<Vec<&[u8]>> = http::Request::post(base_url,
 	 Vec::from([json_req_s.as_slice()]));
-	// let request = http::Request::post(base_url,
-	//  Vec::from(["{\"id\":1,\"method\":\"eth_chainId\",\"jsonrpc\":\"2.0\",\"params\":[]}".as_bytes()]));
-	// let request: http::Request<Vec<&[u8]>> = http::Request::post(base_url,
-	// 	 vec![Vec::from("{\"id\":1,\"method\":\"eth_chainId\",\"jsonrpc\":\"2.0\"}".as_bytes())]);
-	// Keeping the offchain worker execution time reasonable, so limiting the call to be within 3s.
 	let timeout = sp_io::offchain::timestamp()
 		.add(Duration::from_millis(FETCH_TIMEOUT_PERIOD));
 

@@ -1649,6 +1649,7 @@ dependencies = [
  "futures 0.3.21",
  "jsonrpc-core",
  "jsonrpc-pubsub",
+ "libsecp256k1",
  "log",
  "pallet-base-fee",
  "pallet-dynamic-fee",
@@ -1679,6 +1680,7 @@ dependencies = [
  "sp-core",
  "sp-finality-grandpa",
  "sp-inherents",
+ "sp-keystore",
  "sp-runtime",
  "sp-timestamp",
  "substrate-build-script-utils",
@@ -1697,6 +1699,7 @@ dependencies = [
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
+ "log",
  "pallet-aura",
  "pallet-balances",
  "pallet-base-fee",
@@ -4413,6 +4416,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "tiny-keccak",
 ]
 
 [[package]]

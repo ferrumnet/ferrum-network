@@ -226,6 +226,10 @@ default-features = false
 git = 'https://github.com/paritytech/substrate'
 version = '4.0.0-dev'
 
+[dependencies.log]
+version = "0.4.14"
+default-features = false
+
 [features]
 aura = []
 default = [
@@ -254,6 +258,7 @@ std = [
     'sp-runtime/std',
     'sp-session/std',
     'sp-std/std',
+    'log/std',
     'sp-transaction-pool/std',
     'sp-version/std',
     'frame-executive/std',

@@ -11,14 +11,14 @@ use rlp::{Encodable};
 #[derive(Debug, Clone)]
 pub struct ContractClient {
     pub http_api: &'static str,
-    pub contract_address: &'static str,
+    pub contract_address: Address,
     pub chain_id: u64,
 }
 
 impl ContractClient {
     pub fn new(
         http_api: &'static str,
-        contract_address: &'static str,
+        contract_address: &Address,
         chain_id: u64,
     ) -> Self {
         ContractClient {
@@ -43,7 +43,8 @@ impl ContractClient {
         let call_json = JsonSer::new()
             .start()
             .string("input", encoded)
-            .string("to", self.contract_address)
+            .string("to", str::from_utf8(
+                ChainUtils::address_to_hex(self.contract_address).as_slice()).unwrap())
             .end()
             .to_vec();
         log::info!("call_json is {}", str::from_utf8(&call_json).unwrap());
@@ -60,15 +61,13 @@ impl ContractClient {
         &self,
         method_signature: &[u8],
         inputs: &[Token],
-        pair: ecdsa::Public,
-        chain_id: u64,
-        from: Address,
         gas_limit: Option<U256>,
         gas_price: U256,
         value: U256,
         nonce: Option<U256>,
+        from: Address,
+        signer: fn(&H256) -> ecdsa::Signature,
     ) -> Result<H256, ChainRequestError> {
-        // TODO: consider getting "from" address from the Key Pair
         let encoded_bytes = encoder::encode_function_u8(method_signature, inputs);
         let encoded_bytes_0x = ChainUtils::bytes_to_hex(&encoded_bytes.as_slice());
         let encoded_bytes_slice = encoded_bytes_0x.as_slice();
@@ -77,7 +76,7 @@ impl ContractClient {
         log::info!("encoded {}", encoded);
         let nonce_val = match nonce {
             None => {
-                // TODO: Get nonce
+                // TODO: Get nonce for "from"
                 U256::zero()
             },
             Some(v) => v,
@@ -91,24 +90,26 @@ impl ContractClient {
         };
         let mut tx = LegacyTransaction {
             nonce: nonce_val,
-            gas_price: gas_price,
+            gas_price,
             gas_limit: gas_limit_val,
-            action: TransactionAction::Create,
-            value: value,
+            action: TransactionAction::Call(self.contract_address),
+            value,
             input: encoded_bytes,
             signature: ChainUtils::empty_signature(),
         };
         let hash = tx.hash();
-        // let sig = ChainUtils::sign_transaction_hash(
-        //     pair, &hash, chain_id)?;
-        let sig = ChainUtils::empty_signature();
+        let sig_bytes: ecdsa::Signature = signer(&hash);
+        let sig = ChainUtils::decode_transaction_signature(
+            &sig_bytes.0, self.chain_id)?;
         tx.signature = sig;
 
         let raw_tx = tx.rlp_bytes();
         let hex_tx = ChainUtils::bytes_to_hex(&raw_tx);
+        let hex_tx_fmtd = ChainUtils::wrap_in_quotes(
+            ChainUtils::hex_add_0x(hex_tx.as_slice()).as_slice());
         let req = JsonRpcRequest {
             id: 1,
-            params: Vec::from([hex_tx]),
+            params: Vec::from([hex_tx_fmtd]),
             method: b"eth_sendRawTransaction".to_vec(),
         };
         log::info!("Have request {:?}", &req);

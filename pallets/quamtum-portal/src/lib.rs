@@ -22,26 +22,28 @@ pub mod pallet {
 			SignedPayload, Signer, SigningTypes, SubmitTransaction,
 		},
 	};
-	use sp_core::{crypto::KeyTypeId, U256};
-	use sp_runtime::{
-		offchain::{
-			http,
-			storage::StorageValueRef,
-			storage_lock::{BlockAndTime, StorageLock},
-			Duration,
-		},
-		traits::BlockNumberProvider,
-		transaction_validity::{
-			InvalidTransaction, TransactionSource, TransactionValidity, ValidTransaction,
-		},
-		RuntimeDebug,
-	};
+	use frame_system::offchain::SignMessage;
+	use libsecp256k1::Message;
+	use sp_core::{crypto::KeyTypeId, H160, U256};
+	use sp_runtime::{offchain::{
+		http,
+		storage::StorageValueRef,
+		storage_lock::{BlockAndTime, StorageLock},
+		Duration,
+	}, traits::BlockNumberProvider, transaction_validity::{
+		InvalidTransaction, TransactionSource, TransactionValidity, ValidTransaction,
+	}, RuntimeDebug, MultiSignature};
 	use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
-
+	use sp_core::{ecdsa};
 	use serde::{Deserialize, Deserializer};
 	use sp_core::crypto::{AccountId32, ByteArray};
+	use sp_runtime::MultiSignature::Ecdsa;
+	use sp_runtime::traits::AccountIdConversion;
+	use ethabi_nostd::Address;
 	use crate::chain_queries::ChainQueries;
+	use crate::chain_utils::{ChainUtils, EMPTY_HASH};
 	use crate::contract_client::ContractClient;
+	use crate::crypto::TestAuthId;
 	use crate::erc_20_client::Erc20Client;
 
 	/// Defines application identifier for crypto keys of this module.
@@ -51,7 +53,7 @@ pub mod pallet {
 	/// When an offchain worker is signing transactions it's going to request keys from type
 	/// `KeyTypeId` via the keystore to sign the transaction.
 	/// The keys can be inserted manually via RPC (see `author_insertKey`).
-	pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"demo");
+	pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"dem!");
 	const NUM_VEC_LEN: usize = 10;
 	/// The type to sign and send transactions.
 	const UNSIGNED_TXS_PRIORITY: u64 = 100;
@@ -68,31 +70,90 @@ pub mod pallet {
 	/// We can utilize the supported crypto kinds (`sr25519`, `ed25519` and `ecdsa`) and augment
 	/// them with the pallet-specific identifier.
 	pub mod crypto {
+		use libsecp256k1::{ECMULT_CONTEXT, Message};
+		use log::log;
+		use parity_scale_codec::Encode;
+		use sp_core::{sr25519};
 		use crate::KEY_TYPE;
-		use sp_core::sr25519::Signature as Sr25519Signature;
+		use sp_core::ecdsa::{Signature as EcdsaSignagure};
 		use sp_std::prelude::*;
 		use sp_runtime::{
-			app_crypto::{app_crypto, sr25519},
+			app_crypto::{app_crypto, ecdsa},
 			traits::Verify, MultiSignature, MultiSigner
 		};
+		use sp_runtime::MultiSigner::Ecdsa;
+		use sp_std::str;
+		use crate::chain_utils::ChainUtils;
 
-		app_crypto!(sr25519, KEY_TYPE);
+		app_crypto!(ecdsa, KEY_TYPE);
+		// app_crypto!(sr25519, KEY_TYPE);
 
 		pub struct TestAuthId;
 		// implemented for runtime
 		impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for TestAuthId {
 			type RuntimeAppPublic = Public;
-			type GenericSignature = sp_core::sr25519::Signature;
-			type GenericPublic = sp_core::sr25519::Public;
+			type GenericSignature = sp_core::ecdsa::Signature; // sr25519::Signature;
+			type GenericPublic = sp_core::ecdsa::Public;
+			// sr25519::Public;
+			// type GenericSignature = sp_core::sr25519::Signature;
+			// type GenericPublic = sp_core::sr25519::Public;
+			fn sign(payload: &[u8], public: MultiSigner) -> Option<MultiSignature> {
+				let ecdsa_pub = match public {
+					Ecdsa(p) => p,
+					_ => panic!("Wrong public type"),
+				};
+				let hash = ChainUtils::keccack(payload);
+				let sig = ChainUtils::sign_transaction_hash(
+					&ecdsa_pub, &hash).unwrap();
+				log::info!("Pub is {:?}", ecdsa_pub.0);
+				// Get the long pub and hence the address of the signer
+				let lk = libsecp256k1::PublicKey::parse_slice(&ecdsa_pub.0, None).unwrap();
+				let lks = lk.serialize();
+				log::info!("Pub long ass {:?}", lks);
+				let addr0 = ChainUtils::eth_address_from_public_key(&lks[1..]);
+				log::info!("Addr {:?}", addr0.as_slice());
+				log::info!("Addr {:?}", str::from_utf8(ChainUtils::bytes_to_hex(addr0.as_slice()).as_slice()).unwrap());
+
+				let mut buf: [u8; 65] = [0; 65];
+				buf.copy_from_slice(sig.as_slice());
+				let signature = ecdsa::Signature(buf);
+				log::info!("Signing msg: {} - {}",
+					str::from_utf8(ChainUtils::bytes_to_hex(hash.as_bytes()).as_slice()).unwrap(),
+					str::from_utf8(ChainUtils::bytes_to_hex(sig.as_slice()).as_slice()).unwrap(),
+				);
+
+				// Recover to make sure
+				let msg = Message::parse_slice(&hash.0).unwrap();
+				let sig2 = libsecp256k1::Signature::parse_standard_slice(&sig.as_slice()[..64]).unwrap();
+				let rec = &libsecp256k1::RecoveryId::parse(sig[64]).unwrap();
+				let rec = ECMULT_CONTEXT.recover_raw(&sig2.r, &sig2.s,
+				rec.serialize(), &msg.0).unwrap();
+				let the_pub = libsecp256k1::PublicKey::try_from(rec).unwrap();
+				let the_pub = the_pub.serialize();
+				log::info!("the pub {:?}", the_pub);
+				let the_pub_s = ChainUtils::bytes_to_hex(the_pub.as_slice());
+				log::info!("pubsize is {}", &the_pub.len());
+				let add_s = ChainUtils::eth_address_from_public_key(&the_pub.as_slice()[1..]);
+				log::info!("Recovered pub is {}", str::from_utf8(the_pub_s.as_slice()).unwrap());
+				log::info!("Recovered addr is {}", str::from_utf8(ChainUtils::bytes_to_hex(add_s.as_slice()).as_slice()).unwrap());
+				Some(MultiSignature::Ecdsa(signature))
+			}
 		}
 
 		// implemented for mock runtime in test
-		impl frame_system::offchain::AppCrypto<<Sr25519Signature as Verify>::Signer, Sr25519Signature>
+		impl frame_system::offchain::AppCrypto<<EcdsaSignagure as Verify>::Signer, EcdsaSignagure>
 		for TestAuthId
 		{
 			type RuntimeAppPublic = Public;
-			type GenericSignature = sp_core::sr25519::Signature;
-			type GenericPublic = sp_core::sr25519::Public;
+			type GenericSignature = sp_core::ecdsa::Signature;
+			type GenericPublic = sp_core::ecdsa::Public;
+			// type GenericSignature = sp_core::sr25519::Signature;
+			// type GenericPublic = sp_core::sr25519::Public;
+			// fn sign(payload: &[u8], public: <EcdsaSignagure as Verify>::Signer) -> Option<EcdsaSignagure> {
+			// 	log::info!("SIGN REQEUSTED!");
+			// 	// todo!()
+			// 	None
+			// }
 		}
 	}
 
@@ -131,13 +192,13 @@ pub mod pallet {
 	}
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config /* + CreateSignedTransaction<Call<Self>> */ {
+	pub trait Config: CreateSignedTransaction<Call<Self>> + frame_system::Config {
 		/// The overarching event type.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		/// The overarching dispatch call type.
 		type Call: From<frame_system::Call<Self>>;
 		// /// The identifier type for an offchain worker.
-		// type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
+		type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
 	}
 
 	#[pallet::pallet]
@@ -183,11 +244,40 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn offchain_worker(block_number: T::BlockNumber) {
-
 			log::info!("Hello from pallet-ocw.");
 			// Run a chain query as an example.
 			// let rpc_endpoint = "https://test1234.requestcatcher.com/test";
 			let rpc_endpoint = "https://rinkeby.infura.io/v3/18b15ac5b3e8447191c6b233dcd2ce14";
+
+			// let alice_adress = Address::from_slice(
+			// 	hex::decode("0xd43593c715fdd31c61141abd04a99fd6822c8558")
+			// 		.unwrap().as_slice());
+			// let signer = Signer::<T, T::AuthorityId>::any_account();
+			// // let msg = sp_core::keccak_256(b"Some msg");
+			// log::info!("Signer is {:?}", &signer.can_sign());
+			// log::info!("ID IS {:?}", str::from_utf8(&sp_core::ecdsa::CRYPTO_ID.0).unwrap());
+			// let signed = signer.sign_message(&EMPTY_HASH.0);
+			// let signed_f = signed;
+			// match signed_f {
+			// 	Some((v, s)) => {
+			// 		// let mut buf: [u8; 33] = [0 as u8; 33];
+			// 		// log::info!("PRE buf.copy_from_slice");
+			// 		// buf.copy_from_slice(v.public.encode().as_slice());
+			// 		let public_key = v.public.encode();
+			// 		let public_key = &public_key.as_slice()[1..];
+			// 		log::info!("Pub key dangled {:?}", str::from_utf8(ChainUtils::bytes_to_hex(
+			// 			public_key).as_slice()).unwrap());
+			// 		let addr = ChainUtils::eth_address_from_public_key(&public_key);
+			// 		log::info!("Signer address is {:?}", str::from_utf8(ChainUtils::bytes_to_hex(
+			// 			addr.as_slice()).as_slice()).unwrap());
+			// 		log::info!("And then signature is: {:?}",
+			// 			str::from_utf8(ChainUtils::bytes_to_hex(s.encode().as_slice()).as_slice()).unwrap());
+			// 	},
+			// 	None => {
+			// 		log::info!("No signed msg!");
+			// 	}
+			// };
+
 			// let chain_id = ChainQueries::chain_id(rpc_endpoint);
 			// match chain_id {
 			// 	Ok(cid) =>
@@ -195,23 +285,54 @@ pub mod pallet {
 			// 	Err(e) =>
 			// 		log::error!("Error!: {:?} ", e)
 			// }
-			let contract_f = "0x34dcdf527bf0933d63b648c771cba1a1cce1ff15";
-			log::info!("Contract address got: {:?}", contract_f);
+			let contract_f = ChainUtils::hex_to_address(
+				b"00bdf74f702723a880e46efec4982b3fe9414795");
+			let alice_address = ChainUtils::hex_to_address(
+				b"e04cc55ebee1cbce552f250e85c57b70b2e2625b");
 			let client = ContractClient::new(
-				rpc_endpoint.clone(), contract_f, 4);
+				rpc_endpoint.clone(), &contract_f, 4);
 			let erc_20 = Erc20Client::new(client);
 			log::info!("Erc20 address got");
-			let ts = erc_20.total_supply();
-			log::info!("Total supply got {:?}", &ts);
-			match ts {
-				Ok(cid) => {
-					log::info!("Total Supply fetched: {} ", cid);
-					let num = cid.div(U256::from((10 as u64).pow(18))).as_u64();
-					log::info!("Total Supply fetched human readable: {} ", num);
+			let ts = erc_20.approve(
+				alice_address,
+				U256::from(999999999 as u64),
+				alice_address,
+				|h| {
+					let signer = Signer::<T, T::AuthorityId>::any_account();
+					log::info!("Signer is {:?}", &signer.can_sign());
+					let signed = signer.sign_message(&h.0);
+					let signed_m = match signed {
+						None => panic!("No signature"),
+						Some((a, b)) => {
+							let public_key = a.public.encode();
+							let public_key = &public_key.as_slice()[1..];
+							let addr = ChainUtils::eth_address_from_public_key(
+								public_key);
+							log::info!("Signer address is {:?}", str::from_utf8(ChainUtils::bytes_to_hex(
+								addr.as_slice()).as_slice()).unwrap());
+							b
+						},
+					};
+					let sig_bytes = signed_m.encode();
+					log::info!("Got a signature of size {}: {}", sig_bytes.len(),
+						str::from_utf8(ChainUtils::bytes_to_hex(sig_bytes.as_slice()).as_slice())
+						.unwrap());
+					ecdsa::Signature::try_from(&sig_bytes.as_slice()[1..]).unwrap()
 				},
-				Err(e) =>
-					log::error!("Error getting ts!: {:?} ", e)
-			}
+			).unwrap();
+			log::info!("Sent 'approve' and got tx hash: {}", str::from_utf8(
+				ChainUtils::h256_to_hex_0x(&ts).as_slice()).unwrap());
+			// let ts = erc_20.total_supply();
+			// log::info!("Total supply got {:?}", &ts);
+			// match ts {
+			// 	Ok(cid) => {
+			// 		log::info!("Total Supply fetched: {} ", cid);
+			// 		let num = cid.div(U256::from((10 as u64).pow(18))).as_u64();
+			// 		log::info!("Total Supply fetched human readable: {} ", num);
+			// 	},
+			// 	Err(e) =>
+			// 		log::error!("Error getting ts!: {:?} ", e)
+			// }
 
 			// const TX_TYPES: u32 = 1;
 			// let modu = block_number.try_into().map_or(TX_TYPES, |bn: usize| (bn as u32) % TX_TYPES);

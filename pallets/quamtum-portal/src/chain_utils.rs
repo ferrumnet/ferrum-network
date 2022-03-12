@@ -1,4 +1,4 @@
-use ethereum::TransactionSignature;
+use ethereum::{LegacyTransaction, LegacyTransactionMessage, TransactionSignature};
 use parity_scale_codec::Encode;
 use crate::chain_utils::ChainRequestError::ConversionError;
 
@@ -143,13 +143,35 @@ impl ChainUtils {
     pub fn sign_transaction_hash (
         key_pair: &ecdsa::Public,
         hash: &H256) -> ChainRequestResult<Vec<u8>> {
-        let sig: ecdsa::Signature = crypto::ecdsa_sign(
+        let sig: ecdsa::Signature = crypto::ecdsa_sign_prehashed(
             KEY_TYPE,
             key_pair,
             &hash.0,
         ).unwrap();
         let sig_bytes: &[u8] = &sig.0;
         Ok(Vec::from(sig_bytes))
+    }
+
+    pub fn tx_hash_to_sign(
+        tx: &LegacyTransaction,
+        chain_id: u64,
+    ) -> H256 {
+        let mut msg: LegacyTransactionMessage = ethereum::TransactionV0::from(tx.clone()).into();
+        msg.chain_id = Some(chain_id);
+        msg.hash()
+        // let chain_id_b = chain_id.encode();
+        // s.append(&tx.gas_price);
+        // s.append(&tx.gas_limit);
+        // s.append(&tx.action);
+        // s.append(&tx.value);
+        // s.append(&tx.input);
+        // s.append(s.encoder().encode_value());
+        //
+        // // s.append(&self.signature.v.0);
+        // // s.append(&U256::from_big_endian(&self.signature.r[..]));
+        // // s.append(&U256::from_big_endian(&self.signature.s[..]));
+        // let res = s.out();
+        // Self::keccack(&res)
     }
 
     pub fn decode_transaction_signature(

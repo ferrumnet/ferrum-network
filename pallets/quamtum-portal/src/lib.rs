@@ -73,7 +73,7 @@ pub mod pallet {
 		use libsecp256k1::{ECMULT_CONTEXT, Message};
 		use log::log;
 		use parity_scale_codec::Encode;
-		use sp_core::{sr25519};
+		use sp_core::{H256, sr25519};
 		use crate::KEY_TYPE;
 		use sp_core::ecdsa::{Signature as EcdsaSignagure};
 		use sp_std::prelude::*;
@@ -102,7 +102,7 @@ pub mod pallet {
 					Ecdsa(p) => p,
 					_ => panic!("Wrong public type"),
 				};
-				let hash = ChainUtils::keccack(payload);
+				let hash = H256::from_slice(payload); // ChainUtils::keccack(payload);
 				let sig = ChainUtils::sign_transaction_hash(
 					&ecdsa_pub, &hash).unwrap();
 				log::info!("Pub is {:?}", ecdsa_pub.0);

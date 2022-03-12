@@ -97,7 +97,7 @@ impl ContractClient {
             input: encoded_bytes,
             signature: ChainUtils::empty_signature(),
         };
-        let hash = tx.hash();
+        let hash = ChainUtils::tx_hash_to_sign(&tx, self.chain_id);
         let sig_bytes: ecdsa::Signature = signer(&hash);
         let sig = ChainUtils::decode_transaction_signature(
             &sig_bytes.0, self.chain_id)?;

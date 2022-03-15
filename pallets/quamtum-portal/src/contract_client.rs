@@ -1,3 +1,4 @@
+use sp_std::ops::{Div, Mul};
 use ethereum::{LegacyTransaction, TransactionAction, TransactionSignature, TransactionV2};
 use ethabi_nostd::{encoder, Token, Address};
 use crate::chain_queries::{CallResponse, fetch_json_rpc, JsonRpcRequest};
@@ -7,6 +8,7 @@ use sp_core::{ecdsa, H256, U256};
 use sp_std::{str};
 use sp_std::prelude::*;
 use rlp::{Encodable};
+use crate::chain_utils::ChainRequestError::JsonRpcError;
 
 #[derive(Debug, Clone)]
 pub struct ContractClient {
@@ -62,7 +64,7 @@ impl ContractClient {
         method_signature: &[u8],
         inputs: &[Token],
         gas_limit: Option<U256>,
-        gas_price: U256,
+        gas_price: Option<U256>,
         value: U256,
         nonce: Option<U256>,
         from: Address,
@@ -76,21 +78,26 @@ impl ContractClient {
         log::info!("encoded {}", encoded);
         let nonce_val = match nonce {
             None => {
-                // TODO: Get nonce for "from"
-                U256::zero()
+                self.nonce(from)?
             },
             Some(v) => v,
         };
         let gas_limit_val = match gas_limit {
             None => {
-                // TODO: Get the gas limit
-                U256::zero()
+                self.estimate_gas(encoded_bytes_slice.as_slice(), &value, from)?
+            },
+            Some(v) => v
+        };
+        let gas_price_val = match gas_price {
+            None => {
+                self.gas_price()?
+                    .mul(U256::from(125 as u32)).div(U256::from(100 as u32))
             },
             Some(v) => v
         };
         let mut tx = LegacyTransaction {
             nonce: nonce_val,
-            gas_price,
+            gas_price: gas_price_val,
             gas_limit: gas_limit_val,
             action: TransactionAction::Call(self.contract_address),
             value,
@@ -116,5 +123,63 @@ impl ContractClient {
         let rv: Box<CallResponse> = fetch_json_rpc(self.http_api, &req)?;
         log::info!("Have response {:?}", &rv);
         Ok(H256::from_slice(rv.result.as_slice()))
+    }
+
+    pub fn nonce(
+        &self,
+        from: Address,
+    ) -> Result<U256, ChainRequestError> {
+        let req= JsonRpcRequest {
+            id: 1,
+            params: Vec::from([
+                ChainUtils::wrap_in_quotes(ChainUtils::address_to_hex(from).as_slice()),
+                b"\"latest\"".to_vec()
+            ]),
+            method: b"eth_getTransactionCount".to_vec(),
+        };
+        let rv: Box<CallResponse> = fetch_json_rpc(self.http_api, &req)?;
+        let nonce = ChainUtils::hex_to_u64(rv.result.as_slice())?;
+        Ok(U256::from(nonce))
+    }
+
+    pub fn gas_price(
+        &self,
+    ) -> Result<U256, ChainRequestError> {
+        let req= JsonRpcRequest {
+            id: 1,
+            params: Vec::new(),
+            method: b"eth_gasPrice".to_vec(),
+        };
+        let rv: Box<CallResponse> = fetch_json_rpc(self.http_api, &req)?;
+        let gp = ChainUtils::hex_to_u256(rv.result.as_slice())?;
+        Ok(U256::from(gp))
+    }
+
+    pub fn estimate_gas(
+        &self,
+        encoded: &[u8],
+        value: &U256,
+        from: Address,
+    ) -> Result<U256, ChainRequestError> {
+        let call_json = JsonSer::new()
+            .start()
+            .string("input", str::from_utf8(encoded).unwrap())
+            .string("from", str::from_utf8(
+                ChainUtils::address_to_hex(from).as_slice()).unwrap())
+            .string("to", str::from_utf8(
+                ChainUtils::address_to_hex(self.contract_address).as_slice()).unwrap())
+            .string("value", str::from_utf8(
+                ChainUtils::u256_to_hex_0x(value).as_slice()).unwrap())
+            .end()
+            .to_vec();
+        log::info!("estimateGas json is {}", str::from_utf8(&call_json).unwrap());
+        let req = JsonRpcRequest {
+            id: 1,
+            params: Vec::from([call_json, Vec::from("\"latest\"".as_bytes())]),
+            method: b"eth_estimateGas".to_vec(),
+        };
+        let rv: Box<CallResponse> = fetch_json_rpc(self.http_api, &req)?;
+        let gp = ChainUtils::hex_to_u256(rv.result.as_slice())?;
+        Ok(U256::from(gp))
     }
 }

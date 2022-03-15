@@ -58,8 +58,8 @@ impl Erc20Client {
                 Token::Address(approvee), // TODO convert address
                 Token::Uint(amount),
             ],
-            Some(U256::from(100000)),
-            U256::from(2000000000 as u64), // TODO: Get the gas price
+            None, // Some(U256::from(100000)),
+            None, // Some(U256::from(2000000000 as u64)), // TODO: Get the gas price
             U256::zero(),
             None,
             from,

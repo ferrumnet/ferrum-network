@@ -23,6 +23,13 @@ pub enum ChainRequestError {
     ConversionError,
 	ErrorCreatingTransaction,
 	RemoteBlockAlreadyMined,
+    JsonRpcError(Vec<u8>)
+}
+
+impl From<&[u8]> for ChainRequestError {
+    fn from(msg: &[u8]) -> Self {
+        ChainRequestError::JsonRpcError(Vec::from(msg))
+    }
 }
 
 pub trait ToJson {
@@ -74,6 +81,21 @@ impl ChainUtils {
         Ok(rv)
     }
 
+    pub fn hex_to_u256(s: &[u8]) -> Result<U256, ChainRequestError> {
+        let hex = Self::hex_remove_0x(s)?;
+        let hex = str::from_utf8(hex)
+            .map_err(|e| {
+                log::error!("Error when converting from hex to u256: {:?}", e);
+                ChainRequestError::ConversionError
+            })?;
+        let rv = U256::from_str_radix(hex, 16)
+            .map_err(|e| {
+                log::error!("{:?}", e);
+                ChainRequestError::ConversionError
+            })?;
+        Ok(rv)
+    }
+
     pub fn bytes_to_hex(s: &[u8]) -> Vec<u8> {
         let mut rv = Vec::new();
         s.into_iter().for_each(|u| {
@@ -102,6 +124,14 @@ impl ChainUtils {
         zx
     }
 
+    pub fn hex_remove_0x<'a>(s: &'a [u8]) -> Result<&'a [u8], ChainRequestError> {
+        if s.len() < 2 {
+            return Err(ChainRequestError::ConversionError);
+        }
+        Ok(if s[0] == '0' as u8 && s[1] == 'x' as u8 {
+            &s[2..] } else { s })
+    }
+
     pub fn wrap_in_quotes(s: &[u8]) -> Vec<u8> {
         let mut zx = vec!['"' as u8];
         zx.extend(s);
@@ -111,9 +141,22 @@ impl ChainUtils {
 
     pub fn u256_to_hex_0x(i: &U256) -> Vec<u8> {
         let fmted = i.encode();
+        let mut non_zero: bool= false;
+        let fmted: Vec<u8> = fmted
+            .into_iter()
+            .filter(|u| {
+                let u = u.clone();
+                if u != 0 {
+                    non_zero = true;
+                }
+                non_zero || u != 0
+            }).collect();
+        if fmted.len() == 0 {
+            return vec!['0' as u8, 'x' as u8, '0' as u8];
+        }
         let mut zx = vec!['0' as u8, 'x' as u8];
-        zx.extend(fmted.into_iter().map(|i| i + '0' as u8));
-        // println!("FMTED {:?}", &zx);
+        zx.extend(
+            fmted.into_iter().map(|i| i + '0' as u8));
         zx
     }
 
@@ -159,19 +202,6 @@ impl ChainUtils {
         let mut msg: LegacyTransactionMessage = ethereum::TransactionV0::from(tx.clone()).into();
         msg.chain_id = Some(chain_id);
         msg.hash()
-        // let chain_id_b = chain_id.encode();
-        // s.append(&tx.gas_price);
-        // s.append(&tx.gas_limit);
-        // s.append(&tx.action);
-        // s.append(&tx.value);
-        // s.append(&tx.input);
-        // s.append(s.encoder().encode_value());
-        //
-        // // s.append(&self.signature.v.0);
-        // // s.append(&U256::from_big_endian(&self.signature.r[..]));
-        // // s.append(&U256::from_big_endian(&self.signature.s[..]));
-        // let res = s.out();
-        // Self::keccack(&res)
     }
 
     pub fn decode_transaction_signature(

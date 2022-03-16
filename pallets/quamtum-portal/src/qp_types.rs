@@ -26,6 +26,3 @@ pub struct QpRemoteBlock {
 	pub total_value: U256,
 	pub block_metadata: QpLocalBlock,
 }
-
-pub struct QpContext {
-}

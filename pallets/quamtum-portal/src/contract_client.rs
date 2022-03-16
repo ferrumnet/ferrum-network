@@ -42,6 +42,8 @@ impl ContractClient {
         let encoded_bytes_slice = ChainUtils::hex_add_0x(encoded_bytes_slice);
         let encoded = str::from_utf8(encoded_bytes_slice.as_slice()).unwrap();
         log::info!("encoded {}", encoded);
+        log::info!("contract address is {}", str::from_utf8(
+            ChainUtils::address_to_hex(self.contract_address).as_slice()).unwrap());
         let call_json = JsonSer::new()
             .start()
             .string("input", encoded)

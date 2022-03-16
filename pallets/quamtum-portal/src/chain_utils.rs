@@ -23,7 +23,8 @@ pub enum ChainRequestError {
     ConversionError,
 	ErrorCreatingTransaction,
 	RemoteBlockAlreadyMined,
-    JsonRpcError(Vec<u8>)
+    JsonRpcError(Vec<u8>),
+    InvalidHexCharacter,
 }
 
 impl From<&[u8]> for ChainRequestError {
@@ -48,6 +49,15 @@ fn u64_to_str(num: u64) -> Vec<u8> {
         .for_each(|u| { s.push(u); () });
     log::info!("num2str2 : {:?}", s);
     s
+}
+
+fn val(c: u8, idx: usize) -> Result<u8, ChainRequestError> {
+    match c {
+        b'A'..=b'F' => Ok(c - b'A' + 10),
+        b'a'..=b'f' => Ok(c - b'a' + 10),
+        b'0'..=b'9' => Ok(c - b'0'),
+        _ => Err(ChainRequestError::InvalidHexCharacter),
+    }
 }
 
 const HEX_TABLE: [u8;16] = [
@@ -103,6 +113,19 @@ impl ChainUtils {
             rv.push(HEX_TABLE[(u & 0x0f) as usize]);
         });
         rv
+    }
+
+    pub fn hex_to_bytes(data: &[u8]) -> Result<Vec<u8>, ChainRequestError> {
+        if data.len() % 2 != 0 {
+            return Err(ChainRequestError::ConversionError);
+        }
+        let data = ChainUtils::hex_remove_0x(data)?;
+        let mut out = vec![0; data.len()/2];
+        for (i, byte) in out.iter_mut().enumerate() {
+            *byte = val(data[2 * i], 2 * i)? << 4 | val(data[2 * i + 1], 2 * i + 1)?;
+        }
+
+        Ok(out)
     }
 
     pub fn address_to_hex(address: Address) -> Vec<u8> {

@@ -7,6 +7,7 @@ mod chain_utils;
 mod qp_types;
 mod erc_20_client;
 mod contract_client;
+mod quantum_portal_client;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -45,6 +46,7 @@ pub mod pallet {
 	use crate::contract_client::ContractClient;
 	use crate::crypto::TestAuthId;
 	use crate::erc_20_client::Erc20Client;
+	use crate::quantum_portal_client::QuantumPortalClient;
 
 	/// Defines application identifier for crypto keys of this module.
 	///
@@ -241,13 +243,40 @@ pub mod pallet {
 		DeserializeToStrError,
 	}
 
+	impl<T: Config> Pallet<T> {
+		pub fn test_qp() {
+			let rpc_endpoint = "https://rinkeby.infura.io/v3/18b15ac5b3e8447191c6b233dcd2ce14";
+			let lgr_mgr = ChainUtils::hex_to_address(
+				b"d36312d594852462d6760042e779164eb97301cd");
+			log::info!("000===contract address is {:?}", lgr_mgr);
+			let client = ContractClient::new(
+				rpc_endpoint.clone(), &lgr_mgr, 4);
+			log::info!("001===contract address is {}", str::from_utf8(
+				ChainUtils::address_to_hex(client.contract_address).as_slice()).unwrap());
+			let c = QuantumPortalClient::new(client);
+			// Self::is_block_ready(&c);
+			Self::last_remote_mined_block(&c);
+		}
+
+		fn is_block_ready(c: &QuantumPortalClient) {
+			let ibr = c.is_local_block_ready(4).unwrap();
+			log::info!("Is block read {:?}", ibr)
+		}
+
+		fn last_remote_mined_block(c: &QuantumPortalClient) {
+			c.last_remote_mined_block(4).unwrap();
+		}
+	}
+
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn offchain_worker(block_number: T::BlockNumber) {
 			log::info!("Hello from pallet-ocw.");
+			Self::test_qp();
+
 			// Run a chain query as an example.
 			// let rpc_endpoint = "https://test1234.requestcatcher.com/test";
-			let rpc_endpoint = "https://rinkeby.infura.io/v3/18b15ac5b3e8447191c6b233dcd2ce14";
+			// let rpc_endpoint = "https://rinkeby.infura.io/v3/18b15ac5b3e8447191c6b233dcd2ce14";
 
 			// let alice_adress = Address::from_slice(
 			// 	hex::decode("0xd43593c715fdd31c61141abd04a99fd6822c8558")
@@ -285,43 +314,45 @@ pub mod pallet {
 			// 	Err(e) =>
 			// 		log::error!("Error!: {:?} ", e)
 			// }
-			let contract_f = ChainUtils::hex_to_address(
-				b"00bdf74f702723a880e46efec4982b3fe9414795");
-			let alice_address = ChainUtils::hex_to_address(
-				b"e04cc55ebee1cbce552f250e85c57b70b2e2625b");
-			let client = ContractClient::new(
-				rpc_endpoint.clone(), &contract_f, 4);
-			let erc_20 = Erc20Client::new(client);
-			log::info!("Erc20 address got");
-			let ts = erc_20.approve(
-				alice_address,
-				U256::from(999999999 as u64),
-				alice_address,
-				|h| {
-					let signer = Signer::<T, T::AuthorityId>::any_account();
-					log::info!("Signer is {:?}", &signer.can_sign());
-					let signed = signer.sign_message(&h.0);
-					let signed_m = match signed {
-						None => panic!("No signature"),
-						Some((a, b)) => {
-							let public_key = a.public.encode();
-							let public_key = &public_key.as_slice()[1..];
-							let addr = ChainUtils::eth_address_from_public_key(
-								public_key);
-							log::info!("Signer address is {:?}", str::from_utf8(ChainUtils::bytes_to_hex(
-								addr.as_slice()).as_slice()).unwrap());
-							b
-						},
-					};
-					let sig_bytes = signed_m.encode();
-					log::info!("Got a signature of size {}: {}", sig_bytes.len(),
-						str::from_utf8(ChainUtils::bytes_to_hex(sig_bytes.as_slice()).as_slice())
-						.unwrap());
-					ecdsa::Signature::try_from(&sig_bytes.as_slice()[1..]).unwrap()
-				},
-			).unwrap();
-			log::info!("Sent 'approve' and got tx hash: {}", str::from_utf8(
-				ChainUtils::h256_to_hex_0x(&ts).as_slice()).unwrap());
+
+			// let contract_f = ChainUtils::hex_to_address(
+			// 	b"00bdf74f702723a880e46efec4982b3fe9414795");
+			// let alice_address = ChainUtils::hex_to_address(
+			// 	b"e04cc55ebee1cbce552f250e85c57b70b2e2625b");
+			// let client = ContractClient::new(
+			// 	rpc_endpoint.clone(), &contract_f, 4);
+			// let erc_20 = Erc20Client::new(client);
+			// log::info!("Erc20 address got");
+			// let ts = erc_20.approve(
+			// 	alice_address,
+			// 	U256::from(999999999 as u64),
+			// 	alice_address,
+			// 	|h| {
+			// 		let signer = Signer::<T, T::AuthorityId>::any_account();
+			// 		log::info!("Signer is {:?}", &signer.can_sign());
+			// 		let signed = signer.sign_message(&h.0);
+			// 		let signed_m = match signed {
+			// 			None => panic!("No signature"),
+			// 			Some((a, b)) => {
+			// 				let public_key = a.public.encode();
+			// 				let public_key = &public_key.as_slice()[1..];
+			// 				let addr = ChainUtils::eth_address_from_public_key(
+			// 					public_key);
+			// 				log::info!("Signer address is {:?}", str::from_utf8(ChainUtils::bytes_to_hex(
+			// 					addr.as_slice()).as_slice()).unwrap());
+			// 				b
+			// 			},
+			// 		};
+			// 		let sig_bytes = signed_m.encode();
+			// 		log::info!("Got a signature of size {}: {}", sig_bytes.len(),
+			// 			str::from_utf8(ChainUtils::bytes_to_hex(sig_bytes.as_slice()).as_slice())
+			// 			.unwrap());
+			// 		ecdsa::Signature::try_from(&sig_bytes.as_slice()[1..]).unwrap()
+			// 	},
+			// ).unwrap();
+			// log::info!("Sent 'approve' and got tx hash: {}", str::from_utf8(
+			// 	ChainUtils::h256_to_hex_0x(&ts).as_slice()).unwrap());
+
 			// let ts = erc_20.total_supply();
 			// log::info!("Total supply got {:?}", &ts);
 			// match ts {

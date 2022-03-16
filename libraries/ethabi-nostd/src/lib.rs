@@ -11,7 +11,7 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
-// mod decoder;
+pub mod decoder;
 pub mod encoder;
 // mod event;
 pub mod param;

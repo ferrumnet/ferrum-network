@@ -333,7 +333,7 @@ impl QuantumPortalRunner {
 		chain_id: u64,) -> ChainRequestResult<()>{
 		let c = Self::client();
 		let block = c.last_remote_mined_block(chain_id)?;
-		let last_fin = QuantumPortalContract::last_finalized_block(chain_id)?;
+		let last_fin = c.last_finalized_block(chain_id)?;
 		if block.nonce > last_fin.nonce {
 			log::info!("Calling mgr.finalize({}, {})", chain_id, last_fin.nonce);
 			QuantumPortalContract::create_finalize_transaction(
@@ -351,7 +351,7 @@ impl QuantumPortalRunner {
 		let c = Self::client();
 		let block_ready = c.is_local_block_ready(chain2)?;
 		if !block_ready { return  Ok(false); }
-		let last_block = QuantumPortalContract::last_local_block(chain2)?;
+		let last_block = c.last_local_block(chain2)?;
 		let last_mined_block = c.last_remote_mined_block(chain1)?;
 		log::info!("Local block (chain {}) nonce is {}. Remote mined block (chain {}) is {}",
 			chain1, last_block.nonce, chain2, last_mined_block.nonce);
@@ -360,12 +360,12 @@ impl QuantumPortalRunner {
 			return Ok(false);
 		}
 		log::info!("Last block is on chain1 for target {} is {}", chain2, last_block.nonce);
-		let mined_block = QuantumPortalContract::mined_block_by_nonce(chain1, last_block.nonce)?;
+		let mined_block = c.mined_block_by_nonce(chain1, last_block.nonce)?;
 		let already_mined = !mined_block.0.block_hash.eq(&ZERO_HASH);
 		if already_mined {
 			return Err(ChainRequestError::RemoteBlockAlreadyMined);
 		}
-		let source_block = QuantumPortalContract::local_block_by_nonce(chain2, last_block.nonce)?;
+		let source_block = c.local_block_by_nonce(chain2, last_block.nonce)?;
 		let txs = source_block.1;
 		log::info!("About to mine block {}:{}", chain1, source_block.0.nonce);
 		QuantumPortalContract::create_mine_transaction(chain1, source_block.0.nonce, &txs)?;

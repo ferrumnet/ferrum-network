@@ -1,13 +1,14 @@
 use ethereum::{Account};
 use sp_core::{H256, U256};
 use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
+use ethabi_nostd::Address;
 
 pub struct QpTransaction {
 	pub timestamp: u64,
-	pub remote_contract: Account,
-	pub source_msg_sender: Account,
-	pub source_beneficiary: Account,
-	pub token: Account,
+	pub remote_contract: Address,
+	pub source_msg_sender: Address,
+	pub source_beneficiary: Address,
+	pub token: Address,
 	pub amount: U256,
 	pub method: Vec<u8>,
 	pub gas: u64
@@ -21,7 +22,7 @@ pub struct QpLocalBlock {
 
 pub struct QpRemoteBlock {
 	pub block_hash: H256,
-	pub miner: Account,
+	pub miner: Address,
 	pub stake: U256,
 	pub total_value: U256,
 	pub block_metadata: QpLocalBlock,

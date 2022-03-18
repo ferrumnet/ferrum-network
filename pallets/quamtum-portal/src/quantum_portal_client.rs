@@ -32,34 +32,42 @@ fn local_block_tuple() -> ParamKind {
 fn decode_remote_block_and_txs<T, F>(
     data: &[u8],
     mined_block_tuple: ParamKind,
-    mined_block_tuple_decoder: F,
+    block_tuple_decoder: F,
 ) -> ChainRequestResult<(T, Vec<QpTransaction>)> where
     F: Fn(Token) -> ChainRequestResult<T> {
+    log::info!("decode_remote_block_and_txs {:?}", data);
     let dec = decode(
         &[
             ParamKind::Tuple(vec![
                 Box::new(mined_block_tuple),
                 Box::new(ParamKind::Array(
                     Box::new(ParamKind::Tuple(vec![         // RemoteTransaction[]
-                                                            Box::new(ParamKind::Uint(256)),     // timestamp
-                                                            Box::new(ParamKind::Address),       // remoteContract
-                                                            Box::new(ParamKind::Address),       // sourceMsgSender
-                                                            Box::new(ParamKind::Address),       // sourceBeneficiary
-                                                            Box::new(ParamKind::Address),       // token
-                                                            Box::new(ParamKind::Uint(256)),     // amount
-                                                            Box::new(ParamKind::Bytes),         // method
-                                                            Box::new(ParamKind::Uint(256)),     // gas
+                        Box::new(ParamKind::Uint(256)),     // timestamp
+                        Box::new(ParamKind::Address),       // remoteContract
+                        Box::new(ParamKind::Address),       // sourceMsgSender
+                        Box::new(ParamKind::Address),       // sourceBeneficiary
+                        Box::new(ParamKind::Address),       // token
+                        Box::new(ParamKind::Uint(256)),     // amount
+                        Box::new(ParamKind::Bytes),         // method
+                        Box::new(ParamKind::Uint(256)),     // gas
                     ]))))
             ])],
         ChainUtils::hex_to_bytes(&data)?.as_slice(),
     ).unwrap();
+    log::info!("decoded {:?}, - {}", dec, dec.as_slice().len());
+    let dec: ChainRequestResult<Vec<Token>> = match dec.as_slice() {
+        [tuple] => Ok(tuple.clone().to_tuple().unwrap()),
+        _ => Err(b"Unexpected output. Could not decode local block at first level".as_slice().into())
+    };
+    let dec = dec?;
+    log::info!("decoded = 2 | {:?}, - {}", dec, dec.as_slice().len());
     match dec.as_slice() {
         [mined_block, remote_transactions] => {
             let mined_block = mined_block.clone();
             let remote_transactions = remote_transactions.clone();
-            // let mined_block = Self::decode_mined_block_from_tuple(
-            //     mined_block.to_array().unwrap().as_slice())?;
-            let block = mined_block_tuple_decoder(mined_block)?;
+            log::info!("PRE = Mined block is opened up");
+            let block = block_tuple_decoder(mined_block)?;
+            log::info!("Mined block is opened up");
             let remote_transactions = remote_transactions.to_array().unwrap()
                 .into_iter()
                 .map(|t|
@@ -177,7 +185,11 @@ impl QuantumPortalClient {
             res.result.as_slice(),
             local_block_tuple(),
             |block| {
-                Self::decode_local_block_from_tuple(block.to_array().unwrap().as_slice())
+                log::info!("1-DECODING BLOCK {:?}", block);
+                let block = block.to_tuple();
+                let block = block.unwrap();
+                log::info!("2-DECODING BLOCK {:?}", block);
+                Self::decode_local_block_from_tuple(block.as_slice())
             },
         )
     }

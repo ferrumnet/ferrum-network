@@ -255,7 +255,8 @@ pub mod pallet {
 				ChainUtils::address_to_hex(client.contract_address).as_slice()).unwrap());
 			let c = QuantumPortalClient::new(client);
 			// Self::is_block_ready(&c);
-			Self::last_remote_mined_block(&c);
+			// Self::last_remote_mined_block(&c);
+			Self::local_block_by_nonce(&c);
 		}
 
 		fn is_block_ready(c: &QuantumPortalClient) {
@@ -265,6 +266,10 @@ pub mod pallet {
 
 		fn last_remote_mined_block(c: &QuantumPortalClient) {
 			c.last_remote_mined_block(4).unwrap();
+		}
+
+		fn local_block_by_nonce(c: &QuantumPortalClient) {
+			c.local_block_by_nonce(4, 0).unwrap();
 		}
 	}
 

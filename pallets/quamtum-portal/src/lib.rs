@@ -25,7 +25,7 @@ pub mod pallet {
 	};
 	use frame_system::offchain::SignMessage;
 	use libsecp256k1::Message;
-	use sp_core::{crypto::KeyTypeId, H160, U256};
+	use sp_core::{crypto::KeyTypeId, H160, H256, U256};
 	use sp_runtime::{offchain::{
 		http,
 		storage::StorageValueRef,
@@ -43,7 +43,7 @@ pub mod pallet {
 	use ethabi_nostd::Address;
 	use crate::chain_queries::ChainQueries;
 	use crate::chain_utils::{ChainUtils, EMPTY_HASH};
-	use crate::contract_client::ContractClient;
+	use crate::contract_client::{ContractClient, ContractClientSignature};
 	use crate::crypto::TestAuthId;
 	use crate::erc_20_client::Erc20Client;
 	use crate::quantum_portal_client::QuantumPortalClient;
@@ -253,10 +253,15 @@ pub mod pallet {
 				rpc_endpoint.clone(), &lgr_mgr, 4);
 			log::info!("001===contract address is {}", str::from_utf8(
 				ChainUtils::address_to_hex(client.contract_address).as_slice()).unwrap());
-			let c = QuantumPortalClient::new(client);
+			let signer = Signer::<T, T::AuthorityId>::any_account();
+
+			let c = QuantumPortalClient::new(
+				client,
+				ContractClientSignature::from(signer),
+			);
 			// Self::is_block_ready(&c);
 			// Self::last_remote_mined_block(&c);
-			Self::local_block_by_nonce(&c);
+			// Self::local_block_by_nonce(&c);
 		}
 
 		fn is_block_ready(c: &QuantumPortalClient) {
@@ -270,6 +275,15 @@ pub mod pallet {
 
 		fn local_block_by_nonce(c: &QuantumPortalClient) {
 			c.local_block_by_nonce(4, 0).unwrap();
+		}
+
+		fn create_finalize_transaction(c: &QuantumPortalClient) {
+			c.create_finalize_transaction(
+				4,
+				0,
+				H256::zero(),
+				&[],
+			).unwrap();
 		}
 	}
 

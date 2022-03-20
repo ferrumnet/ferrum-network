@@ -1,13 +1,18 @@
 use sp_std::ops::{Div, Mul};
 use ethereum::{LegacyTransaction, TransactionAction, TransactionSignature, TransactionV2};
+use frame_system::Config;
+use frame_system::offchain::{
+    SigningTypes, AppCrypto, Signer, SignMessage,
+};
 use ethabi_nostd::{encoder, Token, Address};
 use crate::chain_queries::{CallResponse, fetch_json_rpc, JsonRpcRequest};
 use crate::chain_utils::{ChainRequestError, ChainUtils, JsonSer};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use sp_core::{ecdsa, H256, U256};
+use sp_core::{ecdsa, H160, H256, U256};
 use sp_std::{str};
 use sp_std::prelude::*;
 use rlp::{Encodable};
+use parity_scale_codec::{Decode, Encode};
 use crate::chain_utils::ChainRequestError::JsonRpcError;
 
 #[derive(Debug, Clone)]
@@ -15,6 +20,66 @@ pub struct ContractClient {
     pub http_api: &'static str,
     pub contract_address: Address,
     pub chain_id: u64,
+}
+
+#[derive(Clone)]
+pub struct ContractClientSignature {
+    pub from: Address,
+    pub signer: fn(&H256) -> ecdsa::Signature,
+}
+
+impl ContractClientSignature {
+    pub fn new(
+        from: Address,
+        signer: fn(&H256) -> ecdsa::Signature,
+    ) -> Self {
+        ContractClientSignature {
+            from,
+            signer,
+        }
+    }
+}
+
+impl <T: SigningTypes + crate::Config, C: AppCrypto<T::Public, T::Signature>, X> From<Signer<T, C, X>> for ContractClientSignature {
+    fn from(s: Signer<T, C, X>) -> Self {
+        let user_sig = |h: &H256| {
+             let signer = Signer::<T, T::AuthorityId>::any_account();
+             log::info!("Signer is {:?}", &signer.can_sign());
+             let signed = signer.sign_message(&h.0);
+             let signed_m = match signed {
+                 None => panic!("No signature"),
+                 Some((a, b)) => {
+                      let public_key = a.public.encode();
+                      let public_key = &public_key.as_slice()[1..];
+                      let addr = ChainUtils::eth_address_from_public_key(
+                          public_key);
+                      log::info!("Signer address is {:?}", str::from_utf8(ChainUtils::bytes_to_hex(
+                          addr.as_slice()).as_slice()).unwrap());
+                      b
+                 },
+             };
+             let sig_bytes = signed_m.encode();
+             log::info!("Got a signature of size {}: {}", sig_bytes.len(),
+                 str::from_utf8(ChainUtils::bytes_to_hex(sig_bytes.as_slice()).as_slice())
+                 .unwrap());
+             ecdsa::Signature::try_from(&sig_bytes.as_slice()[1..]).unwrap()
+         };
+
+        let signer = Signer::<T, T::AuthorityId>::any_account();
+        log::info!("Signer is {:?}", &signer.can_sign());
+        let signed = signer.sign_message(&H256::zero().0);
+        let acc = signed.unwrap().0;
+        let public_key = acc.public.encode();
+        let public_key = &public_key.as_slice()[1..];
+        let addr = ChainUtils::eth_address_from_public_key(
+            public_key);
+        let from = Address::from(H160::from_slice(addr.as_slice()));
+
+        ContractClientSignature {
+            signer: user_sig,
+            from,
+        }
+    }
 }
 
 impl ContractClient {

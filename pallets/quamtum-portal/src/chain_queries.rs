@@ -12,6 +12,9 @@ use sp_runtime::{
 		Decode, Encode
 	},
 };
+use frame_system::offchain::{
+	Signer
+};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::json;
 use sp_runtime::offchain::http::HttpResult;
@@ -21,13 +24,11 @@ use crate::chain_utils::ChainUtils;
 use sp_core::{ H256 };
 use ethereum::{LegacyTransaction, TransactionV2};
 use ethabi_nostd::ParamKind::Address;
-use crate::contract_client::ContractClient;
+use crate::contract_client::{ContractClient, ContractClientSignature};
 use crate::qp_types::{QpLocalBlock, QpRemoteBlock, QpTransaction};
 use crate::quantum_portal_client::QuantumPortalClient;
 
 const FETCH_TIMEOUT_PERIOD: u64 = 30000; // in milli-seconds
-const DUMMY_HASH: H256 = H256::zero();
-const ZERO_HASH: H256 = H256::zero();
 
 pub fn de_string_list_to_bytes_list<'de, D>(de: D) -> Result<Vec<Vec<u8>>, D::Error>
 	where
@@ -256,63 +257,11 @@ impl ChainQueries {
 pub struct QuantumPortalContract;
 
 impl QuantumPortalContract {
-	pub fn create_finalize_transaction(
-		chain_id: u64,
-		blockNonce: u64,
-		finalizer_hash: H256,
-		finalizers: &[H256],
-	) -> ChainRequestResult<TransactionV2> {
-		// TODO: We need to encode the method. 'ethabi-nostd' cannot be imported
-		// because of sp_std, so here are the alternatives:
-		// - Manually construct the function call as [u8].
-		// function finalize(
-		// 	uint256 remoteChainId,
-		// 	uint256 blockNonce,
-		// 	bytes32 finalizersHash,
-		// 	address[] memory finalizers
-		// ) ...
-		// The last item is a bit complicated, but for now we pass an empty array.
-		// Support buytes and dynamic arrays in future
-		Err(ChainRequestError::ErrorCreatingTransaction)
-	}
-
 	pub fn create_mine_transaction(
 		chain1: u64,
 		block_nonce: u64,
 		txs: &[QpTransaction],
 	) -> ChainRequestResult<TransactionV2> {
-		Err(ChainRequestError::ErrorCreatingTransaction)
-	}
-
-	pub fn is_local_block_ready(
-		chain_id: u64,
-	) -> ChainRequestResult<bool> {
-		Err(ChainRequestError::ErrorCreatingTransaction)
-	}
-
-	pub fn last_local_block(
-		chain_id: u64,
-	) -> ChainRequestResult<QpLocalBlock> {
-		Err(ChainRequestError::ErrorCreatingTransaction)
-	}
-
-	pub fn mined_block_by_nonce(
-		chain_id: u64,
-		nonce: u64,
-	) -> ChainRequestResult<(QpRemoteBlock, Vec<QpTransaction>)> {
-		Err(ChainRequestError::ErrorCreatingTransaction)
-	}
-
-	pub fn local_block_by_nonce(
-		chain_id: u64,
-		nonce: u64,
-	) -> ChainRequestResult<(QpLocalBlock, Vec<QpTransaction>)> {
-		Err(ChainRequestError::ErrorCreatingTransaction)
-	}
-
-	pub fn last_finalized_block(
-		chain_id: u64,
-	) -> ChainRequestResult<QpLocalBlock> {
 		Err(ChainRequestError::ErrorCreatingTransaction)
 	}
 }
@@ -321,56 +270,17 @@ pub struct QuantumPortalRunner {
 }
 
 impl QuantumPortalRunner {
-	pub fn client() -> QuantumPortalClient {
+	pub fn client(
+		signer: ContractClientSignature,
+	) -> QuantumPortalClient {
 		let lgr_mgr = ChainUtils::hex_to_address(
 			b"d36312d594852462d6760042e779164eb97301cd");
 		let contract = ContractClient::new(
 			"", &lgr_mgr, 4);
-		QuantumPortalClient::new(contract)
+		QuantumPortalClient::new(
+			contract,
+			signer,
+		)
 	}
 
-	pub fn finalize(
-		chain_id: u64,) -> ChainRequestResult<()>{
-		let c = Self::client();
-		let block = c.last_remote_mined_block(chain_id)?;
-		let last_fin = c.last_finalized_block(chain_id)?;
-		if block.nonce > last_fin.nonce {
-			log::info!("Calling mgr.finalize({}, {})", chain_id, last_fin.nonce);
-			QuantumPortalContract::create_finalize_transaction(
-				chain_id, block.nonce, DUMMY_HASH, &[])?;
-		} else {
-			log::info!("Nothing to finalize for ({})", chain_id);
-		}
-		Ok(())
-	}
-
-	pub fn mine(
-		chain1: u64,
-		chain2: u64,
-	) -> ChainRequestResult<bool> {
-		let c = Self::client();
-		let block_ready = c.is_local_block_ready(chain2)?;
-		if !block_ready { return  Ok(false); }
-		let last_block = c.last_local_block(chain2)?;
-		let last_mined_block = c.last_remote_mined_block(chain1)?;
-		log::info!("Local block (chain {}) nonce is {}. Remote mined block (chain {}) is {}",
-			chain1, last_block.nonce, chain2, last_mined_block.nonce);
-		if last_mined_block.nonce >= last_block.nonce {
-			log::info!("Nothing to mine!");
-			return Ok(false);
-		}
-		log::info!("Last block is on chain1 for target {} is {}", chain2, last_block.nonce);
-		let mined_block = c.mined_block_by_nonce(chain1, last_block.nonce)?;
-		let already_mined = !mined_block.0.block_hash.eq(&ZERO_HASH);
-		if already_mined {
-			return Err(ChainRequestError::RemoteBlockAlreadyMined);
-		}
-		let source_block = c.local_block_by_nonce(chain2, last_block.nonce)?;
-		let txs = source_block.1;
-		log::info!("About to mine block {}:{}", chain1, source_block.0.nonce);
-		QuantumPortalContract::create_mine_transaction(chain1, source_block.0.nonce, &txs)?;
-		// TODO: Store and monitor the mine transaction.
-		// If
-		Ok(true)
-	}
 }

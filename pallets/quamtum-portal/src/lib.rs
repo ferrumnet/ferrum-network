@@ -8,6 +8,7 @@ mod qp_types;
 mod erc_20_client;
 mod contract_client;
 mod quantum_portal_client;
+mod quantum_portal_service;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -47,6 +48,7 @@ pub mod pallet {
 	use crate::crypto::TestAuthId;
 	use crate::erc_20_client::Erc20Client;
 	use crate::quantum_portal_client::QuantumPortalClient;
+	use crate::quantum_portal_service::QuantumPortalService;
 
 	/// Defines application identifier for crypto keys of this module.
 	///
@@ -284,6 +286,46 @@ pub mod pallet {
 				H256::zero(),
 				&[],
 			).unwrap();
+		}
+
+		fn finalize_block(c: &QuantumPortalClient, chain_id: u64) {
+			c.finalize(chain_id).unwrap();
+		}
+
+		fn mine_block(c: &QuantumPortalClient, chain1: u64, chain2: u64) {
+			c.mine(chain1, chain2).unwrap();
+		}
+
+		fn run_mine_and_finalize() {
+			// Create a number of clients
+			let supported_chains = [4, 69, 2600];
+
+			// For each chain get an rpc endpoint
+			// For each chain get a signer (for now use the same signer)
+			// For each chain create a client
+			let rpc_endpoint = "https://rinkeby.infura.io/v3/18b15ac5b3e8447191c6b233dcd2ce14";
+			let lgr_mgr = ChainUtils::hex_to_address(
+				b"d36312d594852462d6760042e779164eb97301cd");
+			log::info!("000===contract address is {:?}", lgr_mgr);
+			let client = ContractClient::new(
+				rpc_endpoint.clone(), &lgr_mgr, 4);
+			log::info!("001===contract address is {}", str::from_utf8(
+				ChainUtils::address_to_hex(client.contract_address).as_slice()).unwrap());
+			let signer = Signer::<T, T::AuthorityId>::any_account();
+
+			let c = QuantumPortalClient::new(
+				client,
+				ContractClientSignature::from(signer),
+			);
+
+			let pairs = [[4, 2600], [2600, 4]];
+
+			// For the pair
+			let clients = vec![c];
+			let qps = QuantumPortalService::new(clients);
+			pairs.into_iter().for_each(
+				|p| qps.process_pair(p[0], p[1]).unwrap()
+			);
 		}
 	}
 

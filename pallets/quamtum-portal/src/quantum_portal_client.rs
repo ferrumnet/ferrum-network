@@ -279,7 +279,7 @@ impl QuantumPortalClient {
 
     pub fn finalize(
         &self,
-        chain_id: u64,) -> ChainRequestResult<()>{
+        chain_id: u64,) -> ChainRequestResult<bool>{
         let block = self.last_remote_mined_block(chain_id)?;
         let last_fin = self.last_finalized_block(chain_id)?;
         if block.nonce > last_fin.nonce {
@@ -291,8 +291,9 @@ impl QuantumPortalClient {
                 &[],)?;
         } else {
             log::info!("Nothing to finalize for ({})", chain_id);
+            return Ok(false);
         }
-        Ok(())
+        Ok(true)
     }
 
     pub fn mine(

@@ -23,6 +23,8 @@ const ZERO_HASH: H256 = H256::zero();
 pub struct QuantumPortalClient {
     pub contract: ContractClient,
     pub signer: ContractClientSignature,
+    pub now: u64,
+    pub block_number: u64,
 }
 
 fn local_block_tuple() -> ParamKind {
@@ -122,10 +124,14 @@ impl QuantumPortalClient {
     pub fn new(
         contract: ContractClient,
         signer: ContractClientSignature,
+        now: u64,
+        block_number: u64,
     ) -> Self {
         QuantumPortalClient {
             contract,
             signer,
+            now,
+            block_number,
         }
     }
 

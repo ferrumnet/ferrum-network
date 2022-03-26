@@ -73,6 +73,13 @@ pub struct CallResponse {
 	pub result: Vec<u8>,
 }
 
+pub enum TransactionStatus {
+	NotFound,
+	Pending,
+	Confirmed,
+	Failed,
+}
+
 impl ToJson for TransactionV2 {
 	type BaseType = TransactionV2;
 	fn to_json(&self) -> Vec<u8> {
@@ -234,11 +241,27 @@ struct GetChainIdResponse {
 	result: Vec<u8>,
 }
 
+#[derive(Debug, Deserialize, Encode, Decode)]
+pub struct GetTransactionReceiptResponseData {
+	#[serde(deserialize_with = "de_string_to_bytes")]
+	block_hash: Vec<u8>,
+	#[serde(deserialize_with = "de_string_to_bytes")]
+	block_number: Vec<u8>,
+	#[serde(deserialize_with = "de_string_to_bytes")]
+	nonce: Vec<u8>,
+	#[serde(deserialize_with = "de_string_to_bytes")]
+	status: Vec<u8>,
+}
+
+#[derive(Debug, Deserialize, Encode, Decode)]
+pub struct GetTransactionReceiptResponse {
+	result: Option<GetTransactionReceiptResponseData>,
+}
+
 pub struct ChainQueries/*<T: Config>*/ {
 }
 
 impl ChainQueries {
-// impl<T: Config> ChainQueries<T> {
 	pub fn chain_id(url: &str) -> Result<u32, ChainRequestError> {
 		log::info!("About to get chain_id {}", url);
 		let req = JsonRpcRequest {
@@ -252,35 +275,35 @@ impl ChainQueries {
 		let chain_id = ChainUtils::hex_to_u64(&res.result)?;
 		Ok(chain_id as u32)
 	}
-}
 
-pub struct QuantumPortalContract;
+	pub fn get_transaction_receipt(url: &str, tx_id: &H256)
+		-> ChainRequestResult<Option<GetTransactionReceiptResponseData>> {
+		let tx_id = ChainUtils::h256_to_hex_0x(tx_id);
+		log::info!("About to get eth_getTransactionReceipt {}: {}",
+			url,
+			str::from_utf8(ChainUtils::bytes_to_hex(tx_id.as_slice()).as_slice()).unwrap());
 
-impl QuantumPortalContract {
-	pub fn create_mine_transaction(
-		chain1: u64,
-		block_nonce: u64,
-		txs: &[QpTransaction],
-	) -> ChainRequestResult<TransactionV2> {
-		Err(ChainRequestError::ErrorCreatingTransaction)
-	}
-}
-
-pub struct QuantumPortalRunner {
-}
-
-impl QuantumPortalRunner {
-	pub fn client(
-		signer: ContractClientSignature,
-	) -> QuantumPortalClient {
-		let lgr_mgr = ChainUtils::hex_to_address(
-			b"d36312d594852462d6760042e779164eb97301cd");
-		let contract = ContractClient::new(
-			"", &lgr_mgr, 4);
-		QuantumPortalClient::new(
-			contract,
-			signer,
-		)
+		let req = JsonRpcRequest {
+			id: 1,
+			params: vec![ ChainUtils::wrap_in_quotes(tx_id.as_slice()).to_vec() ],
+			method: b"eth_getTransactionReceipt".to_vec(),
+		};
+		log::info!("Have request {:?}", &req);
+		let res: Box<GetTransactionReceiptResponse> = fetch_json_rpc(url, &req)?;
+		log::info!("Result is {:?}", &res);
+		Ok(res.result)
 	}
 
+	pub fn get_transaction_status(url: &str, tx_id: &H256)
+		-> ChainRequestResult<TransactionStatus> {
+		let rv = Self::get_transaction_receipt(url, tx_id)?;
+		let res = match rv {
+			None => TransactionStatus::NotFound,
+			Some(tx) => {
+				let status = ChainUtils::hex_to_u64(tx.status.as_slice())?;
+				if status == 1 { TransactionStatus::Confirmed } else { TransactionStatus::Failed }
+			}
+		};
+		Ok(res)
+	}
 }

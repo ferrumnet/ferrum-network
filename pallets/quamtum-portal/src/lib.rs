@@ -246,7 +246,7 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		pub fn test_qp() {
+		pub fn test_qp(block_number: u64) {
 			let rpc_endpoint = "https://rinkeby.infura.io/v3/18b15ac5b3e8447191c6b233dcd2ce14";
 			let lgr_mgr = ChainUtils::hex_to_address(
 				b"d36312d594852462d6760042e779164eb97301cd");
@@ -260,6 +260,8 @@ pub mod pallet {
 			let c = QuantumPortalClient::new(
 				client,
 				ContractClientSignature::from(signer),
+				sp_io::offchain::timestamp().unix_millis(),
+				block_number,
 			);
 			// Self::is_block_ready(&c);
 			// Self::last_remote_mined_block(&c);
@@ -296,7 +298,7 @@ pub mod pallet {
 			c.mine(chain1, chain2).unwrap();
 		}
 
-		fn run_mine_and_finalize() {
+		fn run_mine_and_finalize(block_number: u64) {
 			// Create a number of clients
 			let supported_chains = [4, 69, 2600];
 
@@ -316,6 +318,8 @@ pub mod pallet {
 			let c = QuantumPortalClient::new(
 				client,
 				ContractClientSignature::from(signer),
+				sp_io::offchain::timestamp().unix_millis(),
+				block_number,
 			);
 
 			let pairs = [[4, 2600], [2600, 4]];
@@ -333,7 +337,8 @@ pub mod pallet {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn offchain_worker(block_number: T::BlockNumber) {
 			log::info!("Hello from pallet-ocw.");
-			Self::test_qp();
+			let bno = block_number.try_into().map_or(0 as u64, |f| f);
+			Self::test_qp(bno);
 
 			// Run a chain query as an example.
 			// let rpc_endpoint = "https://test1234.requestcatcher.com/test";

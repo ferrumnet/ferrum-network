@@ -255,7 +255,7 @@ impl QuantumPortalClient {
         let finalizer_list = finalizers.into_iter().map(
             |f| Token::FixedBytes(Vec::from(f.0.as_slice()))
         ).collect();
-        let signature = b"minedBlockByNonce(uint64,uint64)";
+        let signature = b"finalize(uint256,uint256,bytes32,address[])";
         let res = self.contract.send(
             signature,
                         &[
@@ -276,45 +276,73 @@ impl QuantumPortalClient {
 
     pub fn create_mine_transaction(
         &self,
-        chain1: u64,
+        remote_chain_id: u64,
         block_nonce: u64,
         txs: &Vec<QpTransaction>,
-    ) -> ChainRequestResult<()>{
-        Ok(())
+    ) -> ChainRequestResult<H256>{
+        let signature = b"mineRemoteBlock(uint64,uint64,(uint64,address,address,address,address,uint256,bytes,uint256)[])";
+        let tx_vec = txs
+            .into_iter()
+            .map(|t| Token::Tuple(
+                vec![
+                    Token::Uint(U256::from(t.timestamp)),
+                    Token::Address(t.remote_contract),
+                    Token::Address(t.source_msg_sender),
+                    Token::Address(t.source_beneficiary),
+                    Token::Address(t.token),
+                    Token::Uint(t.amount),
+                    Token::Bytes(t.method.clone()),
+                    Token::Uint(U256::from(t.gas)),
+                ]
+            )).collect();
+        let res = self.contract.send(
+            signature,
+            &[
+                Token::Uint(U256::from(remote_chain_id)),
+                Token::Uint(U256::from(block_nonce)),
+                Token::Array(tx_vec),
+            ],
+            None,
+            None,
+            U256::zero(),
+            None,
+            self.signer.from,
+            self.signer.signer,
+        )?;
+        Ok(res)
     }
 
     pub fn finalize(
         &self,
-        chain_id: u64,) -> ChainRequestResult<bool>{
+        chain_id: u64,) -> ChainRequestResult<Option<H256>>{
         let block = self.last_remote_mined_block(chain_id)?;
         let last_fin = self.last_finalized_block(chain_id)?;
         if block.nonce > last_fin.nonce {
             log::info!("Calling mgr.finalize({}, {})", chain_id, last_fin.nonce);
-            self.create_finalize_transaction(
+            Ok(Some(self.create_finalize_transaction(
                 chain_id,
                 block.nonce,
                 H256::zero(),
-                &[],)?;
+                &[],)?))
         } else {
             log::info!("Nothing to finalize for ({})", chain_id);
-            return Ok(false);
+            Ok(None)
         }
-        Ok(true)
     }
 
     pub fn mine(
         &self,
         chain1: u64,
-        chain2: u64,) -> ChainRequestResult<bool> {
+        chain2: u64,) -> ChainRequestResult<Option<H256>> {
         let block_ready = self.is_local_block_ready(chain2)?;
-        if !block_ready { return  Ok(false); }
+        if !block_ready { return  Ok(None); }
         let last_block = self.last_local_block(chain2)?;
         let last_mined_block = self.last_remote_mined_block(chain1)?;
         log::info!("Local block (chain {}) nonce is {}. Remote mined block (chain {}) is {}",
 			chain1, last_block.nonce, chain2, last_mined_block.nonce);
         if last_mined_block.nonce >= last_block.nonce {
             log::info!("Nothing to mine!");
-            return Ok(false);
+            return Ok(None);
         }
         log::info!("Last block is on chain1 for target {} is {}", chain2, last_block.nonce);
         let mined_block = self.mined_block_by_nonce(chain1, last_block.nonce)?;
@@ -325,8 +353,9 @@ impl QuantumPortalClient {
         let source_block = self.local_block_by_nonce(chain2, last_block.nonce)?;
         let txs = source_block.1;
         log::info!("About to mine block {}:{}", chain1, source_block.0.nonce);
-        self.create_mine_transaction(chain1, source_block.0.nonce, &txs)?;
-        Ok(true)
+        Ok(Some(
+            self.create_mine_transaction(chain1, source_block.0.nonce, &txs)?
+        ))
     }
 
     fn decode_local_block(

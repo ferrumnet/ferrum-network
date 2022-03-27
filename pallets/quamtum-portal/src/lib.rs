@@ -8,7 +8,7 @@ mod qp_types;
 mod erc_20_client;
 mod contract_client;
 mod quantum_portal_client;
-mod quantum_portal_service;
+pub mod quantum_portal_service;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -21,10 +21,9 @@ pub mod pallet {
 		pallet_prelude::*,
 		offchain::{
 			AppCrypto, CreateSignedTransaction, SendSignedTransaction, SendUnsignedTransaction,
-			SignedPayload, Signer, SigningTypes, SubmitTransaction,
+			SignedPayload, Signer, SigningTypes, SubmitTransaction, SignMessage,
 		},
 	};
-	use frame_system::offchain::SignMessage;
 	use libsecp256k1::Message;
 	use sp_core::{crypto::KeyTypeId, H160, H256, U256};
 	use sp_runtime::{offchain::{
@@ -38,6 +37,7 @@ pub mod pallet {
 	use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
 	use sp_core::{ecdsa};
 	use serde::{Deserialize, Deserializer};
+	use sp_arithmetic::traits::AtLeast32BitUnsigned;
 	use sp_core::crypto::{AccountId32, ByteArray};
 	use sp_runtime::MultiSignature::Ecdsa;
 	use sp_runtime::traits::AccountIdConversion;
@@ -48,7 +48,7 @@ pub mod pallet {
 	use crate::crypto::TestAuthId;
 	use crate::erc_20_client::Erc20Client;
 	use crate::quantum_portal_client::QuantumPortalClient;
-	use crate::quantum_portal_service::QuantumPortalService;
+	use crate::quantum_portal_service::{PendingTransaction, QuantumPortalService};
 
 	/// Defines application identifier for crypto keys of this module.
 	///
@@ -68,15 +68,12 @@ pub mod pallet {
 	const LOCK_TIMEOUT_EXPIRATION: u64 = FETCH_TIMEOUT_PERIOD + 1000; // in milli-seconds
 	const LOCK_BLOCK_EXPIRATION: u32 = 3; // in block number
 
-
-
 	/// Based on the above `KeyTypeId` we need to generate a pallet-specific crypto type wrapper.
 	/// We can utilize the supported crypto kinds (`sr25519`, `ed25519` and `ecdsa`) and augment
 	/// them with the pallet-specific identifier.
 	pub mod crypto {
 		use libsecp256k1::{ECMULT_CONTEXT, Message};
 		use log::log;
-		use parity_scale_codec::Encode;
 		use sp_core::{H256, sr25519};
 		use crate::KEY_TYPE;
 		use sp_core::ecdsa::{Signature as EcdsaSignagure};
@@ -87,6 +84,7 @@ pub mod pallet {
 		};
 		use sp_runtime::MultiSigner::Ecdsa;
 		use sp_std::str;
+		use parity_scale_codec::{Decode, Encode};
 		use crate::chain_utils::ChainUtils;
 
 		app_crypto!(ecdsa, KEY_TYPE);
@@ -206,16 +204,21 @@ pub mod pallet {
 	}
 
 	#[pallet::pallet]
-	// #[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
 	// The pallet's runtime storage items.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/storage
-	// #[pallet::storage]
-	// #[pallet::getter(fn numbers)]
+	#[pallet::storage]
 	// Learn more about declaring storage items:
 	// https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-items
-	// pub type Numbers<T> = StorageValue<_, VecDeque<u64>, ValueQuery>;
+	#[pallet::getter(fn numbers)]
+	pub(super) type Numbers<T> = StorageValue<_, u64, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn pending_transactions)]
+	pub(super) type PendingTransactions<T: Config> = StorageMap<_,
+		Identity, u64, PendingTransaction, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -326,7 +329,7 @@ pub mod pallet {
 
 			// For the pair
 			let clients = vec![c];
-			let qps = QuantumPortalService::new(clients);
+			let qps = QuantumPortalService::<T>::new(clients);
 			pairs.into_iter().for_each(
 				|p| qps.process_pair(p[0], p[1]).unwrap()
 			);

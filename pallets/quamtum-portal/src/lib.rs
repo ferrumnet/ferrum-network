@@ -111,7 +111,7 @@ pub mod pallet {
 				// Get the long pub and hence the address of the signer
 				let lk = libsecp256k1::PublicKey::parse_slice(&ecdsa_pub.0, None).unwrap();
 				let lks = lk.serialize();
-				log::info!("Pub long ass {:?}", lks);
+				log::info!("Pub long {:?}", lks);
 				let addr0 = ChainUtils::eth_address_from_public_key(&lks[1..]);
 				log::info!("Addr {:?}", addr0.as_slice());
 				log::info!("Addr {:?}", str::from_utf8(ChainUtils::bytes_to_hex(addr0.as_slice()).as_slice()).unwrap());
@@ -250,25 +250,38 @@ pub mod pallet {
 
 	impl<T: Config> Pallet<T> {
 		pub fn test_qp(block_number: u64) {
-			let rpc_endpoint = "https://rinkeby.infura.io/v3/18b15ac5b3e8447191c6b233dcd2ce14";
-			let lgr_mgr = ChainUtils::hex_to_address(
+			let signer_rinkeby = Signer::<T, T::AuthorityId>::any_account();
+			let rpc_endpoint_rinkeby = "https://rinkeby.infura.io/v3/18b15ac5b3e8447191c6b233dcd2ce14";
+			let lgr_mgr_rinkeby = ChainUtils::hex_to_address(
 				b"d36312d594852462d6760042e779164eb97301cd");
-			log::info!("000===contract address is {:?}", lgr_mgr);
-			let client = ContractClient::new(
-				rpc_endpoint.clone(), &lgr_mgr, 4);
-			log::info!("001===contract address is {}", str::from_utf8(
-				ChainUtils::address_to_hex(client.contract_address).as_slice()).unwrap());
-			let signer = Signer::<T, T::AuthorityId>::any_account();
-
-			let c = QuantumPortalClient::new(
-				client,
-				ContractClientSignature::from(signer),
+			log::info!("contract address is {:?}", lgr_mgr_rinkeby);
+			let client_rinkeby = ContractClient::new(
+				rpc_endpoint_rinkeby.clone(), &lgr_mgr_rinkeby, 4);
+			let c_rinkeby = QuantumPortalClient::new(
+				client_rinkeby,
+				ContractClientSignature::from(signer_rinkeby),
 				sp_io::offchain::timestamp().unix_millis(),
 				block_number,
 			);
-			// Self::is_block_ready(&c);
-			// Self::last_remote_mined_block(&c);
-			// Self::local_block_by_nonce(&c);
+
+			let signer_bsctestnet = Signer::<T, T::AuthorityId>::any_account();
+			let rpc_endpoint_bsctestnet = "https://data-seed-prebsc-1-s1.binance.org:8545";
+			let lgr_mgr_bsctestnet = ChainUtils::hex_to_address(
+				b"d36312d594852462d6760042e779164eb97301cd");
+			log::info!("contract address is {:?}", lgr_mgr_bsctestnet);
+			let client_bsctestnet = ContractClient::new(
+				rpc_endpoint_bsctestnet.clone(), &lgr_mgr_bsctestnet, 97);
+			let c_bsctestnet = QuantumPortalClient::new(
+				client_bsctestnet,
+				ContractClientSignature::from(signer_bsctestnet),
+				sp_io::offchain::timestamp().unix_millis(),
+				block_number,
+			);
+
+			let svc = QuantumPortalService::<T>::new(
+				vec![c_rinkeby, c_bsctestnet]
+			);
+			svc.process_pair(4, 97).unwrap();
 		}
 
 		fn is_block_ready(c: &QuantumPortalClient) {

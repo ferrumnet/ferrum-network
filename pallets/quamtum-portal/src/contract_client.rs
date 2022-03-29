@@ -111,7 +111,7 @@ impl ContractClient {
             ChainUtils::address_to_hex(self.contract_address).as_slice()).unwrap());
         let call_json = JsonSer::new()
             .start()
-            .string("input", encoded)
+            .string("data", encoded)
             .string("to", str::from_utf8(
                 ChainUtils::address_to_hex(self.contract_address).as_slice()).unwrap())
             .end()

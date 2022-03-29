@@ -14,6 +14,7 @@ pub struct QpTransaction {
 	pub gas: u64
 }
 
+#[derive(Debug)]
 pub struct QpLocalBlock {
 	pub chain_id: u64,
 	pub nonce: u64,

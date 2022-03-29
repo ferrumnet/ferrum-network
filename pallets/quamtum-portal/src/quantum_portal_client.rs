@@ -27,6 +27,14 @@ pub struct QuantumPortalClient {
     pub block_number: u64,
 }
 
+fn local_block_tuple0() -> Vec<ParamKind> {
+    vec![
+        ParamKind::Uint(256),
+        ParamKind::Uint(256),
+        ParamKind::Uint(256),
+    ]
+}
+
 fn local_block_tuple() -> ParamKind {
     ParamKind::Tuple(vec![
         Box::new(ParamKind::Uint(256)),
@@ -164,7 +172,7 @@ impl QuantumPortalClient {
         &self,
         chain_id: u64,
     ) -> ChainRequestResult<QpLocalBlock> {
-        let signature = b"lastFinalizedBlock(uint64)";
+        let signature = b"lastFinalizedBlock(uint256)";
         let res: Box<CallResponse> = self.contract.call(signature,
                                                             &[
                                                                 Token::Uint(U256::from(chain_id))
@@ -315,8 +323,11 @@ impl QuantumPortalClient {
     pub fn finalize(
         &self,
         chain_id: u64,) -> ChainRequestResult<Option<H256>>{
+        log::info!("finalize({})", chain_id);
         let block = self.last_remote_mined_block(chain_id)?;
+        log::info!("finalize-last_remote_mined_block({:?})", &block);
         let last_fin = self.last_finalized_block(chain_id)?;
+        log::info!("finalize-last_finalized_block({:?})", &last_fin);
         if block.nonce > last_fin.nonce {
             log::info!("Calling mgr.finalize({}, {})", chain_id, last_fin.nonce);
             Ok(Some(self.create_finalize_transaction(
@@ -334,7 +345,9 @@ impl QuantumPortalClient {
         &self,
         chain1: u64,
         chain2: u64,) -> ChainRequestResult<Option<H256>> {
+        log::info!("mine({} => {})", chain1, chain2);
         let block_ready = self.is_local_block_ready(chain2)?;
+        log::info!("local block ready? {}", block_ready);
         if !block_ready { return  Ok(None); }
         let last_block = self.last_local_block(chain2)?;
         let last_mined_block = self.last_remote_mined_block(chain1)?;
@@ -363,7 +376,8 @@ impl QuantumPortalClient {
         data: &[u8]
     ) -> ChainRequestResult<QpLocalBlock> {
         let dec = decode(
-            &[local_block_tuple()],
+            // &[local_block_tuple()],
+            local_block_tuple0().as_slice(),
             ChainUtils::hex_to_bytes(data)?.as_slice(),
         ).unwrap();
         Self::decode_local_block_from_tuple(dec.as_slice())

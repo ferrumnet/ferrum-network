@@ -44,6 +44,7 @@ impl <T: Config> QuantumPortalService<T> {
         // completed or timed out.
         // Nonce management? :: V1. No special nonce management
         //                      V2. TODO: record and re-use the nonce to ensure controlled timeouts
+        log::info!("process_pair: {} -> {}", chain1, chain2);
         let live_txs = self.pending_transactions(chain1)?; // TODO: Consider having separate config per pair
         if live_txs.len() > 0 {
             log::info!("There are already {} pending transactions. Ignoring this round",
@@ -52,6 +53,7 @@ impl <T: Config> QuantumPortalService<T> {
         }
         let client1: &QuantumPortalClient = &self.clients[self.find_client_idx(chain1)];
         let client2: &QuantumPortalClient = &self.clients[self.find_client_idx(chain2)];
+        log::info!("Clients: {} <> {}", client1.block_number, client2.block_number);
         let now = client1.now;
         let fin_tx = client2.finalize(chain1)?;
         if fin_tx.is_some() {

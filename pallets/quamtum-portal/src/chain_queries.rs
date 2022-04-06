@@ -158,8 +158,6 @@ fn fetch_json_rpc_body(
 			ChainRequestError::ErrorGettingJsonRpcResponse
 		})?;
 
-	log::info!("Pendool!");
-	// println!("Pendool!");
 	// By default, the http request is async from the runtime perspective. So we are asking the
 	//   runtime to wait here
 	// The returning value here is a `Result` of `Result`, so we are unwrapping it twice by two `?`
@@ -169,7 +167,7 @@ fn fetch_json_rpc_body(
 	let response_0 = match response_a {
 		Ok(r) => {
 			// println!("Result got");
-			log::info!("Result got");
+			// log::info!("Result got");
 			Ok(r)
 		},
 		Err(e) => {
@@ -181,7 +179,7 @@ fn fetch_json_rpc_body(
 	}?;
 	let response = match response_0 {
 		Ok(r) => {
-			log::info!("Result got 2");
+			// log::info!("Result got 2");
 			Ok(r)
 		},
 		Err(e) => {
@@ -204,7 +202,7 @@ fn fetch_json_rpc_body(
 	// 		ChainRequestError::ErrorGettingJsonRpcResponse
 	// 	})?;
 
-	log::info!("Response is ready!");
+	// log::info!("Response is ready!");
 	let body = response.body().collect::<Vec<u8>>().clone();
 	log::info!("Response code got : {}-{}", &response.code, str::from_utf8(&body.as_slice()).unwrap());
 
@@ -269,7 +267,7 @@ impl ChainQueries {
 			params: Vec::new(),
 			method: b"eth_chainId".to_vec(),
 		};
-		log::info!("Have request {:?}", &req);
+		// log::info!("Have request {:?}", &req);
 		let res: Box<GetChainIdResponse> = fetch_json_rpc(url, &req)?;
 		log::info!("Result is {:?}", &res);
 		let chain_id = ChainUtils::hex_to_u64(&res.result)?;
@@ -288,7 +286,7 @@ impl ChainQueries {
 			params: vec![ ChainUtils::wrap_in_quotes(tx_id.as_slice()).to_vec() ],
 			method: b"eth_getTransactionReceipt".to_vec(),
 		};
-		log::info!("Have request {:?}", &req);
+		// log::info!("Have request {:?}", &req);
 		let res: Box<GetTransactionReceiptResponse> = fetch_json_rpc(url, &req)?;
 		log::info!("Result is {:?}", &res);
 		Ok(res.result)

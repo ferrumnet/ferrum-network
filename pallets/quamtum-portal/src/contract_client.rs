@@ -122,7 +122,8 @@ impl ContractClient {
             params: Vec::from([call_json, Vec::from("\"latest\"".as_bytes())]),
             method: b"eth_call".to_vec(),
         };
-        log::info!("Have request {:?}", &req);
+        log::info!("Have request {:?}", str::from_utf8(
+            method_signature).unwrap());
         fetch_json_rpc(self.http_api, &req)
     }
 
@@ -186,7 +187,7 @@ impl ContractClient {
             params: Vec::from([hex_tx_fmtd]),
             method: b"eth_sendRawTransaction".to_vec(),
         };
-        log::info!("Have request {:?}", &req);
+        // log::info!("Have request {:?}", &req);
         let rv: Box<CallResponse> = fetch_json_rpc(self.http_api, &req)?;
         log::info!("Have response {:?}", &rv);
         Ok(H256::from_slice(rv.result.as_slice()))

@@ -107,22 +107,22 @@ pub mod pallet {
 				let hash = H256::from_slice(payload); // ChainUtils::keccack(payload);
 				let sig = ChainUtils::sign_transaction_hash(
 					&ecdsa_pub, &hash).unwrap();
-				log::info!("Pub is {:?}", ecdsa_pub.0);
+				// log::info!("Pub is {:?}", ecdsa_pub.0);
 				// Get the long pub and hence the address of the signer
 				let lk = libsecp256k1::PublicKey::parse_slice(&ecdsa_pub.0, None).unwrap();
 				let lks = lk.serialize();
-				log::info!("Pub long {:?}", lks);
+				// log::info!("Pub long {:?}", lks);
 				let addr0 = ChainUtils::eth_address_from_public_key(&lks[1..]);
-				log::info!("Addr {:?}", addr0.as_slice());
-				log::info!("Addr {:?}", str::from_utf8(ChainUtils::bytes_to_hex(addr0.as_slice()).as_slice()).unwrap());
+				// log::info!("Addr {:?}", addr0.as_slice());
+				// log::info!("Addr {:?}", str::from_utf8(ChainUtils::bytes_to_hex(addr0.as_slice()).as_slice()).unwrap());
 
 				let mut buf: [u8; 65] = [0; 65];
 				buf.copy_from_slice(sig.as_slice());
 				let signature = ecdsa::Signature(buf);
-				log::info!("Signing msg: {} - {}",
-					str::from_utf8(ChainUtils::bytes_to_hex(hash.as_bytes()).as_slice()).unwrap(),
-					str::from_utf8(ChainUtils::bytes_to_hex(sig.as_slice()).as_slice()).unwrap(),
-				);
+				// log::info!("Signing msg: {} - {}",
+				// 	str::from_utf8(ChainUtils::bytes_to_hex(hash.as_bytes()).as_slice()).unwrap(),
+				// 	str::from_utf8(ChainUtils::bytes_to_hex(sig.as_slice()).as_slice()).unwrap(),
+				// );
 
 				// Recover to make sure
 				let msg = Message::parse_slice(&hash.0).unwrap();
@@ -132,12 +132,12 @@ pub mod pallet {
 				rec.serialize(), &msg.0).unwrap();
 				let the_pub = libsecp256k1::PublicKey::try_from(rec).unwrap();
 				let the_pub = the_pub.serialize();
-				log::info!("the pub {:?}", the_pub);
+				// log::info!("the pub {:?}", the_pub);
 				let the_pub_s = ChainUtils::bytes_to_hex(the_pub.as_slice());
-				log::info!("pubsize is {}", &the_pub.len());
+				// log::info!("pubsize is {}", &the_pub.len());
 				let add_s = ChainUtils::eth_address_from_public_key(&the_pub.as_slice()[1..]);
-				log::info!("Recovered pub is {}", str::from_utf8(the_pub_s.as_slice()).unwrap());
-				log::info!("Recovered addr is {}", str::from_utf8(ChainUtils::bytes_to_hex(add_s.as_slice()).as_slice()).unwrap());
+				// log::info!("Recovered pub is {}", str::from_utf8(the_pub_s.as_slice()).unwrap());
+				// log::info!("Recovered addr is {}", str::from_utf8(ChainUtils::bytes_to_hex(add_s.as_slice()).as_slice()).unwrap());
 				Some(MultiSignature::Ecdsa(signature))
 			}
 		}
@@ -254,7 +254,7 @@ pub mod pallet {
 			let rpc_endpoint_rinkeby = "https://rinkeby.infura.io/v3/18b15ac5b3e8447191c6b233dcd2ce14";
 			let lgr_mgr_rinkeby = ChainUtils::hex_to_address(
 				b"d36312d594852462d6760042e779164eb97301cd");
-			log::info!("contract address is {:?}", lgr_mgr_rinkeby);
+			// log::info!("contract address is {:?}", lgr_mgr_rinkeby);
 			let client_rinkeby = ContractClient::new(
 				rpc_endpoint_rinkeby.clone(), &lgr_mgr_rinkeby, 4);
 			let c_rinkeby = QuantumPortalClient::new(
@@ -268,7 +268,7 @@ pub mod pallet {
 			let rpc_endpoint_bsctestnet = "https://data-seed-prebsc-1-s1.binance.org:8545";
 			let lgr_mgr_bsctestnet = ChainUtils::hex_to_address(
 				b"d36312d594852462d6760042e779164eb97301cd");
-			log::info!("contract address is {:?}", lgr_mgr_bsctestnet);
+			// log::info!("contract address is {:?}", lgr_mgr_bsctestnet);
 			let client_bsctestnet = ContractClient::new(
 				rpc_endpoint_bsctestnet.clone(), &lgr_mgr_bsctestnet, 97);
 			let c_bsctestnet = QuantumPortalClient::new(
@@ -281,7 +281,8 @@ pub mod pallet {
 			let svc = QuantumPortalService::<T>::new(
 				vec![c_rinkeby, c_bsctestnet]
 			);
-			svc.process_pair(4, 97).unwrap();
+			svc.process_pair_with_lock(4, 97).unwrap();
+			// svc.process_pair(4, 97).unwrap();
 		}
 
 		fn is_block_ready(c: &QuantumPortalClient) {
@@ -311,7 +312,7 @@ pub mod pallet {
 		}
 
 		fn mine_block(c: &QuantumPortalClient, chain1: u64, chain2: u64) {
-			c.mine(chain1, chain2).unwrap();
+			// c.mine(chain1).unwrap();
 		}
 
 		fn run_mine_and_finalize(block_number: u64) {

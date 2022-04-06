@@ -1,5 +1,4 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-
 use crate::chain_queries::{ChainQueries, fetch_json_rpc, JsonRpcRequest, CallResponse, de_string_to_bytes};
 use sp_core::{ecdsa, H160, H256, U256};
 use sp_std::{str};
@@ -184,7 +183,7 @@ impl QuantumPortalClient {
         &self,
         chain_id: u64,
     ) -> ChainRequestResult<QpLocalBlock> {
-        let signature = b"lastLocalBlock(uint64)";
+        let signature = b"lastLocalBlock(uint256)";
         let res: Box<CallResponse> = self.contract.call(signature,
                                                         &[
                                                             Token::Uint(U256::from(chain_id))
@@ -341,33 +340,38 @@ impl QuantumPortalClient {
         }
     }
 
+
     pub fn mine(
         &self,
-        chain1: u64,
-        chain2: u64,) -> ChainRequestResult<Option<H256>> {
-        log::info!("mine({} => {})", chain1, chain2);
-        let block_ready = self.is_local_block_ready(chain2)?;
+        remote_client: &QuantumPortalClient,
+        ) -> ChainRequestResult<Option<H256>> {
+        let local_chain = self.contract.chain_id;
+        let remote_chain = remote_client.contract.chain_id;
+        log::info!("mine({} => {})", remote_chain, local_chain);
+        let block_ready = remote_client.is_local_block_ready(local_chain)?;
         log::info!("local block ready? {}", block_ready);
         if !block_ready { return  Ok(None); }
-        let last_block = self.last_local_block(chain2)?;
-        let last_mined_block = self.last_remote_mined_block(chain1)?;
-        log::info!("Local block (chain {}) nonce is {}. Remote mined block (chain {}) is {}",
-			chain1, last_block.nonce, chain2, last_mined_block.nonce);
+        log::info!("Getting last local block");
+        let last_block = remote_client.last_local_block(local_chain)?;
+        log::info!("Last local block is {:?}", last_block);
+        let last_mined_block = self.last_remote_mined_block(remote_chain)?;
+        log::info!("Local block f remote (chain {}) nonce is {}. Remote mined block on local (chain {}) is {}",
+			remote_chain, last_block.nonce, local_chain, last_mined_block.nonce);
         if last_mined_block.nonce >= last_block.nonce {
             log::info!("Nothing to mine!");
             return Ok(None);
         }
-        log::info!("Last block is on chain1 for target {} is {}", chain2, last_block.nonce);
-        let mined_block = self.mined_block_by_nonce(chain1, last_block.nonce)?;
+        log::info!("Last block is on chain1 for target {} is {}", local_chain, last_block.nonce);
+        let mined_block = self.mined_block_by_nonce(remote_chain, last_block.nonce)?;
         let already_mined = !mined_block.0.block_hash.eq(&ZERO_HASH);
         if already_mined {
             return Err(ChainRequestError::RemoteBlockAlreadyMined);
         }
-        let source_block = self.local_block_by_nonce(chain2, last_block.nonce)?;
+        let source_block = remote_client.local_block_by_nonce(local_chain, last_block.nonce)?;
         let txs = source_block.1;
-        log::info!("About to mine block {}:{}", chain1, source_block.0.nonce);
+        log::info!("About to mine block {}:{}", remote_chain, source_block.0.nonce);
         Ok(Some(
-            self.create_mine_transaction(chain1, source_block.0.nonce, &txs)?
+            self.create_mine_transaction(remote_chain, source_block.0.nonce, &txs)?
         ))
     }
 

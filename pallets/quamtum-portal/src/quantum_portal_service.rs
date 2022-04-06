@@ -4,14 +4,16 @@ use sp_core::H256;
 use sp_std::prelude::*;
 use sp_std::str;
 use frame_support::codec::{Encode, Decode};
+use sp_runtime::offchain::storage::StorageValueRef;
+use byte_slice_cast::{*};
 use crate::chain_queries::{ChainQueries, TransactionStatus};
-use crate::chain_utils::{ChainRequestError, ChainRequestResult};
+use crate::chain_utils::{ChainRequestError, ChainRequestResult, ChainUtils};
 use crate::{Config, PendingTransactions};
 use crate::quantum_portal_client::QuantumPortalClient;
 
 const TIMEOUT: u64 = 3600 * 1000;
 
-#[derive(Encode, Decode, Clone, PartialEq, MaxEncodedLen, scale_info::TypeInfo)]
+#[derive(Debug, Encode, Decode, Clone, PartialEq, MaxEncodedLen, scale_info::TypeInfo)]
 pub enum  PendingTransaction {
     // MineTransaction(chain, remote_chain, timestamp, tx_id)
     MineTransaction(u64, u64, u64, H256),
@@ -38,50 +40,112 @@ impl <T: Config> QuantumPortalService<T> {
         }
     }
 
-    pub fn process_pair(&self, chain1: u64, chain2: u64) -> ChainRequestResult<()>{
+    fn lock_is_open(&self) -> ChainRequestResult<bool> {
+        // Save a None tx.
+        let tx = self.stored_pending_transactions(9999)?;
+        log::info!("Current pending txs {:?}", tx);
+        if tx.is_empty() {
+            log::info!("No lock! We can go ahead");
+            return Ok(true);
+        }
+        log::info!("LOCKED! {:?}", tx.get(0).unwrap());
+        Ok(false)
+    }
+
+    fn lock(&self) -> ChainRequestResult<()> {
+        log::info!("Saving a lock!");
+        self.save_tx(PendingTransaction::FinalizeTransaction(9999, 0, H256::zero()))?;
+        Ok(())
+    }
+
+    fn remove_lock(&self) -> ChainRequestResult<()> {
+        log::info!("Removing a lock!");
+        let tx = PendingTransaction::FinalizeTransaction(9999, 0, H256::zero());
+        self.remove_transaction_from_db(&tx)?;
+        Ok(())
+    }
+
+    pub fn process_pair_with_lock(
+        &self, remote_chain: u64, local_chain: u64) -> ChainRequestResult<()> {
+        if !self.lock_is_open()? {
+            log::info!("We will not proceed because we have a process lock lock. Processing {} => {}",
+                remote_chain, local_chain);
+            return Ok(());
+        }
+        self.lock()?;
+        let tx = self.stored_pending_transactions(9999)?;
+        log::info!("RESULTAT OF PENDING_TX {:?}", tx);
+        let rv = self.process_pair(remote_chain, local_chain);
+        self.remove_lock();
+        rv?;
+        Ok(())
+    }
+
+    pub fn process_pair(&self,
+                        remote_chain: u64,
+                        local_chain: u64,) -> ChainRequestResult<()>{
         // Processes between two chains.
         // If there is an existing pending tx, for this pair, it will wait until the pending is
         // completed or timed out.
         // Nonce management? :: V1. No special nonce management
         //                      V2. TODO: record and re-use the nonce to ensure controlled timeouts
-        log::info!("process_pair: {} -> {}", chain1, chain2);
-        let live_txs = self.pending_transactions(chain1)?; // TODO: Consider having separate config per pair
+
+        log::info!("process_pair: {} -> {}", remote_chain, local_chain);
+        let live_txs = self.pending_transactions(local_chain)?; // TODO: Consider having separate config per pair
         if live_txs.len() > 0 {
             log::info!("There are already {} pending transactions. Ignoring this round",
                 live_txs.len());
             return Ok(());
         }
-        let client1: &QuantumPortalClient = &self.clients[self.find_client_idx(chain1)];
-        let client2: &QuantumPortalClient = &self.clients[self.find_client_idx(chain2)];
-        log::info!("Clients: {} <> {}", client1.block_number, client2.block_number);
-        let now = client1.now;
-        let fin_tx = client2.finalize(chain1)?;
+        let local_client: &QuantumPortalClient = &self.clients[self.find_client_idx(local_chain)];
+        let remote_client: &QuantumPortalClient = &self.clients[self.find_client_idx(remote_chain)];
+        log::info!("Clients: {} <> {} :: {} <> {}", local_client.block_number, remote_client.block_number,
+            local_client.contract.http_api,
+            remote_client.contract.http_api,
+        );
+        let now = local_client.now;
+        let fin_tx = local_client.finalize(remote_chain)?;
         if fin_tx.is_some() {
             // Save tx
             // MineTransaction(chain, remote_chain, timestamp, tx_id)
             self.save_tx(
                 PendingTransaction::FinalizeTransaction(
-                    chain1, now, fin_tx.unwrap()
+                    local_chain, now, fin_tx.unwrap()
                 ))?
         } else {
             // Save tx
-            let mine_tx = client2.mine(chain1, chain2)?;
+            let mine_tx = local_client.mine(remote_client)?;
             if mine_tx.is_some() {
                 self.save_tx(
                     PendingTransaction::MineTransaction(
-                        chain2, chain1, now, mine_tx.unwrap()
+                        local_chain, remote_chain, now, mine_tx.unwrap()
                     ))?
             }
         }
+        self.remove_lock()?;
         Ok(())
     }
 
+    fn storage_key(key: u64) -> Vec<u8> {
+        let key = key.to_be_bytes();
+        let key = key.as_slice();
+        let key = ChainUtils::bytes_to_hex(key);
+        let key = key.as_slice();
+        let key_pre = b"quantum-portal::tx::".as_slice();
+        let key = [key_pre, key].concat();
+        Vec::from(key.as_slice())
+    }
+
     fn save_tx(&self, tx: PendingTransaction) -> ChainRequestResult<()> {
-        let key = Self::storage_key(&tx);
-        PendingTransactions::<T>::insert(
-            key,
-            tx
-        );
+        let key = Self::storage_key_for_tx(&tx);
+        let key = Self::storage_key(key);
+        let key = key.as_slice();
+        let s = StorageValueRef::persistent(key);
+        s.set(&tx);
+        // PendingTransactions::<T>::insert(
+        //     key,
+        //     tx
+        // );
         Ok(())
     }
 
@@ -93,19 +157,33 @@ impl <T: Config> QuantumPortalService<T> {
     }
 
     fn stored_pending_transactions(&self, chain_id: u64) -> ChainRequestResult<Vec<PendingTransaction>> {
-        let rv = PendingTransactions::<T>::try_get(chain_id);
+        let key = Self::storage_key(chain_id);
+        let key = key.as_slice();
+        let s = StorageValueRef::persistent(key);
+        let rv = s.get().unwrap();
         Ok(match rv {
-            Err(e) => {
-                log::info!("Error stored_pending_transactions {:?}", e);
+            None => {
+                log::info!("stored_pending_transactions nichivo");
                 Vec::new()
             },
-            Ok(v) => vec![v],
+            Some(v) => vec![v],
         })
+        // let rv = PendingTransactions::<T>::try_get(chain_id);
+        // Ok(match rv {
+        //     Err(e) => {
+        //         log::info!("Error stored_pending_transactions {:?}", e);
+        //         Vec::new()
+        //     },
+        //     Ok(v) => vec![v],
+        // })
     }
 
     fn remove_transaction_from_db(&self, t: &PendingTransaction) -> ChainRequestResult<()> {
-        let key = Self::storage_key(t);
-        PendingTransactions::<T>::remove(key);
+        let key = Self::storage_key_for_tx(t);
+        let key = Self::storage_key(key);
+        let key = key.as_slice();
+        let mut s = StorageValueRef::persistent(key);
+        s.clear();
         Ok(())
     }
 
@@ -160,7 +238,7 @@ impl <T: Config> QuantumPortalService<T> {
             |c| c.contract.chain_id == chain_id).unwrap()
     }
 
-    fn storage_key(tx: &PendingTransaction) -> u64 {
+    fn storage_key_for_tx(tx: &PendingTransaction) -> u64 {
         match tx {
             PendingTransaction::MineTransaction(c, _, _, _) => c,
             PendingTransaction::FinalizeTransaction(c, _, _) => c,

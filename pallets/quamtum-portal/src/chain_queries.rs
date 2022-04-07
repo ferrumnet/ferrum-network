@@ -222,7 +222,7 @@ where T: for<'de> Deserialize<'de> {
 	// println!("fetchin {} : {:?}", base_url, req);
 	let body = fetch_json_rpc_body(base_url, req)?;
 	// println!("Response body got : {}", str::from_utf8(&body).unwrap());
-	log::info!("Response body got : {}", str::from_utf8(&body).unwrap());
+	// log::info!("Response body got : {}", str::from_utf8(&body).unwrap());
 	let rv: serde_json::Result<T> = serde_json::from_slice(&body);
 	match rv {
 		Err(err) => {

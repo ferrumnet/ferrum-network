@@ -1,4 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+
 use crate::chain_queries::{ChainQueries, fetch_json_rpc, JsonRpcRequest, CallResponse, de_string_to_bytes};
 use sp_core::{ecdsa, H160, H256, U256};
 use sp_std::{str};
@@ -49,11 +50,28 @@ fn decode_remote_block_and_txs<T, F>(
 ) -> ChainRequestResult<(T, Vec<QpTransaction>)> where
     F: Fn(Token) -> ChainRequestResult<T> {
     log::info!("decode_remote_block_and_txs {:?}", data);
+    // let dec = decode(
+    //     &[
+    //         ParamKind::Tuple(vec![
+    //             Box::new(mined_block_tuple),
+    //             Box::new(ParamKind::Array(
+    //                 Box::new(ParamKind::Tuple(vec![         // RemoteTransaction[]
+    //                                                         Box::new(ParamKind::Uint(256)),     // timestamp
+    //                                                         Box::new(ParamKind::Address),       // remoteContract
+    //                                                         Box::new(ParamKind::Address),       // sourceMsgSender
+    //                                                         Box::new(ParamKind::Address),       // sourceBeneficiary
+    //                                                         Box::new(ParamKind::Address),       // token
+    //                                                         Box::new(ParamKind::Uint(256)),     // amount
+    //                                                         Box::new(ParamKind::Bytes),         // method
+    //                                                         Box::new(ParamKind::Uint(256)),     // gas
+    //                 ]))))
+    //         ])],
+    //     ChainUtils::hex_to_bytes(&data)?.as_slice(),
+    // ).unwrap();
     let dec = decode(
-        &[
-            ParamKind::Tuple(vec![
-                Box::new(mined_block_tuple),
-                Box::new(ParamKind::Array(
+            &[
+                mined_block_tuple,
+                ParamKind::Array(
                     Box::new(ParamKind::Tuple(vec![         // RemoteTransaction[]
                         Box::new(ParamKind::Uint(256)),     // timestamp
                         Box::new(ParamKind::Address),       // remoteContract
@@ -63,13 +81,16 @@ fn decode_remote_block_and_txs<T, F>(
                         Box::new(ParamKind::Uint(256)),     // amount
                         Box::new(ParamKind::Bytes),         // method
                         Box::new(ParamKind::Uint(256)),     // gas
-                    ]))))
-            ])],
+                    ])))
+            ],
         ChainUtils::hex_to_bytes(&data)?.as_slice(),
     ).unwrap();
     log::info!("decoded {:?}, - {}", dec, dec.as_slice().len());
     let dec: ChainRequestResult<Vec<Token>> = match dec.as_slice() {
-        [tuple] => Ok(tuple.clone().to_tuple().unwrap()),
+        [tuple, txs] => Ok(vec![
+            tuple.clone(),
+            txs.clone(),
+        ]),
         _ => Err(b"Unexpected output. Could not decode local block at first level".as_slice().into())
     };
     let dec = dec?;
@@ -80,12 +101,12 @@ fn decode_remote_block_and_txs<T, F>(
             let remote_transactions = remote_transactions.clone();
             log::info!("PRE = Mined block is opened up");
             let block = block_tuple_decoder(mined_block)?;
-            log::info!("Mined block is opened up");
+            log::info!("Mined block is opened up == {:?}", remote_transactions);
             let remote_transactions = remote_transactions.to_array().unwrap()
                 .into_iter()
                 .map(|t|
                     decode_remote_transaction_from_tuple(
-                        t.to_array().unwrap().as_slice()).unwrap()).collect();
+                        t.to_tuple().unwrap().as_slice()).unwrap()).collect();
             Ok((block, remote_transactions))
         },
         _ => Err(b"Unexpected output. Could not decode local block".as_slice().into())
@@ -233,11 +254,19 @@ impl QuantumPortalClient {
                                                                    Box::new(ParamKind::Uint(256)),         // totalValue
                                                                    Box::new(local_block_tuple())
         ]);
+        // let mined_block_tuple = vec![             // MinedBlock
+        //                                    ParamKind::FixedBytes(32),    // blockHash
+        //                                    ParamKind::Address,           // miner
+        //                                    ParamKind::Uint(256),         // stake
+        //                                    ParamKind::Uint(256),         // totalValue
+        //                                    local_block_tuple()
+        // ];
         decode_remote_block_and_txs(
             res.result.as_slice(),
             mined_block_tuple,
             |block| {
-                Self::decode_mined_block_from_tuple(block.to_array().unwrap().as_slice())
+                log::info!("Decoding local block, {:?}", block);
+                Self::decode_mined_block_from_tuple(block.to_tuple().unwrap().as_slice())
             },
         )
     }
@@ -390,6 +419,7 @@ impl QuantumPortalClient {
     fn decode_local_block_from_tuple(
         dec: &[Token],
     ) -> ChainRequestResult<QpLocalBlock> {
+        log::info!("Decoding local block, {:?}", dec);
         match dec {
             [chain_id, nonce, timestamp] => {
                 let chain_id = chain_id.clone().to_uint();
@@ -408,20 +438,24 @@ impl QuantumPortalClient {
     fn decode_mined_block_from_tuple(
         dec: &[Token],
     ) -> ChainRequestResult<QpRemoteBlock> {
+        log::info!("decode_mined_block_from_tuple {:?}", dec);
         match dec {
             [block_hash, miner, stake, total_value, block_metadata] => {
+                log::info!("D {:?}::{:?}:{:?}:{:?}::{:?}", block_hash, miner, stake, total_value, block_metadata);
                 let block_hash = block_hash.clone();
                 let miner = miner.clone();
                 let stake = stake.clone();
                 let total_value = total_value.clone();
                 let block_metadata = block_metadata.clone();
+                log::info!("Decoding block metadata");
                 let block_metadata = Self::decode_local_block_from_tuple(
-                    &block_metadata.to_array().unwrap())?;
+                    &block_metadata.to_tuple().unwrap())?;
+                log::info!("DecodED block metadata");
                 Ok(QpRemoteBlock {
-                    block_hash: H256::from_slice(block_hash.to_bytes().unwrap().as_slice()),
+                    block_hash: H256::from_slice(block_hash.to_fixed_bytes().unwrap().as_slice()),
                     miner: miner.to_address().unwrap(),
-                    stake: U256::from(stake.to_bytes().unwrap().as_slice()),
-                    total_value: U256::from(total_value.to_bytes().unwrap().as_slice()),
+                    stake: U256::from(stake.to_uint().unwrap()),
+                    total_value: U256::from(total_value.to_uint().unwrap()),
                     block_metadata,
                 })
             },

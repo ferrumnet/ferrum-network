@@ -190,7 +190,7 @@ impl ContractClient {
         // log::info!("Have request {:?}", &req);
         let rv: Box<CallResponse> = fetch_json_rpc(self.http_api, &req)?;
         log::info!("Have response {:?}", &rv);
-        Ok(H256::from_slice(rv.result.as_slice()))
+        Ok(H256::from_slice(ChainUtils::hex_to_bytes(rv.result.as_slice())?.as_slice()))
     }
 
     pub fn nonce(

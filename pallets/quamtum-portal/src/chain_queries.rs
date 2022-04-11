@@ -242,11 +242,9 @@ struct GetChainIdResponse {
 #[derive(Debug, Deserialize, Encode, Decode)]
 pub struct GetTransactionReceiptResponseData {
 	#[serde(deserialize_with = "de_string_to_bytes")]
-	block_hash: Vec<u8>,
+	blockHash: Vec<u8>,
 	#[serde(deserialize_with = "de_string_to_bytes")]
-	block_number: Vec<u8>,
-	#[serde(deserialize_with = "de_string_to_bytes")]
-	nonce: Vec<u8>,
+	blockNumber: Vec<u8>,
 	#[serde(deserialize_with = "de_string_to_bytes")]
 	status: Vec<u8>,
 }
@@ -276,10 +274,11 @@ impl ChainQueries {
 
 	pub fn get_transaction_receipt(url: &str, tx_id: &H256)
 		-> ChainRequestResult<Option<GetTransactionReceiptResponseData>> {
+		log::info!("TX_ID is: {:?}", &tx_id.0);
 		let tx_id = ChainUtils::h256_to_hex_0x(tx_id);
 		log::info!("About to get eth_getTransactionReceipt {}: {}",
 			url,
-			str::from_utf8(ChainUtils::bytes_to_hex(tx_id.as_slice()).as_slice()).unwrap());
+			str::from_utf8(tx_id.as_slice()).unwrap());
 
 		let req = JsonRpcRequest {
 			id: 1,

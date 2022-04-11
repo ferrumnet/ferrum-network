@@ -81,6 +81,41 @@ impl <T: Config> QuantumPortalService<T> {
         Ok(())
     }
 
+    pub fn test_tx_storage_and_status(&self) -> ChainRequestResult<()> {
+        // TODO: Move this to a proper integ test
+        // Get the status of non-existing tx
+        // Get the status of an existing transaction... (successful)
+        // Get the status of an existing transaction... (failed)
+        // Save an extisting tx and set the timeout number
+        let recent_time = self.clients.get(0).unwrap().now - 10000;
+        let old_time = recent_time - 30 * 3600 * 1000;
+        let ip = self.is_tx_pending(&PendingTransaction::FinalizeTransaction(
+            4 as u64,
+            recent_time,
+            H256::from_slice(ChainUtils::hex_to_bytes(
+                b"0x3eadda1dfb4daaaa42865b154afa24ff7517e1e05db20e2b4200000000000000"
+            ).unwrap().as_slice())
+        ))?;
+        log::info!("Non existing recent tx is pending? {}", ip);
+        let ip = self.is_tx_pending(&PendingTransaction::FinalizeTransaction(
+            4 as u64,
+            old_time,
+            H256::from_slice(ChainUtils::hex_to_bytes(
+                b"0x3eadda1dfb4daaaa42865b154afa24ff7517e1e05db20e2b4200000000000000"
+            ).unwrap().as_slice())
+        ))?;
+        log::info!("Non existing [TIEMD OUT] recent tx is pending? {}", ip);
+        let ip = self.is_tx_pending(&PendingTransaction::FinalizeTransaction(
+            4 as u64,
+            old_time,
+            H256::from_slice(ChainUtils::hex_to_bytes(
+                b"0x029729a1d69ddeaa8f6c2417ae0e799d5784a12f04675785432d6441c5e5b881"
+            ).unwrap().as_slice())
+        ))?;
+        log::info!("Existing successful tx is pending? {}", ip);
+        Ok(())
+    }
+
     pub fn process_pair(&self,
                         remote_chain: u64,
                         local_chain: u64,) -> ChainRequestResult<()>{
@@ -199,29 +234,30 @@ impl <T: Config> QuantumPortalService<T> {
         };
         let client = &self.clients[self.find_client_idx(chain_id1.clone())];
 
+        log::info!("is_tx_pending {}::{:?} ({}) [Current time {}]", chain_id1, tx_id, timestamp, client.now);
         let status = ChainQueries::get_transaction_status(
             client.contract.http_api,
             tx_id)?;
         let res = match status {
             TransactionStatus::Confirmed => {
                 // Remove
-                log::info!("The transaction is confirmed! Please investigate {} - {}",
-                    chain_id1, str::from_utf8(tx_id.0.as_slice()).unwrap());
+                log::info!("The transaction is confirmed! {} - {}",
+                        chain_id1, str::from_utf8(ChainUtils::h256_to_hex_0x(tx_id).as_slice()).unwrap());
                 self.remove_transaction_from_db(t)?;
                 false
             },
             TransactionStatus::Failed => {
                 // Remove
-                log::error!("The transaction is failed! Please investigate {} - {}",
-                    chain_id1, str::from_utf8(tx_id.0.as_slice()).unwrap());
+                log::info!("The transaction is failed! Please investigate {} - {}",
+                        chain_id1, str::from_utf8(ChainUtils::h256_to_hex_0x(tx_id).as_slice()).unwrap());
                 self.remove_transaction_from_db(t)?;
                 false
             },
             TransactionStatus::Pending => true,
             TransactionStatus::NotFound => {
-                if (timestamp + TIMEOUT) > client.now {
+                if (timestamp + TIMEOUT) < client.now {
                     log::error!("The transaction is timed out! Please investigate {} - {}",
-                        chain_id1, str::from_utf8(tx_id.0.as_slice()).unwrap());
+                        chain_id1, str::from_utf8(ChainUtils::h256_to_hex_0x(tx_id).as_slice()).unwrap());
                     self.remove_transaction_from_db(t)?;
                     false
                 } else {

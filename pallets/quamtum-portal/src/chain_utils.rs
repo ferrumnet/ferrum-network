@@ -183,18 +183,9 @@ impl ChainUtils {
         zx
     }
 
-    pub fn u256_to_hex_str(i: &U256) -> Vec<u8> {
-        let fmted = i.encode();
-        let mut zx = vec![];
-        zx.extend(fmted.into_iter().map(|i| i + '0' as u8));
-        zx
-    }
-
     pub fn h256_to_hex_0x(i: &H256) -> Vec<u8> {
-        let fmted = i.encode();
-        let mut zx = vec!['0' as u8, 'x' as u8];
-        zx.extend(fmted.into_iter().map(|i| i + '0' as u8));
-        zx
+        let fmted = i.0.as_slice();
+        Self::hex_add_0x(Self::bytes_to_hex(fmted).as_slice())
     }
 
     pub fn empty_signature() -> TransactionSignature {

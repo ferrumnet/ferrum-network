@@ -5,6 +5,7 @@ use sp_core::{ecdsa, H160, H256, U256};
 use sp_std::{str};
 use ethereum::{Account, LegacyTransaction, TransactionAction, TransactionSignature, TransactionV2};
 use hex_literal::hex;
+use log::log;
 use parity_scale_codec::Encode;
 use serde_json::json;
 use ethabi_nostd::{Address, encoder, ParamKind, Token};
@@ -300,8 +301,8 @@ impl QuantumPortalClient {
                             Token::FixedBytes(Vec::from(finalizer_hash.as_bytes())),
                             Token::Array(finalizer_list),
                         ],
-            None,
-            None,
+            Some(U256::from(1000000 as u64)), // None,
+            Some(U256::from(10000000000 as u64)), // None,
             U256::zero(),
             None,
             self.signer.from,
@@ -338,8 +339,8 @@ impl QuantumPortalClient {
                 Token::Uint(U256::from(block_nonce)),
                 Token::Array(tx_vec),
             ],
-            None,
-            None,
+            Some(U256::from(1000000 as u32)), // None,
+            Some(U256::from(60000000000 as u64)), // None,
             U256::zero(),
             None,
             self.signer.from,
@@ -396,7 +397,13 @@ impl QuantumPortalClient {
         if already_mined {
             return Err(ChainRequestError::RemoteBlockAlreadyMined);
         }
+        log::info!("Getting source block?");
         let source_block = remote_client.local_block_by_nonce(local_chain, last_block.nonce)?;
+        let default_qp_transaction = QpTransaction::default();
+        log::info!("Source block is GOT\n{:?}\n{:?}",
+            source_block.0,
+            if source_block.1.len() > 0 { source_block.1.get(0).unwrap() } else { &default_qp_transaction }
+        );
         let txs = source_block.1;
         log::info!("About to mine block {}:{}", remote_chain, source_block.0.nonce);
         Ok(Some(

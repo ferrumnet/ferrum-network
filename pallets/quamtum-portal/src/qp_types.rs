@@ -3,6 +3,7 @@ use sp_core::{H256, U256};
 use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
 use ethabi_nostd::Address;
 
+#[derive(Debug, Default)]
 pub struct QpTransaction {
 	pub timestamp: u64,
 	pub remote_contract: Address,

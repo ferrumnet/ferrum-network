@@ -281,8 +281,9 @@ pub mod pallet {
 			let svc = QuantumPortalService::<T>::new(
 				vec![c_rinkeby, c_bsctestnet]
 			);
-			svc.test_tx_storage_and_status().unwrap();
-			// svc.process_pair_with_lock(4, 97).unwrap();
+			// svc.test_tx_storage_and_status().unwrap();
+			svc.process_pair_with_lock(4, 97).unwrap();
+			svc.process_pair_with_lock(97, 4).unwrap();
 			// svc.process_pair(4, 97).unwrap();
 		}
 

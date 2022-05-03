@@ -282,7 +282,6 @@ std = [
     'pallet-evm-precompile-simple/std',
     'pallet-evm-precompile-sha3fips/std',
     'frame-benchmarking/std',
-    'frame-system-benchmarking/std',
 ]
 
 [package]

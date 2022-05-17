@@ -135,8 +135,8 @@ impl <T: Config> QuantumPortalService<T> {
         let local_client: &QuantumPortalClient = &self.clients[self.find_client_idx(local_chain)];
         let remote_client: &QuantumPortalClient = &self.clients[self.find_client_idx(remote_chain)];
         log::info!("Clients: {} <> {} :: {} <> {}", local_client.block_number, remote_client.block_number,
-            local_client.contract.http_api,
-            remote_client.contract.http_api,
+            str::from_utf8(&local_client.contract.http_api[..]).unwrap(),
+            str::from_utf8(&remote_client.contract.http_api[..]).unwrap()
         );
         let now = local_client.now;
         let fin_tx = local_client.finalize(remote_chain)?;
@@ -236,7 +236,7 @@ impl <T: Config> QuantumPortalService<T> {
 
         log::info!("is_tx_pending {}::{:?} ({}) [Current time {}]", chain_id1, tx_id, timestamp, client.now);
         let status = ChainQueries::get_transaction_status(
-            client.contract.http_api,
+            str::from_utf8(&client.contract.http_api[..]).unwrap(),
             tx_id)?;
         let res = match status {
             TransactionStatus::Confirmed => {

@@ -2,6 +2,8 @@ use ethereum::{Account};
 use sp_core::{H256, U256};
 use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
 use ethabi_nostd::Address;
+use serde::{Deserialize, Serialize};
+use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 
 #[derive(Debug, Default)]
 pub struct QpTransaction {
@@ -28,4 +30,28 @@ pub struct QpRemoteBlock {
 	pub stake: U256,
 	pub total_value: U256,
 	pub block_metadata: QpLocalBlock,
+}
+
+#[derive(Clone, Eq, PartialEq, Decode, Encode, Debug, Serialize, Deserialize, scale_info::TypeInfo)]
+pub struct QpConfig {
+	pub network_vec: Vec<QpNetworkItem>,
+	pub pair_vec: Vec<(u64, u64)>,
+}
+
+#[derive(Clone, Eq, PartialEq, Decode, Encode, Debug, Serialize, Deserialize, scale_info::TypeInfo)]
+pub struct QpNetworkItem {
+	// #[serde(with = "serde_bytes")]
+    pub url: Vec<u8>,
+	// #[serde(with = "serde_bytes")]
+	pub ledger_manager: Vec<u8>,
+	pub id: u64,
+}
+
+impl Default for QpConfig {
+	fn default() -> QpConfig{
+		QpConfig {
+			network_vec: vec![],
+			pair_vec: vec![]
+		}
+	}
 }

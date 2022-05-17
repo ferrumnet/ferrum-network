@@ -1,7 +1,8 @@
 use ferrum_x_runtime::{
 	AccountId, AuraConfig, BalancesConfig, EVMConfig, EthereumConfig, GenesisConfig, GrandpaConfig,
-	Signature, SudoConfig, SystemConfig, WASM_BINARY,
+	Signature, SudoConfig, SystemConfig, WASM_BINARY, QuantumPortal, QuantumPortalConfig
 };
+use pallet_quantum_portal::qp_types::{QpConfig, QpNetworkItem};
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public, H160, U256};
@@ -9,7 +10,7 @@ use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::{traits::{IdentifyAccount, Verify}, AccountId32};
 use std::{collections::BTreeMap, str::FromStr, path::PathBuf};
 
-use crate::{cli::Cli, config::Config};
+use crate::{cli::Cli, config::{Config, convert, NetworkConfig}};
 
 const DEFAULT_DEV_PATH_BUF: &str = "./default_dev_config.json";
 const DEFAULT_LOCAL_TESTNET_PATH_BUF: &str = "./default_dev_config.json";
@@ -52,14 +53,19 @@ pub fn config_path_buf(cli: &Cli, dev: bool) -> PathBuf {
 	}
 }
 
-pub fn chainspec_params(cli: &Cli, dev: bool) -> Result<(Vec<(AuraId, GrandpaId)>, AccountId32, Vec<AccountId>, Vec<String>), String> {
+pub fn config_elem(cli: &Cli, dev: bool) -> Result<Config, String> {
 	let path_buf = config_path_buf(cli, dev);
  	
-	let config_elem = crate::config::read_config_from_file(path_buf)?;
-	let address_list = config_elem.address_list.clone();
-	let initial_authoutities: Vec<_> = config_elem.initial_authourity_seed_list.into_iter().map(|seed| authority_keys_from_seed(&seed)).collect();
-	let root_key = get_account_id_from_seed::<sr25519::Public>(config_elem.root_seed.as_str());
-	let endowed_accounts: Vec<AccountId> = config_elem.endowed_accounts_seed_list.into_iter().map(|seed| get_account_id_from_seed::<sr25519::Public>(&seed)).collect();
+	crate::config::read_config_from_file(path_buf)
+}
+
+pub fn chainspec_params(config_elem: Config) -> Result<(Vec<(AuraId, GrandpaId)>, AccountId32, Vec<AccountId>, Vec<String>), String> {
+	
+	let chain_spec_config = config_elem.chain_spec;
+	let address_list = chain_spec_config.address_list.clone();
+	let initial_authoutities: Vec<_> = chain_spec_config.initial_authourity_seed_list.into_iter().map(|seed| authority_keys_from_seed(&seed)).collect();
+	let root_key = get_account_id_from_seed::<sr25519::Public>(chain_spec_config.root_seed.as_str());
+	let endowed_accounts: Vec<AccountId> = chain_spec_config.endowed_accounts_seed_list.into_iter().map(|seed| get_account_id_from_seed::<sr25519::Public>(&seed)).collect();
 
 	Ok((initial_authoutities, root_key, endowed_accounts, address_list))
 }
@@ -67,12 +73,16 @@ pub fn chainspec_params(cli: &Cli, dev: bool) -> Result<(Vec<(AuraId, GrandpaId)
 pub fn development_config(cli: &Cli) -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
+	let config_elem = config_elem(cli, true)?;
+
+	let networks = config_elem.networks.clone();
+
 	let (
 		initial_authoutities, 
 		root_key, 
 		endowed_accounts, 
 		address_list
-	) = chainspec_params(cli, true)?;
+	) = chainspec_params(config_elem)?;
 
 	Ok(ChainSpec::from_genesis(
 		// Name
@@ -90,6 +100,7 @@ pub fn development_config(cli: &Cli) -> Result<ChainSpec, String> {
 				// Pre-funded accounts
 				endowed_accounts.clone(),
 				address_list.clone(),
+				networks.clone(),
 				true,
 			)
 		},
@@ -110,12 +121,16 @@ pub fn development_config(cli: &Cli) -> Result<ChainSpec, String> {
 pub fn local_testnet_config(cli: &Cli) -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
+	let config_elem = config_elem(cli, false)?;
+
+	let networks = config_elem.networks.clone();
+
 	let (
 		initial_authoutities, 
 		root_key, 
 		endowed_accounts, 
 		address_list
-	) = chainspec_params(cli, false)?;
+	) = chainspec_params(config_elem)?;
 	
 	Ok(ChainSpec::from_genesis(
 		// Name
@@ -133,6 +148,7 @@ pub fn local_testnet_config(cli: &Cli) -> Result<ChainSpec, String> {
 				// Pre-funded accounts
 				endowed_accounts.clone(),
 				address_list.clone(),
+				networks.clone(),
 				true,
 			)
 		},
@@ -157,6 +173,7 @@ fn testnet_genesis(
 	root_key: AccountId,
 	endowed_accounts: Vec<AccountId>,
 	address_list: Vec<String>,
+	networks: NetworkConfig,
 	_enable_println: bool,
 ) -> GenesisConfig {
 	GenesisConfig {
@@ -202,5 +219,8 @@ fn testnet_genesis(
 		ethereum: EthereumConfig {},
 		dynamic_fee: Default::default(),
 		base_fee: Default::default(),
+		quantum_portal: QuantumPortalConfig {
+			networks: convert(networks)
+		}
 	}
 }

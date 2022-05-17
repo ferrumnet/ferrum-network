@@ -12,6 +12,8 @@ log = '0.4.8'
 libsecp256k1 = { version = "0.7.0", default-features = false, features = ['static-context'] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
+serde_bytes = "0.11"
+pallet-quantum-portal = { path = "../pallets/quamtum-portal"}
 
 [dependencies.clap]
 features = ['derive']

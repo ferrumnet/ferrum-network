@@ -4,7 +4,7 @@ pub use pallet::*;
 
 mod chain_queries;
 mod chain_utils;
-mod qp_types;
+pub mod qp_types;
 mod erc_20_client;
 mod contract_client;
 mod quantum_portal_client;
@@ -14,7 +14,6 @@ pub mod quantum_portal_service;
 pub mod pallet {
 	//! A demonstration of an offchain worker that sends onchain callbacks
 	use core::{convert::TryInto};
-	use sp_std::ops::Div;
 	use parity_scale_codec::{Decode, Encode};
 	use frame_support::pallet_prelude::*;
 	use frame_system::{
@@ -42,13 +41,14 @@ pub mod pallet {
 	use sp_runtime::MultiSignature::Ecdsa;
 	use sp_runtime::traits::AccountIdConversion;
 	use ethabi_nostd::Address;
-	use crate::chain_queries::ChainQueries;
+	use crate::{chain_queries::ChainQueries, qp_types};
 	use crate::chain_utils::{ChainUtils, EMPTY_HASH};
 	use crate::contract_client::{ContractClient, ContractClientSignature};
 	use crate::crypto::TestAuthId;
 	use crate::erc_20_client::Erc20Client;
 	use crate::quantum_portal_client::QuantumPortalClient;
 	use crate::quantum_portal_service::{PendingTransaction, QuantumPortalService};
+	use crate::qp_types::{QpConfig, QpNetworkItem};
 
 	/// Defines application identifier for crypto keys of this module.
 	///
@@ -205,15 +205,20 @@ pub mod pallet {
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
 	// The pallet's runtime storage items.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/storage
 	#[pallet::storage]
 	// Learn more about declaring storage items:
-	// https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-items
+	// https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-i&tems
 	#[pallet::getter(fn numbers)]
 	pub(super) type Numbers<T> = StorageValue<_, u64, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn qp_config_item)]
+	pub type QpConfigItem<T> = StorageValue<_, qp_types::QpConfig, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn pending_transactions)]
@@ -248,42 +253,60 @@ pub mod pallet {
 		DeserializeToStrError,
 	}
 
+	#[pallet::genesis_config]
+	pub struct GenesisConfig {
+		pub networks: qp_types::QpConfig, 
+	}
+
+	#[cfg(feature = "std")]
+	impl Default for GenesisConfig {
+		fn default() -> Self {
+			Self {
+				// network_vec: vec![],
+				// ledger_manager_vec: vec![],
+				// pair_vec: vec![],
+				networks: qp_types::QpConfig::default(),
+			}
+		}
+	}
+
+
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig {
+		fn build(&self) {
+			<QpConfigItem<T>>::put(self.networks.clone());
+		}
+	}
+
 	impl<T: Config> Pallet<T> {
-		pub fn test_qp(block_number: u64) {
-			let signer_rinkeby = Signer::<T, T::AuthorityId>::any_account();
-			let rpc_endpoint_rinkeby = "https://rinkeby.infura.io/v3/18b15ac5b3e8447191c6b233dcd2ce14";
-			let lgr_mgr_rinkeby = ChainUtils::hex_to_address(
-				b"d36312d594852462d6760042e779164eb97301cd");
-			// log::info!("contract address is {:?}", lgr_mgr_rinkeby);
-			let client_rinkeby = ContractClient::new(
-				rpc_endpoint_rinkeby.clone(), &lgr_mgr_rinkeby, 4);
-			let c_rinkeby = QuantumPortalClient::new(
-				client_rinkeby,
-				ContractClientSignature::from(signer_rinkeby),
+
+		pub fn configure_network(block_number: u64, network_item: QpNetworkItem) -> QuantumPortalClient {
+
+			// let ledger_manager = str::from_utf8(&ledger_manager_vec[..]).unwrap();
+
+			let rpc_endpoint = network_item.url;
+			let id = network_item.id;
+
+			let signer = Signer::<T, T::AuthorityId>::any_account();
+			let lgr_mgr = ChainUtils::hex_to_address(&network_item.ledger_manager[..]);
+			let client = ContractClient::new(
+				rpc_endpoint, &lgr_mgr, id);
+			let c = QuantumPortalClient::new(
+				client,
+				ContractClientSignature::from(signer),
 				sp_io::offchain::timestamp().unix_millis(),
 				block_number,
 			);
+			c
+		}
+		
+		pub fn test_qp(block_number: u64, qp_config_item: qp_types::QpConfig) {
 
-			let signer_bsctestnet = Signer::<T, T::AuthorityId>::any_account();
-			let rpc_endpoint_bsctestnet = "https://data-seed-prebsc-1-s1.binance.org:8545";
-			let lgr_mgr_bsctestnet = ChainUtils::hex_to_address(
-				b"d36312d594852462d6760042e779164eb97301cd");
-			// log::info!("contract address is {:?}", lgr_mgr_bsctestnet);
-			let client_bsctestnet = ContractClient::new(
-				rpc_endpoint_bsctestnet.clone(), &lgr_mgr_bsctestnet, 97);
-			let c_bsctestnet = QuantumPortalClient::new(
-				client_bsctestnet,
-				ContractClientSignature::from(signer_bsctestnet),
-				sp_io::offchain::timestamp().unix_millis(),
-				block_number,
-			);
+			let client_vec: Vec<_> = qp_config_item.network_vec.into_iter().map(|item| Self::configure_network(block_number, item)).collect();
 
-			let svc = QuantumPortalService::<T>::new(
-				vec![c_rinkeby, c_bsctestnet]
-			);
+			let svc = QuantumPortalService::<T>::new(client_vec);
 			// svc.test_tx_storage_and_status().unwrap();
-			svc.process_pair_with_lock(4, 97).unwrap();
-			svc.process_pair_with_lock(97, 4).unwrap();
+			let res: Vec<_> = qp_config_item.pair_vec.into_iter().map(|(remote_chain, local_chain)| svc.process_pair_with_lock(remote_chain, local_chain).unwrap()).collect();
 			// svc.process_pair(4, 97).unwrap();
 		}
 
@@ -329,7 +352,7 @@ pub mod pallet {
 				b"d36312d594852462d6760042e779164eb97301cd");
 			log::info!("000===contract address is {:?}", lgr_mgr);
 			let client = ContractClient::new(
-				rpc_endpoint.clone(), &lgr_mgr, 4);
+				rpc_endpoint.as_bytes().to_vec(), &lgr_mgr, 4);
 			log::info!("001===contract address is {}", str::from_utf8(
 				ChainUtils::address_to_hex(client.contract_address).as_slice()).unwrap());
 			let signer = Signer::<T, T::AuthorityId>::any_account();
@@ -356,8 +379,9 @@ pub mod pallet {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn offchain_worker(block_number: T::BlockNumber) {
 			log::info!("Hello from pallet-ocw.");
+			let qp_config_item = <QpConfigItem<T>>::get();
 			let bno = block_number.try_into().map_or(0 as u64, |f| f);
-			Self::test_qp(bno);
+			Self::test_qp(bno, qp_config_item);
 
 			// Run a chain query as an example.
 			// let rpc_endpoint = "https://test1234.requestcatcher.com/test";

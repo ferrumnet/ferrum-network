@@ -17,7 +17,7 @@ use crate::chain_utils::ChainRequestError::JsonRpcError;
 
 #[derive(Debug, Clone)]
 pub struct ContractClient {
-    pub http_api: &'static str,
+    pub http_api: Vec<u8>,
     pub contract_address: Address,
     pub chain_id: u64,
 }
@@ -84,7 +84,7 @@ impl <T: SigningTypes + crate::Config, C: AppCrypto<T::Public, T::Signature>, X>
 
 impl ContractClient {
     pub fn new(
-        http_api: &'static str,
+        http_api: Vec<u8>,
         contract_address: &Address,
         chain_id: u64,
     ) -> Self {
@@ -124,7 +124,8 @@ impl ContractClient {
         };
         log::info!("Have request {:?}", str::from_utf8(
             method_signature).unwrap());
-        fetch_json_rpc(self.http_api, &req)
+        let http_api = str::from_utf8(&self.http_api[..]).unwrap();
+        fetch_json_rpc(http_api, &req)
     }
 
     pub fn send(
@@ -188,7 +189,8 @@ impl ContractClient {
             method: b"eth_sendRawTransaction".to_vec(),
         };
         // log::info!("Have request {:?}", &req);
-        let rv: Box<CallResponse> = fetch_json_rpc(self.http_api, &req)?;
+        let http_api = str::from_utf8(&self.http_api[..]).unwrap();
+        let rv: Box<CallResponse> = fetch_json_rpc(http_api, &req)?;
         log::info!("Have response {:?}", &rv);
         Ok(H256::from_slice(ChainUtils::hex_to_bytes(rv.result.as_slice())?.as_slice()))
     }
@@ -205,7 +207,8 @@ impl ContractClient {
             ]),
             method: b"eth_getTransactionCount".to_vec(),
         };
-        let rv: Box<CallResponse> = fetch_json_rpc(self.http_api, &req)?;
+        let http_api = str::from_utf8(&self.http_api[..]).unwrap();
+        let rv: Box<CallResponse> = fetch_json_rpc(http_api, &req)?;
         let nonce = ChainUtils::hex_to_u64(rv.result.as_slice())?;
         Ok(U256::from(nonce))
     }
@@ -218,7 +221,8 @@ impl ContractClient {
             params: Vec::new(),
             method: b"eth_gasPrice".to_vec(),
         };
-        let rv: Box<CallResponse> = fetch_json_rpc(self.http_api, &req)?;
+        let http_api = str::from_utf8(&self.http_api[..]).unwrap();
+        let rv: Box<CallResponse> = fetch_json_rpc(http_api, &req)?;
         let gp = ChainUtils::hex_to_u256(rv.result.as_slice())?;
         Ok(U256::from(gp))
     }
@@ -246,7 +250,8 @@ impl ContractClient {
             params: Vec::from([call_json, Vec::from("\"latest\"".as_bytes())]),
             method: b"eth_estimateGas".to_vec(),
         };
-        let rv: Box<CallResponse> = fetch_json_rpc(self.http_api, &req)?;
+        let http_api = str::from_utf8(&self.http_api[..]).unwrap();
+        let rv: Box<CallResponse> = fetch_json_rpc(http_api, &req)?;
         let gp = ChainUtils::hex_to_u256(rv.result.as_slice())?;
         Ok(U256::from(gp))
     }

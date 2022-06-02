@@ -447,7 +447,7 @@ construct_runtime!(
 		EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>},
 		DynamicFee: pallet_dynamic_fee::{Pallet, Call, Storage, Config, Inherent},
 		BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event},
-		QuantumPortal: pallet_quantum_portal::{Pallet, Call, Storage, Event<T>/*, ValidateUnsigned*/},
+		QuantumPortal: pallet_quantum_portal::{Pallet, Call, Storage, Config, Event<T>/*, ValidateUnsigned*/},
 	}
 );
 

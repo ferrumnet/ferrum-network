@@ -1,13 +1,19 @@
 use ferrum_x_runtime::{
 	AccountId, AuraConfig, BalancesConfig, EVMConfig, EthereumConfig, GenesisConfig, GrandpaConfig,
-	Signature, SudoConfig, SystemConfig, WASM_BINARY,
+	Signature, SudoConfig, SystemConfig, WASM_BINARY, QuantumPortal, QuantumPortalConfig
 };
+use pallet_quantum_portal::qp_types::{QpConfig, QpNetworkItem};
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public, H160, U256};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
-use sp_runtime::traits::{IdentifyAccount, Verify};
-use std::{collections::BTreeMap, str::FromStr};
+use sp_runtime::{traits::{IdentifyAccount, Verify}, AccountId32};
+use std::{collections::BTreeMap, str::FromStr, path::PathBuf};
+
+use crate::{cli::Cli, config::{Config, convert, NetworkConfig}};
+
+const DEFAULT_DEV_PATH_BUF: &str = "./default_dev_config.json";
+const DEFAULT_LOCAL_TESTNET_PATH_BUF: &str = "./default_dev_config.json";
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -37,8 +43,46 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
 	(get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
 }
 
-pub fn development_config() -> Result<ChainSpec, String> {
+pub fn config_path_buf(cli: &Cli, dev: bool) -> PathBuf {
+	if let Some(local_path_buf) = cli.run.config_file_path.clone() {
+		local_path_buf
+	} else if dev{
+		PathBuf::from(DEFAULT_DEV_PATH_BUF)
+	} else {
+		PathBuf::from(DEFAULT_LOCAL_TESTNET_PATH_BUF)
+	}
+}
+
+pub fn config_elem(cli: &Cli, dev: bool) -> Result<Config, String> {
+	let path_buf = config_path_buf(cli, dev);
+ 	
+	crate::config::read_config_from_file(path_buf)
+}
+
+pub fn chainspec_params(config_elem: Config) -> Result<(Vec<(AuraId, GrandpaId)>, AccountId32, Vec<AccountId>, Vec<String>), String> {
+	
+	let chain_spec_config = config_elem.chain_spec;
+	let address_list = chain_spec_config.address_list.clone();
+	let initial_authoutities: Vec<_> = chain_spec_config.initial_authourity_seed_list.into_iter().map(|seed| authority_keys_from_seed(&seed)).collect();
+	let root_key = get_account_id_from_seed::<sr25519::Public>(chain_spec_config.root_seed.as_str());
+	let endowed_accounts: Vec<AccountId> = chain_spec_config.endowed_accounts_seed_list.into_iter().map(|seed| get_account_id_from_seed::<sr25519::Public>(&seed)).collect();
+
+	Ok((initial_authoutities, root_key, endowed_accounts, address_list))
+}
+
+pub fn development_config(cli: &Cli) -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
+
+	let config_elem = config_elem(cli, true)?;
+
+	let networks = config_elem.networks.clone();
+
+	let (
+		initial_authoutities, 
+		root_key, 
+		endowed_accounts, 
+		address_list
+	) = chainspec_params(config_elem)?;
 
 	Ok(ChainSpec::from_genesis(
 		// Name
@@ -50,16 +94,13 @@ pub fn development_config() -> Result<ChainSpec, String> {
 			testnet_genesis(
 				wasm_binary,
 				// Initial PoA authorities
-				vec![authority_keys_from_seed("Alice")],
+				initial_authoutities.clone(),
 				// Sudo account
-				get_account_id_from_seed::<sr25519::Public>("Alice"),
+				root_key.clone(),
 				// Pre-funded accounts
-				vec![
-					get_account_id_from_seed::<sr25519::Public>("Alice"),
-					get_account_id_from_seed::<sr25519::Public>("Bob"),
-					get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-				],
+				endowed_accounts.clone(),
+				address_list.clone(),
+				networks.clone(),
 				true,
 			)
 		},
@@ -77,9 +118,20 @@ pub fn development_config() -> Result<ChainSpec, String> {
 	))
 }
 
-pub fn local_testnet_config() -> Result<ChainSpec, String> {
+pub fn local_testnet_config(cli: &Cli) -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
+	let config_elem = config_elem(cli, false)?;
+
+	let networks = config_elem.networks.clone();
+
+	let (
+		initial_authoutities, 
+		root_key, 
+		endowed_accounts, 
+		address_list
+	) = chainspec_params(config_elem)?;
+	
 	Ok(ChainSpec::from_genesis(
 		// Name
 		"Local Testnet",
@@ -90,27 +142,13 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 			testnet_genesis(
 				wasm_binary,
 				// Initial PoA authorities
-				vec![
-					authority_keys_from_seed("Alice"),
-					authority_keys_from_seed("Bob"),
-				],
+				initial_authoutities.clone(),
 				// Sudo account
-				get_account_id_from_seed::<sr25519::Public>("Alice"),
+				root_key.clone(),
 				// Pre-funded accounts
-				vec![
-					get_account_id_from_seed::<sr25519::Public>("Alice"),
-					get_account_id_from_seed::<sr25519::Public>("Bob"),
-					get_account_id_from_seed::<sr25519::Public>("Charlie"),
-					get_account_id_from_seed::<sr25519::Public>("Dave"),
-					get_account_id_from_seed::<sr25519::Public>("Eve"),
-					get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-					get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-				],
+				endowed_accounts.clone(),
+				address_list.clone(),
+				networks.clone(),
 				true,
 			)
 		},
@@ -134,6 +172,8 @@ fn testnet_genesis(
 	initial_authorities: Vec<(AuraId, GrandpaId)>,
 	root_key: AccountId,
 	endowed_accounts: Vec<AccountId>,
+	address_list: Vec<String>,
+	networks: NetworkConfig,
 	_enable_println: bool,
 ) -> GenesisConfig {
 	GenesisConfig {
@@ -163,53 +203,24 @@ fn testnet_genesis(
 			key: Some(root_key),
 		},
 		evm: EVMConfig {
-			accounts: {
-				let mut map = BTreeMap::new();
-				map.insert(
-					// H160 address of Alice dev account
-					// Derived from SS58 (42 prefix) address
-					// SS58: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
-					// hex: 0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d
-					// Using the full hex key, truncating to the first 20 bytes (the first 40 hex chars)
-					H160::from_str("d43593c715fdd31c61141abd04a99fd6822c8558")
-						.expect("internal H160 is valid; qed"),
-					pallet_evm::GenesisAccount {
-						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
-							.expect("internal U256 is valid; qed"),
-						code: Default::default(),
-						nonce: Default::default(),
-						storage: Default::default(),
-					},
-				);
-				map.insert(
-					// H160 address of CI test runner account
-					H160::from_str("6be02d1d3665660d22ff9624b7be0551ee1ac91b")
-						.expect("internal H160 is valid; qed"),
-					pallet_evm::GenesisAccount {
-						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
-							.expect("internal U256 is valid; qed"),
-						code: Default::default(),
-						nonce: Default::default(),
-						storage: Default::default(),
-					},
-				);
-				map.insert(
-					// H160 address of CI test runner account
-					H160::from_str("0bdb79846e8331a19a65430363f240ec8acc2a52")
-						.expect("internal H160 is valid; qed"),
-					pallet_evm::GenesisAccount {
-						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
-							.expect("internal U256 is valid; qed"),
-						code: Default::default(),
-						nonce: Default::default(),
-						storage: Default::default(),
-					},
-				);
+			accounts: {				let mut map: BTreeMap<_, _> = address_list.into_iter().map(|address| (
+				H160::from_str(address.as_str()).expect("internal H160 is valid; qed"), 
+				pallet_evm::GenesisAccount {
+					balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
+						.expect("internal U256 is valid; qed"),
+					code: Default::default(),
+					nonce: Default::default(),
+					storage: Default::default(),
+				}
+			)).collect();
 				map
 			},
 		},
 		ethereum: EthereumConfig {},
 		dynamic_fee: Default::default(),
 		base_fee: Default::default(),
+		quantum_portal: QuantumPortalConfig {
+			networks: convert(networks)
+		}
 	}
 }

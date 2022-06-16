@@ -203,9 +203,10 @@ fn testnet_genesis(
 			key: Some(root_key),
 		},
 		evm: EVMConfig {
-			accounts: {				let mut map: BTreeMap<_, _> = address_list.into_iter().map(|address| (
+			accounts: {				
+				let mut map: BTreeMap<_, fp_evm::GenesisAccount> = address_list.into_iter().map(|address| (
 				H160::from_str(address.as_str()).expect("internal H160 is valid; qed"), 
-				pallet_evm::GenesisAccount {
+				fp_evm::GenesisAccount {
 					balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
 						.expect("internal U256 is valid; qed"),
 					code: Default::default(),

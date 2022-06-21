@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 /// Available Sealing methods.
 #[cfg(feature = "manual-seal")]
 #[derive(Debug, Copy, Clone, clap::ArgEnum)]
@@ -41,6 +43,9 @@ pub struct RunCmd {
 	/// The dynamic-fee pallet target gas price set by block author
 	#[clap(long, default_value = "1")]
 	pub target_gas_price: u64,
+
+	#[clap(long, parse(from_os_str))]
+	pub config_file_path: Option<PathBuf>,
 }
 
 #[derive(Debug, clap::Parser)]
@@ -80,6 +85,6 @@ pub enum Subcommand {
 	Revert(sc_cli::RevertCmd),
 
 	/// The custom benchmark subcommmand benchmarking runtime pallets.
-	#[clap(name = "benchmark", about = "Benchmark runtime pallets.")]
+	#[clap(subcommand)]
 	Benchmark(frame_benchmarking_cli::BenchmarkCmd),
 }

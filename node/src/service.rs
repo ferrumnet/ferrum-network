@@ -3,8 +3,8 @@
 use fc_consensus::FrontierBlockImport;
 use fc_mapping_sync::{MappingSyncWorker, SyncStrategy};
 use fc_rpc::EthTask;
-use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
-use frontier_template_runtime::{self, opaque::Block, RuntimeApi, SLOT_DURATION};
+use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
+use ferrum_x_runtime::{self, opaque::Block, RuntimeApi, SLOT_DURATION};
 use futures::StreamExt;
 use sc_cli::SubstrateCli;
 use sc_client_api::{BlockBackend, BlockchainEvents, ExecutorProvider};
@@ -17,15 +17,18 @@ use sc_keystore::LocalKeystore;
 use sc_network::warp_request_handler::WarpSyncProvider;
 use sc_service::{error::Error as ServiceError, BasePath, Configuration, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
-use sp_consensus::SlotData;
+// use sp_consensus::SlotData;
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 use sp_core::U256;
 use sp_inherents::{InherentData, InherentIdentifier};
+use fc_db::Backend as FrontierBackend;
+
 use std::{
 	cell::RefCell,
 	collections::BTreeMap,
 	sync::{Arc, Mutex},
 	time::Duration,
+	path::PathBuf,
 };
 
 use crate::cli::Cli;
@@ -44,15 +47,15 @@ impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
 	type ExtendHostFunctions = ();
 
 	fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
-		frontier_template_runtime::api::dispatch(method, data)
+		ferrum_x_runtime::api::dispatch(method, data)
 	}
 
 	fn native_version() -> sc_executor::NativeVersion {
-		frontier_template_runtime::native_version()
+		ferrum_x_runtime::native_version()
 	}
 }
 
-type FullClient =
+pub type FullClient =
 	sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<ExecutorDispatch>>;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
@@ -72,6 +75,17 @@ pub type ConsensusResult = (
 	FrontierBlockImport<Block, Arc<FullClient>, FullClient>,
 	Sealing,
 );
+
+pub(crate) fn db_config_dir(config: &Configuration) -> PathBuf {
+	config
+		.base_path
+		.as_ref()
+		.map(|base_path| base_path.config_dir(config.chain_spec.id()))
+		.unwrap_or_else(|| {
+			BasePath::from_project("", "", &Cli::executable_name())
+				.config_dir(config.chain_spec.id())
+		})
+}
 
 /// Provide a mock duration starting at 0 in millisecond for timestamp inherent.
 /// Each call will increment timestamp by slot_duration making Aura think time has passed.
@@ -113,17 +127,6 @@ pub fn frontier_database_dir(config: &Configuration) -> std::path::PathBuf {
 				.config_dir(config.chain_spec.id())
 		});
 	config_dir.join("frontier").join("db")
-}
-
-pub fn open_frontier_backend(config: &Configuration) -> Result<Arc<fc_db::Backend<Block>>, String> {
-	Ok(Arc::new(fc_db::Backend::<Block>::new(
-		&fc_db::DatabaseSettings {
-			source: fc_db::DatabaseSettingsSrc::RocksDb {
-				path: frontier_database_dir(&config),
-				cache_size: 0,
-			},
-		},
-	)?))
 }
 
 pub fn new_partial(
@@ -198,7 +201,41 @@ pub fn new_partial(
 	let filter_pool: Option<FilterPool> = Some(Arc::new(Mutex::new(BTreeMap::new())));
 	let fee_history_cache: FeeHistoryCache = Arc::new(Mutex::new(BTreeMap::new()));
 
-	let frontier_backend = open_frontier_backend(config)?;
+	let frontier_backend = Arc::new(FrontierBackend::open(
+		&config.database,
+		&db_config_dir(config),
+	)?);
+
+	let keystore = keystore_container.sync_keystore();
+	if config.offchain_worker.enabled {
+		// Initialize seed for signing transaction using off-chain workers. This is a convenience
+		// so learners can see the transactions submitted simply running the node.
+		// Typically these keys should be inserted with RPC calls to `author_insertKey`.
+		sp_keystore::SyncCryptoStore::ecdsa_generate_new(
+			&*keystore,
+			ferrum_x_runtime::pallet_quantum_portal::KEY_TYPE,
+			// Some("//life away soul black either fluid emerge motion wool author meat wood"),
+			Some("//Alice"),
+		).expect("Creating key with account Alice should succeed.");
+		let l: Vec<sp_core::ecdsa::Public> = sp_keystore::SyncCryptoStore::ecdsa_public_keys(
+			&*keystore,
+			ferrum_x_runtime::pallet_quantum_portal::KEY_TYPE, );
+		println!("ALL KEYS ECDSA {:?}", l);
+		let l_ser = l.first().unwrap();
+		let lk = libsecp256k1::PublicKey::parse_slice(&l_ser.0, None).unwrap();
+		let lks = lk.serialize();
+		println!("ALL KEYS ECDSA - full {:?}", lks);
+		sp_keystore::SyncCryptoStore::sr25519_generate_new(
+			&*keystore,
+			ferrum_x_runtime::pallet_quantum_portal::KEY_TYPE,
+			// Some("//life away soul black either fluid emerge motion wool author meat wood"),
+			Some("//Alice"),
+		).expect("Creating key with account Alice should succeed.");
+		let l = sp_keystore::SyncCryptoStore::sr25519_public_keys(
+			&*keystore,
+			ferrum_x_runtime::pallet_quantum_portal::KEY_TYPE, );
+		println!("ALL KEYS SR25519 {:?}", l);
+	}
 
 	#[cfg(feature = "manual-seal")]
 	{
@@ -246,7 +283,7 @@ pub fn new_partial(
 			frontier_backend.clone(),
 		);
 
-		let slot_duration = sc_consensus_aura::slot_duration(&*client)?.slot_duration();
+		let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
 		let target_gas_price = cli.run.target_gas_price;
 
 		let import_queue =
@@ -258,7 +295,7 @@ pub fn new_partial(
 					let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
 					let slot =
-						sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_duration(
+						sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
 							*timestamp,
 							slot_duration,
 						);
@@ -390,16 +427,15 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 	let prometheus_registry = config.prometheus_registry().cloned();
 	let is_authority = config.role.is_authority();
 	let enable_dev_signer = cli.run.enable_dev_signer;
-	let subscription_task_executor =
-		sc_rpc::SubscriptionTaskExecutor::new(task_manager.spawn_handle());
 	let overrides = crate::rpc::overrides_handle(client.clone());
 	let fee_history_limit = cli.run.fee_history_limit;
 
-	let block_data_cache = Arc::new(fc_rpc::EthBlockDataCache::new(
+	let block_data_cache = Arc::new(fc_rpc::EthBlockDataCacheTask::new(
 		task_manager.spawn_handle(),
 		overrides.clone(),
 		50,
 		50,
+		prometheus_registry.clone(),
 	));
 
 	let rpc_extensions_builder = {
@@ -410,9 +446,10 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 		let frontier_backend = frontier_backend.clone();
 		let overrides = overrides.clone();
 		let fee_history_cache = fee_history_cache.clone();
+		let fee_history_cache_limit: FeeHistoryCacheLimit = cli.run.fee_history_limit;
 		let max_past_logs = cli.run.max_past_logs;
 
-		Box::new(move |deny_unsafe, _| {
+		Box::new(move |deny_unsafe, subscription_task_executor| {
 			let deps = crate::rpc::FullDeps {
 				client: client.clone(),
 				pool: pool.clone(),
@@ -424,17 +461,14 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 				filter_pool: filter_pool.clone(),
 				backend: frontier_backend.clone(),
 				max_past_logs,
-				fee_history_limit,
 				fee_history_cache: fee_history_cache.clone(),
-				command_sink: Some(command_sink.clone()),
+				fee_history_cache_limit,
 				overrides: overrides.clone(),
 				block_data_cache: block_data_cache.clone(),
+    			command_sink: Some(command_sink.clone()),
 			};
 
-			Ok(crate::rpc::create_full(
-				deps,
-				subscription_task_executor.clone(),
-			))
+			crate::rpc::create_full(deps, subscription_task_executor).map_err(Into::into)
 		})
 	};
 
@@ -444,7 +478,7 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 		keystore: keystore_container.sync_keystore(),
 		task_manager: &mut task_manager,
 		transaction_pool: transaction_pool.clone(),
-		rpc_extensions_builder,
+		rpc_builder: rpc_extensions_builder,
 		backend: backend.clone(),
 		system_rpc_tx,
 		config,
@@ -460,6 +494,8 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 			client.clone(),
 			backend.clone(),
 			frontier_backend.clone(),
+			3,
+			0,
 			SyncStrategy::Normal,
 		)
 		.for_each(|()| futures::future::ready(())),
@@ -586,7 +622,6 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 				sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
 
 			let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
-			let raw_slot_duration = slot_duration.slot_duration();
 			let target_gas_price = cli.run.target_gas_price;
 
 			let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _, _, _>(
@@ -600,9 +635,9 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 						let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
 						let slot =
-							sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_duration(
+							sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
 								*timestamp,
-								raw_slot_duration,
+								slot_duration,
 							);
 
 						let dynamic_fee =

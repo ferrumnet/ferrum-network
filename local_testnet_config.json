@@ -1,0 +1,19 @@
+{
+    "initial_authourity_seed_list": ["Alice", "Bob"],
+    "root_seed": "Alice",
+    "endowed_accounts_seed_list": [
+        "Alice", 
+        "Bob", 
+        "Charlie",
+        "Dave",
+        "Eve",
+        "Ferdie",
+        "Alice//stash",
+        "Bob//stash",
+        "Charlie//stash",
+        "Dave//stash",
+        "Eve//stash",
+        "Ferdie//stash"
+    ],
+    "address_list": ["d43593c715fdd31c61141abd04a99fd6822c8558", "6be02d1d3665660d22ff9624b7be0551ee1ac91b", "0bdb79846e8331a19a65430363f240ec8acc2a52"] 
+}

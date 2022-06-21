@@ -9,7 +9,7 @@ description = "ETH ABI-encode/decode nostd. Forked from: https://github.com/Snow
 
 [dependencies]
 tiny-keccak = { version = "2.0.2", features = ["sha3", "keccak"] }
-ethereum-types = { version = "0.12.1", default-features = false }
+ethereum-types = { version = "0.13.1", default-features = false }
 
 [dev-dependencies]
 hex = { version = "0.4.3" }

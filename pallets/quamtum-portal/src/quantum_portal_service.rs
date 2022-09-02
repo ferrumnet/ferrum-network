@@ -177,10 +177,6 @@ impl <T: Config> QuantumPortalService<T> {
         let key = key.as_slice();
         let s = StorageValueRef::persistent(key);
         s.set(&tx);
-        // PendingTransactions::<T>::insert(
-        //     key,
-        //     tx
-        // );
         Ok(())
     }
 
@@ -203,14 +199,6 @@ impl <T: Config> QuantumPortalService<T> {
             },
             Some(v) => vec![v],
         })
-        // let rv = PendingTransactions::<T>::try_get(chain_id);
-        // Ok(match rv {
-        //     Err(e) => {
-        //         log::info!("Error stored_pending_transactions {:?}", e);
-        //         Vec::new()
-        //     },
-        //     Ok(v) => vec![v],
-        // })
     }
 
     fn remove_transaction_from_db(&self, t: &PendingTransaction) -> ChainRequestResult<()> {

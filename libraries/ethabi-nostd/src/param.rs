@@ -10,7 +10,6 @@
 // use crate::std::{Box, Vec};
 use sp_std::prelude::*;
 
-
 /// Event param specification.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Param {
@@ -81,9 +80,22 @@ mod tests {
         assert_eq!(ParamKind::Int(64).is_dynamic(), false);
         assert_eq!(ParamKind::Bool.is_dynamic(), false);
         assert_eq!(ParamKind::String.is_dynamic(), true);
-        assert_eq!(ParamKind::Array(Box::new(ParamKind::Bool)).is_dynamic(), true);
-        assert_eq!(ParamKind::FixedArray(Box::new(ParamKind::Uint(256)), 2).is_dynamic(), false);
-        assert_eq!(ParamKind::FixedArray(Box::new(ParamKind::String), 2).is_dynamic(), true);
-        assert_eq!(ParamKind::FixedArray(Box::new(ParamKind::Array(Box::new(ParamKind::Bool))), 2).is_dynamic(), true);
+        assert_eq!(
+            ParamKind::Array(Box::new(ParamKind::Bool)).is_dynamic(),
+            true
+        );
+        assert_eq!(
+            ParamKind::FixedArray(Box::new(ParamKind::Uint(256)), 2).is_dynamic(),
+            false
+        );
+        assert_eq!(
+            ParamKind::FixedArray(Box::new(ParamKind::String), 2).is_dynamic(),
+            true
+        );
+        assert_eq!(
+            ParamKind::FixedArray(Box::new(ParamKind::Array(Box::new(ParamKind::Bool))), 2)
+                .is_dynamic(),
+            true
+        );
     }
 }

@@ -5,7 +5,7 @@ authors = ["Ferrum Network <info@ferrum.network>"]
 edition = "2021"
 license = "Apache-2.0"
 keywords = ["ethereum", "eth", "abi", "solidity"]
-description = "ETH ABI-encode/decode nostd. Forked from: https://github.com/Snowfork/ethabi-decode/blob/master/Cargo.toml"
+description = "ETH ABI-encode/decode nostd. Forked from: https://github.com/Snowfork/ethabi-decode/blob/polkadot-v0.9.27/Cargo.toml"
 
 [dependencies]
 tiny-keccak = { version = "2.0.2", features = ["sha3", "keccak"] }
@@ -18,10 +18,9 @@ uint = { version = "0.9.3", default-features = false }
 paste = "1.0.6"
 
 [dependencies.sp-std]
-branch = 'master'
+branch = 'polkadot-v0.9.27'
 default-features = false
 git = 'https://github.com/paritytech/substrate'
-version = '4.0.0'
 
 [features]
 default = ["std"]

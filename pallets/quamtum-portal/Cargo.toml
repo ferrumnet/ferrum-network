@@ -20,20 +20,20 @@ categories = [
 [dependencies]
 log = { version = "0.4.14", default-features = false }
 parity-scale-codec = { default-features = false, features = ['derive'], version = '3.1.2' }
-parking_lot = "0.11"
+parking_lot = "0.12.1"
 scale-info = { default-features = false, features = ['derive'], version = '2.1.2' }
 serde = { version = '1.0.130', default-features = false, features = ['derive'] }
 serde_json = { version = '1.0.67', default-features = false, features = ['alloc'] }
 
 # Substrate packages
 
-frame-support = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'master' }
-frame-system = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'master' }
-sp-arithmetic = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'master' }
-sp-core = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'master' }
-sp-runtime = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'master' }
-sp-std = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'master' }
-ethereum = { version = "0.12", git = 'https://github.com/rust-blockchain/ethereum.git', default-features = false }
+frame-support = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'polkadot-v0.9.27' }
+frame-system = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'polkadot-v0.9.27' }
+sp-arithmetic = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'polkadot-v0.9.27' }
+sp-core = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'polkadot-v0.9.27' }
+sp-runtime = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'polkadot-v0.9.27' }
+sp-std = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'polkadot-v0.9.27' }
+ethereum = { git = 'https://github.com/rust-blockchain/ethereum.git', default-features = false }
 hex = { version = "0.4.3", default-features = false }
 hex-literal = "0.3.4"
 numtoa = { version = "0.2.4", default-features = false }
@@ -45,7 +45,7 @@ byte-slice-cast = { version= "1.2.1", default-features = false, features = [] }
 [dependencies.sp-io]
 git = 'https://github.com/paritytech/substrate.git'
 default-features = false
-branch = 'master'
+branch = 'polkadot-v0.9.27'
 
 [dependencies.ethabi-nostd]
 default-features = false

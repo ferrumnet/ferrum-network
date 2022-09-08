@@ -2,6 +2,7 @@
 branch = 'master'
 git = 'https://github.com/paritytech/substrate'
 version = '5.0.0-dev'
+
 [dependencies.codec]
 default-features = false
 features = ['derive']

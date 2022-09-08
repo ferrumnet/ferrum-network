@@ -1,6 +1,5 @@
 use sp_std::ops::{Div, Mul};
 use ethereum::{LegacyTransaction, TransactionAction, TransactionSignature, TransactionV2};
-use frame_system::Config;
 use frame_system::offchain::{
     SigningTypes, AppCrypto, Signer, SignMessage,
 };
@@ -13,7 +12,6 @@ use sp_std::{str};
 use sp_std::prelude::*;
 use rlp::{Encodable};
 use parity_scale_codec::{Decode, Encode};
-use crate::chain_utils::ChainRequestError::JsonRpcError;
 
 #[derive(Debug, Clone)]
 pub struct ContractClient {

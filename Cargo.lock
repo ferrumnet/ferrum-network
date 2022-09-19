@@ -1416,7 +1416,7 @@ dependencies = [
  "hex",
  "hex-literal",
  "paste",
- "sp-std 4.0.0 (git+https://github.com/paritytech/substrate.git)",
+ "sp-std 4.0.0 (git+https://github.com/paritytech/substrate)",
  "tiny-keccak",
  "uint",
 ]
@@ -7575,7 +7575,7 @@ source = "git+https://github.com/paritytech/substrate?branch=master#5abf6c8a015f
 [[package]]
 name = "sp-std"
 version = "4.0.0"
-source = "git+https://github.com/paritytech/substrate.git#5b0f999d6be8a29e4d6adfdfb22c314292f1d318"
+source = "git+https://github.com/paritytech/substrate#5b0f999d6be8a29e4d6adfdfb22c314292f1d318"
 
 [[package]]
 name = "sp-storage"

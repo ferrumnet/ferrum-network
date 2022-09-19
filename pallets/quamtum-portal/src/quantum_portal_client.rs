@@ -292,7 +292,10 @@ impl QuantumPortalClient {
         let finalizer_list = finalizers.into_iter().map(
             |f| Token::FixedBytes(Vec::from(f.0.as_slice()))
         ).collect();
-        let signature = b"finalize(uint256,uint256,bytes32,address[])";
+        let signature = b"finalize(uint256,uint256,bytes32,address[],bytes32,uint64,bytes)";
+        let salt = Token::FixedBytes(vec![0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
+        let expiry = Token::Uint(U256::from(0));
+        let multiSig = Token::Bytes(vec![0]);
         let res = self.contract.send(
             signature,
                         &[
@@ -300,6 +303,9 @@ impl QuantumPortalClient {
                             Token::Uint(U256::from(block_nonce)),
                             Token::FixedBytes(Vec::from(finalizer_hash.as_bytes())),
                             Token::Array(finalizer_list),
+                            salt,
+                            expiry,
+                            multiSig,
                         ],
             Some(U256::from(1000000 as u64)), // None,
             Some(U256::from(10000000000 as u64)), // None,
@@ -317,7 +323,10 @@ impl QuantumPortalClient {
         block_nonce: u64,
         txs: &Vec<QpTransaction>,
     ) -> ChainRequestResult<H256>{
-        let signature = b"mineRemoteBlock(uint64,uint64,(uint64,address,address,address,address,uint256,bytes,uint256)[])";
+        let signature = b"mineRemoteBlock(uint64,uint64,(uint64,address,address,address,address,uint256,bytes,uint256)[],bytes32,uint64,bytes)";
+        let salt = Token::FixedBytes(vec![0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
+        let expiry = Token::Uint(U256::from(0));
+        let multiSig = Token::Bytes(vec![0]);
         let tx_vec = txs
             .into_iter()
             .map(|t| Token::Tuple(
@@ -338,6 +347,9 @@ impl QuantumPortalClient {
                 Token::Uint(U256::from(remote_chain_id)),
                 Token::Uint(U256::from(block_nonce)),
                 Token::Array(tx_vec),
+                salt,
+                expiry,
+                multiSig,
             ],
             Some(U256::from(1000000 as u32)), // None,
             Some(U256::from(60000000000 as u64)), // None,

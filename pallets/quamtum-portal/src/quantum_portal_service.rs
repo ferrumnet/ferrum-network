@@ -1,14 +1,12 @@
-use log::log;
 use parity_scale_codec::MaxEncodedLen;
 use sp_core::H256;
 use sp_std::prelude::*;
 use sp_std::str;
 use frame_support::codec::{Encode, Decode};
 use sp_runtime::offchain::storage::StorageValueRef;
-use byte_slice_cast::{*};
 use crate::chain_queries::{ChainQueries, TransactionStatus};
-use crate::chain_utils::{ChainRequestError, ChainRequestResult, ChainUtils};
-use crate::{Config, PendingTransactions};
+use crate::chain_utils::{ChainRequestResult, ChainUtils};
+use crate::{Config};
 use crate::quantum_portal_client::QuantumPortalClient;
 
 const TIMEOUT: u64 = 3600 * 1000;
@@ -28,12 +26,12 @@ impl Default for PendingTransaction {
 }
 
 pub struct QuantumPortalService<T: Config> {
-    pub clients: Vec<QuantumPortalClient>,
+    pub clients: Vec<QuantumPortalClient<T>>,
     config: Option<T>, // To allow compilation. Not sued
 }
 
 impl <T: Config> QuantumPortalService<T> {
-    pub fn new(clients: Vec<QuantumPortalClient>) -> Self {
+    pub fn new(clients: Vec<QuantumPortalClient<T>>) -> Self {
         QuantumPortalService {
             clients,
             config: None,
@@ -76,7 +74,7 @@ impl <T: Config> QuantumPortalService<T> {
         let tx = self.stored_pending_transactions(9999)?;
         log::info!("RESULTAT OF PENDING_TX {:?}", tx);
         let rv = self.process_pair(remote_chain, local_chain);
-        self.remove_lock();
+        self.remove_lock()?;
         rv?;
         Ok(())
     }
@@ -132,8 +130,8 @@ impl <T: Config> QuantumPortalService<T> {
                 live_txs.len());
             return Ok(());
         }
-        let local_client: &QuantumPortalClient = &self.clients[self.find_client_idx(local_chain)];
-        let remote_client: &QuantumPortalClient = &self.clients[self.find_client_idx(remote_chain)];
+        let local_client: &QuantumPortalClient<T> = &self.clients[self.find_client_idx(local_chain)];
+        let remote_client: &QuantumPortalClient<T> = &self.clients[self.find_client_idx(remote_chain)];
         log::info!("Clients: {} <> {} :: {} <> {}", local_client.block_number, remote_client.block_number,
             str::from_utf8(&local_client.contract.http_api[..]).unwrap(),
             str::from_utf8(&remote_client.contract.http_api[..]).unwrap()
@@ -215,7 +213,7 @@ impl <T: Config> QuantumPortalService<T> {
         // If so, return true.
         // otherwise. Update storage and remove the tx.
         // then return false
-        let (chain_id1, chain_id2, timestamp, tx_id) = match t {
+        let (chain_id1, _chain_id2, timestamp, tx_id) = match t {
             PendingTransaction::MineTransaction(c1, c2, timestamp , tid) => (c1, c2, timestamp, tid),
             PendingTransaction::FinalizeTransaction(c, timestamp, tid) => (c, &(0 as u64), timestamp, tid),
             PendingTransaction::None => panic!("tx is none")

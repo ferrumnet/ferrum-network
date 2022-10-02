@@ -1,8 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use log::log;
-use crate::pallet::*;
-
 use sp_runtime::{
 	offchain::{
 		http,
@@ -12,21 +9,12 @@ use sp_runtime::{
 		Decode, Encode
 	},
 };
-use frame_system::offchain::{
-	Signer
-};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde_json::json;
-use sp_runtime::offchain::http::HttpResult;
-use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
+use serde::{Deserialize, Deserializer, Serialize};
+use sp_std::{prelude::*, str};
 use crate::chain_utils::{ChainRequestError, ChainRequestResult, ToJson, JsonSer};
 use crate::chain_utils::ChainUtils;
 use sp_core::{ H256 };
-use ethereum::{LegacyTransaction, TransactionV2};
-use ethabi_nostd::ParamKind::Address;
-use crate::contract_client::{ContractClient, ContractClientSignature};
-use crate::qp_types::{QpLocalBlock, QpRemoteBlock, QpTransaction};
-use crate::quantum_portal_client::QuantumPortalClient;
+use ethereum::{TransactionV2};
 
 const FETCH_TIMEOUT_PERIOD: u64 = 30000; // in milli-seconds
 
@@ -73,6 +61,7 @@ pub struct CallResponse {
 	pub result: Vec<u8>,
 }
 
+#[allow(dead_code)]
 pub enum TransactionStatus {
 	NotFound,
 	Pending,
@@ -113,8 +102,8 @@ impl ToJson for TransactionV2 {
 					.end()
 					.to_vec()
 			,
-			TransactionV2::EIP1559(tx) => Vec::new(),
-			TransactionV2::EIP2930(tx) => Vec::new()
+			TransactionV2::EIP1559(_) => Vec::new(),
+			TransactionV2::EIP2930(_) => Vec::new()
 		};
 		Vec::from(j)
 	}
@@ -239,6 +228,7 @@ struct GetChainIdResponse {
 	result: Vec<u8>,
 }
 
+#[allow(non_snake_case)]
 #[derive(Debug, Deserialize, Encode, Decode)]
 pub struct GetTransactionReceiptResponseData {
 	#[serde(deserialize_with = "de_string_to_bytes")]
@@ -258,6 +248,7 @@ pub struct ChainQueries/*<T: Config>*/ {
 }
 
 impl ChainQueries {
+	#[allow(dead_code)]
 	pub fn chain_id(url: &str) -> Result<u32, ChainRequestError> {
 		log::info!("About to get chain_id {}", url);
 		let req = JsonRpcRequest {

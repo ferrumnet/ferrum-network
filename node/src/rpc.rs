@@ -201,7 +201,7 @@ where
 			overrides,
 		)
 		.into_rpc(),
-	);
+	)?;
 
 	// #[cfg(feature = "manual-seal")]
 	if let Some(command_sink) = command_sink {

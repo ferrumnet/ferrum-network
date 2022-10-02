@@ -1,8 +1,7 @@
 use ferrum_x_runtime::{
 	AccountId, AuraConfig, BalancesConfig, EVMConfig, EthereumConfig, GenesisConfig, GrandpaConfig,
-	Signature, SudoConfig, SystemConfig, WASM_BINARY, QuantumPortal, QuantumPortalConfig
+	Signature, SudoConfig, SystemConfig, WASM_BINARY, QuantumPortalConfig
 };
-use pallet_quantum_portal::qp_types::{QpConfig, QpNetworkItem};
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public, H160, U256};
@@ -204,7 +203,7 @@ fn testnet_genesis(
 		},
 		evm: EVMConfig {
 			accounts: {				
-				let mut map: BTreeMap<_, fp_evm::GenesisAccount> = address_list.into_iter().map(|address| (
+				let map: BTreeMap<_, fp_evm::GenesisAccount> = address_list.into_iter().map(|address| (
 				H160::from_str(address.as_str()).expect("internal H160 is valid; qed"), 
 				fp_evm::GenesisAccount {
 					balance: U256::from_str("0xffffffffffffffffffffffffffffffff")

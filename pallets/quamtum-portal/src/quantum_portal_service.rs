@@ -27,14 +27,14 @@ impl Default for PendingTransaction {
 
 pub struct QuantumPortalService<T: Config> {
     pub clients: Vec<QuantumPortalClient<T>>,
-    config: Option<T>, // To allow compilation. Not sued
+    _config: Option<T>, // To allow compilation. Not sued
 }
 
 impl <T: Config> QuantumPortalService<T> {
     pub fn new(clients: Vec<QuantumPortalClient<T>>) -> Self {
         QuantumPortalService {
             clients,
-            config: None,
+            _config: None,
         }
     }
 

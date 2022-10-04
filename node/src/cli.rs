@@ -29,22 +29,23 @@ pub struct RunCmd {
 	#[clap(long, arg_enum, ignore_case = true)]
 	pub sealing: Sealing,
 
-	#[clap(long)]
+	#[clap(long, value_parser)]
 	pub enable_dev_signer: bool,
 
 	/// Maximum number of logs in a query.
-	#[clap(long, default_value = "10000")]
+	#[clap(long, value_parser, default_value = "10000")]
 	pub max_past_logs: u32,
 
 	/// Maximum fee history cache size.
-	#[clap(long, default_value = "2048")]
+	#[clap(long, value_parser, default_value = "2048")]
 	pub fee_history_limit: u64,
 
 	/// The dynamic-fee pallet target gas price set by block author
-	#[clap(long, default_value = "1")]
+	#[clap(long, value_parser, default_value = "1")]
 	pub target_gas_price: u64,
 
-	#[clap(long, parse(from_os_str))]
+	// #[clap(long, parse(from_os_str))]
+	#[clap(long, value_parser)]
 	pub config_file_path: Option<PathBuf>,
 }
 

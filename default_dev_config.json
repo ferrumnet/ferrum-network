@@ -7,15 +7,15 @@
     },
     "networks": {
         "network_vec": [{
-            "url": "https://rinkeby.infura.io/v3/18b15ac5b3e8447191c6b233dcd2ce14",
-            "ledger_manager": "3d7d171d02d5f37c8eb0d3eea72859d5fc758ffb",
-            "id": 4
+            "url": "https://api.avax-test.network/ext/bc/C/rpc",
+            "ledger_manager": "32566a474accf5b6dbea30f60f559d490dbcb314",
+            "id": 43113
         },
         {
             "url": "https://data-seed-prebsc-1-s1.binance.org:8545",
-            "ledger_manager": "3d7d171d02d5f37c8eb0d3eea72859d5fc758ffb",
+            "ledger_manager": "32566a474accf5b6dbea30f60f559d490dbcb314",
             "id": 97
         }],
-	    "pair_vec": [[4, 97], [97, 4]]
+	    "pair_vec": [[43113, 97], [97, 43113]]
     }
 }

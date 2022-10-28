@@ -19,36 +19,20 @@ pub mod pallet {
 	use frame_system::{
 		pallet_prelude::*,
 		offchain::{
-			AppCrypto, CreateSignedTransaction, SendSignedTransaction, SendUnsignedTransaction,
-			SignedPayload, Signer, SigningTypes, SubmitTransaction, SignMessage,
+			AppCrypto,
+			SignedPayload, Signer, SigningTypes,
 		},
 	};
-	use libsecp256k1::Message;
-	use sp_core::{crypto::KeyTypeId, H160, H256, U256};
-	use sp_runtime::{offchain::{
-		http,
-		storage::StorageValueRef,
-		storage_lock::{BlockAndTime, StorageLock},
-		Duration,
-	}, traits::BlockNumberProvider, transaction_validity::{
-		InvalidTransaction, TransactionSource, TransactionValidity, ValidTransaction,
-	}, RuntimeDebug, MultiSignature};
-	use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
-	use sp_core::{ecdsa};
+	use sp_core::{crypto::KeyTypeId};
+	use sp_runtime::{traits::BlockNumberProvider, RuntimeDebug};
+	use sp_std::{prelude::*, str};
 	use serde::{Deserialize, Deserializer};
-	use sp_arithmetic::traits::AtLeast32BitUnsigned;
-	use sp_core::crypto::{AccountId32, ByteArray};
-	use sp_runtime::MultiSignature::Ecdsa;
-	use sp_runtime::traits::AccountIdConversion;
-	use ethabi_nostd::Address;
-	use crate::{chain_queries::ChainQueries, qp_types};
-	use crate::chain_utils::{ChainUtils, EMPTY_HASH};
+	use crate::{qp_types};
+	use crate::chain_utils::{ChainUtils};
 	use crate::contract_client::{ContractClient, ContractClientSignature};
-	use crate::crypto::TestAuthId;
-	use crate::erc_20_client::Erc20Client;
 	use crate::quantum_portal_client::QuantumPortalClient;
 	use crate::quantum_portal_service::{PendingTransaction, QuantumPortalService};
-	use crate::qp_types::{QpConfig, QpNetworkItem};
+	use crate::qp_types::{QpNetworkItem};
 
 	/// Defines application identifier for crypto keys of this module.
 	///
@@ -58,8 +42,6 @@ pub mod pallet {
 	/// `KeyTypeId` via the keystore to sign the transaction.
 	/// The keys can be inserted manually via RPC (see `author_insertKey`).
 	pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"dem!");
-
-	const FETCH_TIMEOUT_PERIOD: u64 = 3000; // in milli-seconds
 
 	/// Based on the above `KeyTypeId` we need to generate a pallet-specific crypto type wrapper.
 	/// We can utilize the supported crypto kinds (`sr25519`, `ed25519` and `ecdsa`) and augment
@@ -147,7 +129,7 @@ pub mod pallet {
 	}
 
 	#[pallet::config]
-	pub trait Config: CreateSignedTransaction<Call<Self>> + frame_system::Config {
+	pub trait Config: frame_system::offchain::CreateSignedTransaction<Call<Self>> + frame_system::Config {
 		/// The overarching event type.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		/// The overarching dispatch call type.
@@ -179,7 +161,7 @@ pub mod pallet {
 		Identity, u64, PendingTransaction, ValueQuery>;
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	// #[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		NewNumber(Option<T::AccountId>, u64),
 	}
@@ -229,12 +211,13 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-
-		pub fn configure_network(block_number: u64, network_item: QpNetworkItem) -> QuantumPortalClient {
+		pub fn configure_network(block_number: u64, network_item: QpNetworkItem
+		) -> QuantumPortalClient<T> {
 			let rpc_endpoint = network_item.url;
 			let id = network_item.id;
 
-			let signer = Signer::<T, T::AuthorityId>::any_account();
+			let signer = Signer::<T,
+				T::AuthorityId>::any_account();
 			let lgr_mgr = ChainUtils::hex_to_address(&network_item.ledger_manager[..]);
 			let client = ContractClient::new(
 				rpc_endpoint, &lgr_mgr, id);

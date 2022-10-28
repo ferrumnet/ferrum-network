@@ -1,9 +1,8 @@
-use ethereum::{Account};
 use sp_core::{H256, U256};
-use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
+use sp_std::{prelude::*, str};
 use ethabi_nostd::Address;
 use serde::{Deserialize, Serialize};
-use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
+use parity_scale_codec::{Decode, Encode};
 
 #[derive(Debug, Default)]
 pub struct QpTransaction {

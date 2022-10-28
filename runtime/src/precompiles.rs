@@ -1,4 +1,4 @@
-use pallet_evm::{Context, Precompile, PrecompileResult, PrecompileSet, PrecompileHandle};
+use pallet_evm::{Precompile, PrecompileResult, PrecompileSet, PrecompileHandle};
 use sp_core::H160;
 use sp_std::marker::PhantomData;
 

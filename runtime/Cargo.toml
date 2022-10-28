@@ -31,6 +31,12 @@ git = 'https://github.com/paritytech/substrate'
 optional = true
 version = '4.0.0-dev'
 
+[dependencies.pallet-node-authorization]
+branch = "polkadot-v0.9.22"
+default-features = false
+git = 'https://github.com/paritytech/substrate'
+version = '4.0.0-dev'
+
 [dependencies.frame-executive]
 branch = 'master'
 default-features = false
@@ -283,6 +289,7 @@ std = [
     'pallet-evm-precompile-simple/std',
     'pallet-evm-precompile-sha3fips/std',
     'frame-benchmarking/std',
+    'pallet-node-authorization/std',
 ]
 
 [package]

@@ -1,6 +1,5 @@
 use ethereum::{LegacyTransaction, LegacyTransactionMessage, TransactionSignature};
 use parity_scale_codec::Encode;
-use crate::chain_utils::ChainRequestError::ConversionError;
 
 pub struct ChainUtils;
 use sp_std::{str};
@@ -10,9 +9,6 @@ use numtoa::NumToA;
 use sp_core::{ecdsa};
 use sp_io::crypto;
 use libsecp256k1;
-use frame_system::offchain::CreateSignedTransaction;
-use libsecp256k1::Signature;
-use log::log;
 use tiny_keccak::{Hasher, Keccak};
 use crate::KEY_TYPE;
 
@@ -51,7 +47,7 @@ fn u64_to_str(num: u64) -> Vec<u8> {
     s
 }
 
-fn val(c: u8, idx: usize) -> Result<u8, ChainRequestError> {
+fn val(c: u8) -> Result<u8, ChainRequestError> {
     match c {
         b'A'..=b'F' => Ok(c - b'A' + 10),
         b'a'..=b'f' => Ok(c - b'a' + 10),
@@ -65,6 +61,7 @@ const HEX_TABLE: [u8;16] = [
     '6' as u8, '7' as u8, '8' as u8, '9' as u8, 'a' as u8, 'b' as u8,
     'c' as u8, 'd' as u8, 'e' as u8, 'f' as u8];
 
+#[allow(dead_code)]
 pub const EMPTY_HASH: H256 = H256([
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -122,7 +119,7 @@ impl ChainUtils {
         let data = ChainUtils::hex_remove_0x(data)?;
         let mut out = vec![0; data.len()/2];
         for (i, byte) in out.iter_mut().enumerate() {
-            *byte = val(data[2 * i], 2 * i)? << 4 | val(data[2 * i + 1], 2 * i + 1)?;
+            *byte = val(data[2 * i])? << 4 | val(data[2 * i + 1])?;
         }
 
         Ok(out)
@@ -134,7 +131,7 @@ impl ChainUtils {
 
     pub fn hex_to_address(hex: &[u8]) -> Address {
         let mut addr_bytes: [u8; 20] = [0; 20];
-        hex::decode_to_slice(hex, &mut addr_bytes);
+        hex::decode_to_slice(hex, &mut addr_bytes).unwrap();
         Address::from_slice(&addr_bytes)
     }
 
@@ -222,11 +219,6 @@ impl ChainUtils {
         signature: &[u8;65],
         chain_id: u64,
     ) -> ChainRequestResult<TransactionSignature> {
-        let sig = libsecp256k1::Signature::parse_standard_slice(&signature[..64])
-            .map_err(|e| {
-                log::error!("Error sign_transaction_hash {:?}", e);
-                ChainRequestError::ErrorCreatingTransaction
-            })?;
         let recovery_id = libsecp256k1::RecoveryId::parse(signature[64])
             .map_err(|e| {
                 log::error!("Error sign_transaction_hash {:?}", e);
@@ -241,7 +233,7 @@ impl ChainUtils {
     }
 
     pub fn eth_address_from_public_key(pk: &[u8]) -> Vec<u8> {
-        let mut uncomp: [u8; 65] = [0; 65];
+        let uncomp:[u8; 65];
         let pk = match pk.len() {
             64 => {
                 pk
@@ -262,6 +254,7 @@ impl ChainUtils {
         Vec::from(&signed[12..32])
     }
 
+    #[allow(dead_code)]
     pub fn keccack(msg: &[u8]) -> H256 {
         let mut buf: [u8; 32] = [0; 32];
         let mut sponge = Keccak::v256();
@@ -315,6 +308,7 @@ impl JsonSer {
         self
     }
 
+    #[allow(dead_code)]
     pub fn arr_string(&mut self, val: &str) -> &mut Self {
         self.comma();
         self.buff.push('"' as u8);
@@ -340,6 +334,7 @@ impl JsonSer {
         self
     }
 
+    #[allow(dead_code)]
     pub fn u256(&mut self, name: &str, value: &U256) -> &mut Self {
         self.string(
             name,
@@ -386,9 +381,8 @@ impl JsonSer {
 
 #[cfg(test)]
 mod tests {
-    use hex_literal::hex;
     use crate::chain_utils::{ChainUtils, JsonSer};
-    use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
+    use sp_std::{str};
 
     #[test]
     fn jsonify_num() {

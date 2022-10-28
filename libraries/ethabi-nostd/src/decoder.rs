@@ -221,7 +221,8 @@ fn decode_param(param: &ParamKind, slices: &[Word], offset: usize) -> Result<Dec
 #[cfg(test)]
 mod tests {
 
-    use crate::{decode, ParamKind, Token};
+    use crate::{ParamKind, Token};
+    use crate::decoder::{decode};
     use hex_literal::hex;
 
     #[test]

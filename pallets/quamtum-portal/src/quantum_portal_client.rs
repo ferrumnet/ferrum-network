@@ -1,29 +1,22 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use crate::chain_queries::{ChainQueries, fetch_json_rpc, JsonRpcRequest, CallResponse, de_string_to_bytes};
-use sp_core::{ecdsa, H160, H256, U256};
-use sp_std::{str};
-use ethereum::{Account, LegacyTransaction, TransactionAction, TransactionSignature, TransactionV2};
-use hex_literal::hex;
-use log::log;
-use parity_scale_codec::Encode;
-use serde_json::json;
-use ethabi_nostd::{Address, encoder, ParamKind, Token};
-use crate::chain_utils::{ChainRequestError, ChainRequestResult, ChainUtils, JsonSer, ToJson};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use sp_core::crypto::{AccountId32};
+use crate::chain_queries::{CallResponse};
+use sp_core::{H256, U256};
+use ethabi_nostd::{ParamKind, Token};
+use crate::chain_utils::{ChainRequestError, ChainRequestResult, ChainUtils};
 use sp_std::prelude::*;
 use ethabi_nostd::decoder::decode;
-use ethabi_nostd::Token::{Tuple, Uint};
+use crate::Config;
 use crate::contract_client::{ContractClient, ContractClientSignature};
 use crate::qp_types::{QpLocalBlock, QpRemoteBlock, QpTransaction};
 
+#[allow(dead_code)]
 const DUMMY_HASH: H256 = H256::zero();
 const ZERO_HASH: H256 = H256::zero();
 
-pub struct QuantumPortalClient {
+pub struct QuantumPortalClient<T: Config> {
     pub contract: ContractClient,
-    pub signer: ContractClientSignature,
+    pub signer: ContractClientSignature<T>,
     pub now: u64,
     pub block_number: u64,
 }
@@ -149,10 +142,10 @@ fn decode_remote_transaction_from_tuple(
     }
 }
 
-impl QuantumPortalClient {
+impl <T: Config> QuantumPortalClient<T> {
     pub fn new(
         contract: ContractClient,
-        signer: ContractClientSignature,
+        signer: ContractClientSignature<T>,
         now: u64,
         block_number: u64,
     ) -> Self {
@@ -169,7 +162,7 @@ impl QuantumPortalClient {
         chain_id: u64,
     ) -> ChainRequestResult<bool> {
         let signature = b"isLocalBlockReady(uint64)";
-        let mut res: Box<CallResponse> = self.contract.call(signature,
+        let res: Box<CallResponse> = self.contract.call(signature,
                                    &[
                                        Token::Uint(U256::from(chain_id))
                                    ])?;
@@ -182,7 +175,7 @@ impl QuantumPortalClient {
         chain_id: u64,
     ) -> ChainRequestResult<QpLocalBlock> {
         let signature = b"lastRemoteMinedBlock(uint64)";
-        let mut res: Box<CallResponse> = self.contract.call(signature,
+        let res: Box<CallResponse> = self.contract.call(signature,
                                                             &[
                                                                 Token::Uint(U256::from(chain_id))
                                                             ])?;
@@ -292,7 +285,10 @@ impl QuantumPortalClient {
         let finalizer_list = finalizers.into_iter().map(
             |f| Token::FixedBytes(Vec::from(f.0.as_slice()))
         ).collect();
-        let signature = b"finalize(uint256,uint256,bytes32,address[])";
+        let signature = b"finalize(uint256,uint256,bytes32,address[],bytes32,uint64,bytes)";
+        let salt = Token::FixedBytes(vec![0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
+        let expiry = Token::Uint(U256::from(0));
+        let multi_sig = Token::Bytes(vec![0]);
         let res = self.contract.send(
             signature,
                         &[
@@ -300,13 +296,16 @@ impl QuantumPortalClient {
                             Token::Uint(U256::from(block_nonce)),
                             Token::FixedBytes(Vec::from(finalizer_hash.as_bytes())),
                             Token::Array(finalizer_list),
+                            salt,
+                            expiry,
+                            multi_sig,
                         ],
-            Some(U256::from(1000000 as u64)), // None,
-            Some(U256::from(10000000000 as u64)), // None,
+            None, // Some(U256::from(1000000 as u64)), // None,
+            None, // Some(U256::from(10000000000 as u64)), // None,
             U256::zero(),
             None,
             self.signer.from,
-            self.signer.signer,
+            &self.signer,
         )?;
         Ok(res)
     }
@@ -317,7 +316,10 @@ impl QuantumPortalClient {
         block_nonce: u64,
         txs: &Vec<QpTransaction>,
     ) -> ChainRequestResult<H256>{
-        let signature = b"mineRemoteBlock(uint64,uint64,(uint64,address,address,address,address,uint256,bytes,uint256)[])";
+        let signature = b"mineRemoteBlock(uint64,uint64,(uint64,address,address,address,address,uint256,bytes,uint256)[],bytes32,uint64,bytes)";
+        let salt = Token::FixedBytes(vec![0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
+        let expiry = Token::Uint(U256::from(0));
+        let multi_sig = Token::Bytes(vec![0]);
         let tx_vec = txs
             .into_iter()
             .map(|t| Token::Tuple(
@@ -338,13 +340,16 @@ impl QuantumPortalClient {
                 Token::Uint(U256::from(remote_chain_id)),
                 Token::Uint(U256::from(block_nonce)),
                 Token::Array(tx_vec),
+                salt,
+                expiry,
+                multi_sig,
             ],
-            Some(U256::from(1000000 as u32)), // None,
-            Some(U256::from(60000000000 as u64)), // None,
+            None, // Some(U256::from(1000000 as u32)), // None,
+            None, // Some(U256::from(60000000000 as u64)), // None,
             U256::zero(),
             None,
             self.signer.from,
-            self.signer.signer,
+            &self.signer,
         )?;
         Ok(res)
     }
@@ -373,7 +378,7 @@ impl QuantumPortalClient {
 
     pub fn mine(
         &self,
-        remote_client: &QuantumPortalClient,
+        remote_client: &QuantumPortalClient<T>,
         ) -> ChainRequestResult<Option<H256>> {
         let local_chain = self.contract.chain_id;
         let remote_chain = remote_client.contract.chain_id;

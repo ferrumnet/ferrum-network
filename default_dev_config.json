@@ -1,0 +1,21 @@
+{
+    "chain_spec": {
+        "initial_authourity_seed_list": ["Alice"],
+        "root_seed": "Alice",
+        "endowed_accounts_seed_list": ["Alice", "Bob", "Alice//stash", "Bob//stash"],
+        "address_list": ["d43593c715fdd31c61141abd04a99fd6822c8558", "6be02d1d3665660d22ff9624b7be0551ee1ac91b", "0bdb79846e8331a19a65430363f240ec8acc2a52","467502ef1c444f98349dacdf0223ccb5e2019f36"] 
+    },
+    "networks": {
+        "network_vec": [{
+            "url": "https://api.avax-test.network/ext/bc/C/rpc",
+            "ledger_manager": "32566a474accf5b6dbea30f60f559d490dbcb314",
+            "id": 43113
+        },
+        {
+            "url": "https://data-seed-prebsc-1-s1.binance.org:8545",
+            "ledger_manager": "32566a474accf5b6dbea30f60f559d490dbcb314",
+            "id": 97
+        }],
+	    "pair_vec": [[43113, 97], [97, 43113]]
+    }
+}

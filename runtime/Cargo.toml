@@ -32,7 +32,7 @@ optional = true
 version = '4.0.0-dev'
 
 [dependencies.pallet-node-authorization]
-branch = "polkadot-v0.9.22"
+branch = "master"
 default-features = false
 git = 'https://github.com/paritytech/substrate'
 version = '4.0.0-dev'
@@ -183,7 +183,7 @@ version = '0.10.0-dev'
 branch = 'master'
 default-features = false
 git = 'https://github.com/paritytech/substrate'
-version = '6.0.0'
+version = '7.0.0'
 
 [dependencies.sp-inherents]
 branch = 'master'
@@ -195,7 +195,7 @@ version = '4.0.0-dev'
 branch = 'master'
 default-features = false
 git = 'https://github.com/paritytech/substrate'
-version = '6.0.0'
+version = '7.0.0'
 
 [dependencies.sp-offchain]
 branch = 'master'
@@ -207,7 +207,7 @@ version = '4.0.0-dev'
 branch = 'master'
 default-features = false
 git = 'https://github.com/paritytech/substrate'
-version = '6.0.0'
+version = '7.0.0'
 
 [dependencies.sp-session]
 branch = 'master'
@@ -219,7 +219,7 @@ version = '4.0.0-dev'
 branch = 'master'
 default-features = false
 git = 'https://github.com/paritytech/substrate'
-version = '4.0.0'
+version = '5.0.0'
 
 [dependencies.sp-transaction-pool]
 branch = 'master'
@@ -232,6 +232,10 @@ branch = 'master'
 default-features = false
 git = 'https://github.com/paritytech/substrate'
 version = '5.0.0'
+
+[dependencies.ferrum-primitives]
+default-features = false
+path = '../primitives'
 
 [dependencies.log]
 version = "0.4.14"
@@ -290,6 +294,8 @@ std = [
     'pallet-evm-precompile-sha3fips/std',
     'frame-benchmarking/std',
     'pallet-node-authorization/std',
+    'pallet-quantum-portal/std',
+    'ferrum-primitives/std'
 ]
 
 [package]

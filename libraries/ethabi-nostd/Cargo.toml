@@ -20,7 +20,7 @@ paste = "1.0.6"
 [dependencies.sp-std]
 default-features = false
 git = 'https://github.com/paritytech/substrate'
-version = '4.0.0'
+version = '5.0.0'
 
 [features]
 default = ["std"]

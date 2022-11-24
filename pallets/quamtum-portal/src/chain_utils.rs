@@ -10,7 +10,7 @@ use sp_core::{ecdsa};
 use sp_io::crypto;
 use libsecp256k1;
 use tiny_keccak::{Hasher, Keccak};
-use crate::KEY_TYPE;
+use ferrum_primitives::OFFCHAIN_SIGNER_KEY_TYPE;
 
 #[derive(Debug)]
 pub enum ChainRequestError {
@@ -198,7 +198,7 @@ impl ChainUtils {
         key_pair: &ecdsa::Public,
         hash: &H256) -> ChainRequestResult<Vec<u8>> {
         let sig: ecdsa::Signature = crypto::ecdsa_sign_prehashed(
-            KEY_TYPE,
+            OFFCHAIN_SIGNER_KEY_TYPE,
             key_pair,
             &hash.0,
         ).unwrap();

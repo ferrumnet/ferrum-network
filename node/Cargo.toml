@@ -4,7 +4,7 @@ git = 'https://github.com/paritytech/substrate'
 version = '3.0.0'
 
 [dependencies]
-sp-keyring = { version = "6.0.0", git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-keyring = { version = "7.0.0", git = "https://github.com/paritytech/substrate", branch = "master" }
 frame-system = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "master" }
 pallet-transaction-payment = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "master" }
 codec = { package = "parity-scale-codec", version = "3.1.2", features = ["derive"] }
@@ -228,7 +228,7 @@ version = '0.10.0-dev'
 [dependencies.sp-core]
 branch = 'master'
 git = 'https://github.com/paritytech/substrate'
-version = '6.0.0'
+version = '7.0.0'
 # features = ['scale-info']
 
 [dependencies.sp-finality-grandpa]
@@ -244,7 +244,6 @@ version = '4.0.0-dev'
 [dependencies.sp-runtime]
 branch = 'master'
 git = 'https://github.com/paritytech/substrate'
-version = '6.0.0'
 
 [dependencies.sp-timestamp]
 branch = 'master'

@@ -54,6 +54,8 @@ pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 pub use pallet_quantum_portal;
 
+pub use ferrum_primitives::crypto::AuthorityId as QPOffchainId;
+
 mod precompiles;
 use precompiles::FrontierPrecompiles;
 
@@ -104,6 +106,7 @@ pub mod opaque {
 		pub struct SessionKeys {
 			pub aura: Aura,
 			pub grandpa: Grandpa,
+			pub quantam_portal : QuantumPortal
 		}
 	}
 }
@@ -374,8 +377,7 @@ parameter_types! {
 impl pallet_quantum_portal::Config for Runtime {
 	type Call = Call;
 	type Event = Event;
-
-	type AuthorityId = pallet_quantum_portal::crypto::TestAuthId;
+	type AuthorityId = QPOffchainId;
 	// type GracePeriod = GracePeriod;
 	// type UnsignedInterval = UnsignedInterval;
 	// type UnsignedPriority = UnsignedPriority;

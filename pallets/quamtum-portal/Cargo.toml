@@ -26,13 +26,13 @@ serde = { version = '1.0.130', default-features = false, features = ['derive'] }
 serde_json = { version = '1.0.67', default-features = false, features = ['alloc'] }
 
 # Substrate packages
-
 frame-support = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'master', version = '4.0.0-dev' }
 frame-system = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'master', version = '4.0.0-dev' }
-sp-arithmetic = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'master', version = '5.0.0' }
-sp-core = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'master', version = '6.0.0' }
-sp-runtime = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'master', version = '6.0.0' }
-sp-std = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'master', version = '4.0.0' }
+sp-arithmetic = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'master', version = '6.0.0' }
+sp-core = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'master', version = '7.0.0' }
+sp-runtime = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'master', version = '7.0.0' }
+sp-io = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'master', version = '7.0.0' }
+sp-std = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = 'master', version = '5.0.0' }
 ethereum = { version = "0.12", git = 'https://github.com/rust-blockchain/ethereum.git', default-features = false }
 hex = { version = "0.4.3", default-features = false }
 hex-literal = "0.3.4"
@@ -41,12 +41,7 @@ libsecp256k1 = { version = "0.7.0", default-features = false, features = ['stati
 rlp = { version = "0.5.1", default-features = false }
 tiny-keccak = { version = "2.0.2", features = ["sha3", "keccak"] }
 byte-slice-cast = { version= "1.2.1", default-features = false, features = [] }
-
-[dependencies.sp-io]
-git = 'https://github.com/paritytech/substrate.git'
-default-features = false
-branch = 'master'
-version = '6.0.0'
+ferrum-primitives = { path = "../../primitives", default-features = false}
 
 [dependencies.ethabi-nostd]
 default-features = false
@@ -64,5 +59,6 @@ std = [
 	'sp-io/std',
 	'sp-runtime/std',
 	'sp-std/std',
+	'ferrum-primitives/std'
 ]
 try-runtime = ["frame-support/try-runtime"]

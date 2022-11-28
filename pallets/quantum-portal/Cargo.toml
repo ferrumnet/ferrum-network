@@ -14,8 +14,8 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [package.metadata.substrate]
 categories = [
-  "pallet",
-  "offchain worker",
+	"pallet",
+	"offchain worker",
 ]
 [dependencies]
 log = { version = "0.4.14", default-features = false }
@@ -44,19 +44,19 @@ tiny-keccak = { version = "2.0.2", features = ["sha3", "keccak"] }
 
 [dependencies.ethabi-nostd]
 default-features = false
-version = '1.0.0-dev'
 path = '../../libraries/ethabi-nostd'
+version = '1.0.0-dev'
 
 [features]
 default = ['std']
 std = [
-  'frame-support/std',
-  'frame-system/std',
-  'log/std',
-  'parity-scale-codec/std',
-  'sp-arithmetic/std',
-  'sp-io/std',
-  'sp-runtime/std',
-  'sp-std/std',
+	'frame-support/std',
+	'frame-system/std',
+	'log/std',
+	'parity-scale-codec/std',
+	'sp-arithmetic/std',
+	'sp-io/std',
+	'sp-runtime/std',
+	'sp-std/std',
 ]
 try-runtime = ["frame-support/try-runtime"]

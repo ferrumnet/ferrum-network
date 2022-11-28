@@ -95,19 +95,19 @@ substrate-build-script-utils = { version = "3.0.0", git = "https://github.com/pa
 [features]
 default = ["aura", "with-rocksdb-weights"]
 aura = [
-  "sc-consensus-aura",
-  "ferrum-x-runtime/aura",
+	"sc-consensus-aura",
+	"ferrum-x-runtime/aura",
 ]
 manual-seal = [
-  "sc-consensus-manual-seal",
-  "ferrum-x-runtime/manual-seal",
+	"sc-consensus-manual-seal",
+	"ferrum-x-runtime/manual-seal",
 ]
 with-rocksdb-weights = ["ferrum-x-runtime/with-rocksdb-weights"]
 with-paritydb-weights = ["ferrum-x-runtime/with-paritydb-weights"]
 rpc_binary_search_estimate = ["fc-rpc/rpc_binary_search_estimate"]
 runtime-benchmarks = [
-  "frame-benchmarking",
-  "frame-benchmarking-cli",
-  "sc-service/runtime-benchmarks",
-  "ferrum-x-runtime/runtime-benchmarks",
+	"frame-benchmarking",
+	"frame-benchmarking-cli",
+	"sc-service/runtime-benchmarks",
+	"ferrum-x-runtime/runtime-benchmarks",
 ]

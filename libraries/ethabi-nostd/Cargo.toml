@@ -21,6 +21,6 @@ uint = { version = "0.9.3", default-features = false }
 [features]
 default = ["std"]
 std = [
-  'ethereum-types/std',
-  'sp-std/std',
+	'ethereum-types/std',
+	'sp-std/std',
 ]

@@ -131,9 +131,9 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::offchain::CreateSignedTransaction<Call<Self>> + frame_system::Config {
 		/// The overarching event type.
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// The overarching dispatch call type.
-		type Call: From<frame_system::Call<Self>>;
+		type RuntimeCall: From<frame_system::Call<Self>>;
 		// /// The identifier type for an offchain worker.
 		type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
 	}

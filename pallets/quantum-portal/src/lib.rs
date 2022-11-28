@@ -4,36 +4,33 @@ pub use pallet::*;
 
 mod chain_queries;
 mod chain_utils;
-pub mod qp_types;
-mod erc_20_client;
 mod contract_client;
+mod erc_20_client;
+pub mod qp_types;
 mod quantum_portal_client;
 pub mod quantum_portal_service;
 
 #[frame_support::pallet]
 pub mod pallet {
 	//! A demonstration of an offchain worker that sends onchain callbacks
-	use core::{convert::TryInto};
-	use parity_scale_codec::{Decode, Encode};
+	use crate::{
+		chain_utils::ChainUtils,
+		contract_client::{ContractClient, ContractClientSignature},
+		qp_types,
+		qp_types::QpNetworkItem,
+		quantum_portal_client::QuantumPortalClient,
+		quantum_portal_service::{PendingTransaction, QuantumPortalService},
+	};
+	use core::convert::TryInto;
 	use frame_support::pallet_prelude::*;
 	use frame_system::{
+		offchain::{AppCrypto, SignedPayload, Signer, SigningTypes},
 		pallet_prelude::*,
-		offchain::{
-			AppCrypto,
-			SignedPayload, Signer, SigningTypes,
-		},
 	};
 	use frame_support::traits::OneSessionHandler;
 	use sp_core::{crypto::KeyTypeId};
 	use sp_runtime::{traits::BlockNumberProvider, RuntimeDebug, RuntimeAppPublic};
 	use sp_std::{prelude::*, str};
-	use serde::{Deserialize, Deserializer};
-	use crate::{qp_types};
-	use crate::chain_utils::{ChainUtils};
-	use crate::contract_client::{ContractClient, ContractClientSignature};
-	use crate::quantum_portal_client::QuantumPortalClient;
-	use crate::quantum_portal_service::{PendingTransaction, QuantumPortalService};
-	use crate::qp_types::{QpNetworkItem};
 
 	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
 	pub struct Payload<Public> {
@@ -62,19 +59,21 @@ pub mod pallet {
 	struct IndexingData(Vec<u8>, u64);
 
 	pub fn de_string_to_bytes<'de, D>(de: D) -> Result<Vec<u8>, D::Error>
-		where
-			D: Deserializer<'de>,
+	where
+		D: Deserializer<'de>,
 	{
 		let s: &str = Deserialize::deserialize(de)?;
 		Ok(s.as_bytes().to_vec())
 	}
 
 	#[pallet::config]
-	pub trait Config: frame_system::offchain::CreateSignedTransaction<Call<Self>> + frame_system::Config {
+	pub trait Config:
+		frame_system::offchain::CreateSignedTransaction<Call<Self>> + frame_system::Config
+	{
 		/// The overarching event type.
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// The overarching dispatch call type.
-		type Call: From<frame_system::Call<Self>>;
+		type RuntimeCall: From<frame_system::Call<Self>>;
 		/// The identifier type for an authority.
 		type AuthorityId: Member
 			+ Parameter
@@ -103,8 +102,8 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn pending_transactions)]
-	pub(super) type PendingTransactions<T: Config> = StorageMap<_,
-		Identity, u64, PendingTransaction, ValueQuery>;
+	pub(super) type PendingTransactions<T: Config> =
+		StorageMap<_, Identity, u64, PendingTransaction, ValueQuery>;
 
 	#[pallet::event]
 	// #[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -125,7 +124,8 @@ pub mod pallet {
 		// Error returned when making unsigned transactions in off-chain worker
 		OffchainUnsignedTxError,
 
-		// Error returned when making unsigned transactions with signed payloads in off-chain worker
+		// Error returned when making unsigned transactions with signed payloads in off-chain
+		// worker
 		OffchainUnsignedTxSignedPayloadError,
 
 		// Error returned when fetching github info
@@ -136,18 +136,15 @@ pub mod pallet {
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig {
-		pub networks: qp_types::QpConfig, 
+		pub networks: qp_types::QpConfig,
 	}
 
 	#[cfg(feature = "std")]
 	impl Default for GenesisConfig {
 		fn default() -> Self {
-			Self {
-				networks: qp_types::QpConfig::default(),
-			}
+			Self { networks: qp_types::QpConfig::default() }
 		}
 	}
-
 
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig {
@@ -157,16 +154,16 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		pub fn configure_network(block_number: u64, network_item: QpNetworkItem
+		pub fn configure_network(
+			block_number: u64,
+			network_item: QpNetworkItem,
 		) -> QuantumPortalClient<T> {
 			let rpc_endpoint = network_item.url;
 			let id = network_item.id;
 
-			let signer = Signer::<T,
-				T::AuthorityId>::any_account();
+			let signer = Signer::<T, T::AuthorityId>::any_account();
 			let lgr_mgr = ChainUtils::hex_to_address(&network_item.ledger_manager[..]);
-			let client = ContractClient::new(
-				rpc_endpoint, &lgr_mgr, id);
+			let client = ContractClient::new(rpc_endpoint, &lgr_mgr, id);
 			QuantumPortalClient::new(
 				client,
 				ContractClientSignature::from(signer),
@@ -174,11 +171,21 @@ pub mod pallet {
 				block_number,
 			)
 		}
-		
+
 		pub fn test_qp(block_number: u64, qp_config_item: qp_types::QpConfig) {
-			let client_vec: Vec<_> = qp_config_item.network_vec.into_iter().map(|item| Self::configure_network(block_number, item)).collect();
+			let client_vec: Vec<_> = qp_config_item
+				.network_vec
+				.into_iter()
+				.map(|item| Self::configure_network(block_number, item))
+				.collect();
 			let svc = QuantumPortalService::<T>::new(client_vec);
-			let _res: Vec<_> = qp_config_item.pair_vec.into_iter().map(|(remote_chain, local_chain)| svc.process_pair_with_lock(remote_chain, local_chain).unwrap()).collect();
+			let _res: Vec<_> = qp_config_item
+				.pair_vec
+				.into_iter()
+				.map(|(remote_chain, local_chain)| {
+					svc.process_pair_with_lock(remote_chain, local_chain).unwrap()
+				})
+				.collect();
 		}
 	}
 

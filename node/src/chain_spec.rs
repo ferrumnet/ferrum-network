@@ -1,15 +1,21 @@
 use ferrum_x_runtime::{
 	AccountId, AuraConfig, BalancesConfig, EVMConfig, EthereumConfig, GenesisConfig, GrandpaConfig,
-	Signature, SudoConfig, SystemConfig, WASM_BINARY, QuantumPortalConfig
+	QuantumPortalConfig, Signature, SudoConfig, SystemConfig, WASM_BINARY,
 };
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public, H160, U256};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
-use sp_runtime::{traits::{IdentifyAccount, Verify}, AccountId32};
-use std::{collections::BTreeMap, str::FromStr, path::PathBuf};
+use sp_runtime::{
+	traits::{IdentifyAccount, Verify},
+	AccountId32,
+};
+use std::{collections::BTreeMap, path::PathBuf, str::FromStr};
 
-use crate::{cli::Cli, config::{Config, convert, NetworkConfig}};
+use crate::{
+	cli::Cli,
+	config::{convert, Config, NetworkConfig},
+};
 
 const DEFAULT_DEV_PATH_BUF: &str = "./default_dev_config.json";
 const DEFAULT_LOCAL_TESTNET_PATH_BUF: &str = "./default_dev_config.json";
@@ -45,7 +51,7 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
 pub fn config_path_buf(cli: &Cli, dev: bool) -> PathBuf {
 	if let Some(local_path_buf) = cli.run.config_file_path.clone() {
 		local_path_buf
-	} else if dev{
+	} else if dev {
 		PathBuf::from(DEFAULT_DEV_PATH_BUF)
 	} else {
 		PathBuf::from(DEFAULT_LOCAL_TESTNET_PATH_BUF)
@@ -54,17 +60,27 @@ pub fn config_path_buf(cli: &Cli, dev: bool) -> PathBuf {
 
 pub fn config_elem(cli: &Cli, dev: bool) -> Result<Config, String> {
 	let path_buf = config_path_buf(cli, dev);
- 	
+
 	crate::config::read_config_from_file(path_buf)
 }
 
-pub fn chainspec_params(config_elem: Config) -> Result<(Vec<(AuraId, GrandpaId)>, AccountId32, Vec<AccountId>, Vec<String>), String> {
-	
+pub fn chainspec_params(
+	config_elem: Config,
+) -> Result<(Vec<(AuraId, GrandpaId)>, AccountId32, Vec<AccountId>, Vec<String>), String> {
 	let chain_spec_config = config_elem.chain_spec;
 	let address_list = chain_spec_config.address_list.clone();
-	let initial_authoutities: Vec<_> = chain_spec_config.initial_authourity_seed_list.into_iter().map(|seed| authority_keys_from_seed(&seed)).collect();
-	let root_key = get_account_id_from_seed::<sr25519::Public>(chain_spec_config.root_seed.as_str());
-	let endowed_accounts: Vec<AccountId> = chain_spec_config.endowed_accounts_seed_list.into_iter().map(|seed| get_account_id_from_seed::<sr25519::Public>(&seed)).collect();
+	let initial_authoutities: Vec<_> = chain_spec_config
+		.initial_authourity_seed_list
+		.into_iter()
+		.map(|seed| authority_keys_from_seed(&seed))
+		.collect();
+	let root_key =
+		get_account_id_from_seed::<sr25519::Public>(chain_spec_config.root_seed.as_str());
+	let endowed_accounts: Vec<AccountId> = chain_spec_config
+		.endowed_accounts_seed_list
+		.into_iter()
+		.map(|seed| get_account_id_from_seed::<sr25519::Public>(&seed))
+		.collect();
 
 	Ok((initial_authoutities, root_key, endowed_accounts, address_list))
 }
@@ -76,12 +92,8 @@ pub fn development_config(cli: &Cli) -> Result<ChainSpec, String> {
 
 	let networks = config_elem.networks.clone();
 
-	let (
-		initial_authoutities, 
-		root_key, 
-		endowed_accounts, 
-		address_list
-	) = chainspec_params(config_elem)?;
+	let (initial_authoutities, root_key, endowed_accounts, address_list) =
+		chainspec_params(config_elem)?;
 
 	Ok(ChainSpec::from_genesis(
 		// Name
@@ -124,13 +136,9 @@ pub fn local_testnet_config(cli: &Cli) -> Result<ChainSpec, String> {
 
 	let networks = config_elem.networks.clone();
 
-	let (
-		initial_authoutities, 
-		root_key, 
-		endowed_accounts, 
-		address_list
-	) = chainspec_params(config_elem)?;
-	
+	let (initial_authoutities, root_key, endowed_accounts, address_list) =
+		chainspec_params(config_elem)?;
+
 	Ok(ChainSpec::from_genesis(
 		// Name
 		"Local Testnet",
@@ -182,45 +190,41 @@ fn testnet_genesis(
 		},
 		balances: BalancesConfig {
 			// Configure endowed accounts with initial balance of 1 << 60.
-			balances: endowed_accounts
-				.iter()
-				.cloned()
-				.map(|k| (k, 1 << 60))
-				.collect(),
+			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 60)).collect(),
 		},
 		aura: AuraConfig {
 			authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
 		},
 		grandpa: GrandpaConfig {
-			authorities: initial_authorities
-				.iter()
-				.map(|x| (x.1.clone(), 1))
-				.collect(),
+			authorities: initial_authorities.iter().map(|x| (x.1.clone(), 1)).collect(),
 		},
 		sudo: SudoConfig {
 			// Assign network admin rights.
 			key: Some(root_key),
 		},
 		evm: EVMConfig {
-			accounts: {				
-				let map: BTreeMap<_, fp_evm::GenesisAccount> = address_list.into_iter().map(|address| (
-				H160::from_str(address.as_str()).expect("internal H160 is valid; qed"), 
-				fp_evm::GenesisAccount {
-					balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
-						.expect("internal U256 is valid; qed"),
-					code: Default::default(),
-					nonce: Default::default(),
-					storage: Default::default(),
-				}
-			)).collect();
+			accounts: {
+				let map: BTreeMap<_, fp_evm::GenesisAccount> = address_list
+					.into_iter()
+					.map(|address| {
+						(
+							H160::from_str(address.as_str()).expect("internal H160 is valid; qed"),
+							fp_evm::GenesisAccount {
+								balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
+									.expect("internal U256 is valid; qed"),
+								code: Default::default(),
+								nonce: Default::default(),
+								storage: Default::default(),
+							},
+						)
+					})
+					.collect();
 				map
 			},
 		},
 		ethereum: EthereumConfig {},
 		dynamic_fee: Default::default(),
 		base_fee: Default::default(),
-		quantum_portal: QuantumPortalConfig {
-			networks: convert(networks)
-		}
+		quantum_portal: QuantumPortalConfig { networks: convert(networks) },
 	}
 }

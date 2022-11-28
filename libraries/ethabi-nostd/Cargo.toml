@@ -3,27 +3,24 @@ name = "ethabi-nostd"
 version = "1.0.0"
 authors = ["Ferrum Network <info@ferrum.network>"]
 edition = "2021"
-license = "Apache-2.0"
 keywords = ["ethereum", "eth", "abi", "solidity"]
+license = "Apache-2.0"
 description = "ETH ABI-encode/decode nostd. Forked from: https://github.com/Snowfork/ethabi-decode/blob/master/Cargo.toml"
 
 [dependencies]
-tiny-keccak = { version = "2.0.2", features = ["sha3", "keccak"] }
 ethereum-types = { version = "0.13.1", default-features = false }
+sp-std = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = "polkadot-v0.9.30" }
+tiny-keccak = { version = "2.0.2", features = ["sha3", "keccak"] }
 
 [dev-dependencies]
 hex = { version = "0.4.3" }
 hex-literal = "0.3.4"
-uint = { version = "0.9.3", default-features = false }
 paste = "1.0.6"
-
-[dependencies.sp-std]
-default-features = false
-git = 'https://github.com/paritytech/substrate'
-version = '5.0.0'
+uint = { version = "0.9.3", default-features = false }
 
 [features]
 default = ["std"]
 std = [
-    'ethereum-types/std',
+	'ethereum-types/std',
+	'sp-std/std',
 ]

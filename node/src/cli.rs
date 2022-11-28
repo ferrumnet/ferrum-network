@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 /// Available Sealing methods.
 #[cfg(feature = "manual-seal")]
 #[derive(Debug, Copy, Clone, clap::ArgEnum)]
@@ -29,24 +27,24 @@ pub struct RunCmd {
 	#[clap(long, arg_enum, ignore_case = true)]
 	pub sealing: Sealing,
 
-	#[clap(long, value_parser)]
+	#[clap(long)]
 	pub enable_dev_signer: bool,
 
 	/// Maximum number of logs in a query.
-	#[clap(long, value_parser, default_value = "10000")]
+	#[clap(long, default_value = "10000")]
 	pub max_past_logs: u32,
 
 	/// Maximum fee history cache size.
-	#[clap(long, value_parser, default_value = "2048")]
+	#[clap(long, default_value = "2048")]
 	pub fee_history_limit: u64,
 
 	/// The dynamic-fee pallet target gas price set by block author
-	#[clap(long, value_parser, default_value = "1")]
+	#[clap(long, default_value = "1")]
 	pub target_gas_price: u64,
 
 	// #[clap(long, parse(from_os_str))]
 	#[clap(long, value_parser)]
-	pub config_file_path: Option<PathBuf>,
+	pub config_file_path: Option<std::path::PathBuf>,
 }
 
 #[derive(Debug, clap::Parser)]
@@ -85,7 +83,15 @@ pub enum Subcommand {
 	/// Revert the chain to a previous state.
 	Revert(sc_cli::RevertCmd),
 
-	/// The custom benchmark subcommmand benchmarking runtime pallets.
+	/// Sub-commands concerned with benchmarking.
+	#[cfg(feature = "runtime-benchmarks")]
 	#[clap(subcommand)]
 	Benchmark(frame_benchmarking_cli::BenchmarkCmd),
+
+	/// Sub-commands concerned with benchmarking.
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	Benchmark,
+
+	/// Db meta columns information.
+	FrontierDb(fc_cli::FrontierDbCmd),
 }

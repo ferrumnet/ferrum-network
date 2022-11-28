@@ -1,18 +1,14 @@
 //! A collection of node-specific RPC methods.
 
 use std::{collections::BTreeMap, sync::Arc};
+
 use jsonrpsee::RpcModule;
-use fp_storage::EthereumStorageSchema;
-use fc_rpc::{
-	EthBlockDataCacheTask, OverrideHandle, RuntimeApiStorageOverride, SchemaV1Override,
-	SchemaV2Override, SchemaV3Override, StorageOverride,
-};
-use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
-use ferrum_x_runtime::{opaque::Block, AccountId, Balance, Hash, Index};
+// Substrate
 use sc_client_api::{
 	backend::{AuxStore, Backend, StateBackend, StorageProvider},
 	client::BlockchainEvents,
 };
+#[cfg(feature = "manual-seal")]
 use sc_consensus_manual_seal::rpc::{ManualSeal, ManualSealApiServer};
 use sc_network::NetworkService;
 use sc_rpc::SubscriptionTaskExecutor;
@@ -23,6 +19,15 @@ use sp_api::ProvideRuntimeApi;
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 use sp_runtime::traits::BlakeTwo256;
+// Frontier
+use fc_rpc::{
+	EthBlockDataCacheTask, OverrideHandle, RuntimeApiStorageOverride, SchemaV1Override,
+	SchemaV2Override, SchemaV3Override, StorageOverride,
+};
+use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
+use fp_storage::EthereumStorageSchema;
+// Runtime
+use ferrum_x_runtime::{opaque::Block, AccountId, Balance, Hash, Index};
 
 /// Full client dependencies.
 pub struct FullDeps<C, P, A: ChainApi> {
@@ -46,17 +51,18 @@ pub struct FullDeps<C, P, A: ChainApi> {
 	pub backend: Arc<fc_db::Backend<Block>>,
 	/// Maximum number of logs in a query.
 	pub max_past_logs: u32,
-	/// Maximum fee history cache size.
-	pub fee_history_cache_limit: FeeHistoryCacheLimit,
 	/// Fee history cache.
 	pub fee_history_cache: FeeHistoryCache,
-	/// Manual seal command sink
-	pub command_sink:
-		Option<futures::channel::mpsc::Sender<sc_consensus_manual_seal::rpc::EngineCommand<Hash>>>,
+	/// Maximum fee history cache size.
+	pub fee_history_cache_limit: FeeHistoryCacheLimit,
 	/// Ethereum data access overrides.
 	pub overrides: Arc<OverrideHandle<Block>>,
 	/// Cache for Ethereum block data.
 	pub block_data_cache: Arc<EthBlockDataCacheTask<Block>>,
+	/// Manual seal command sink
+	#[cfg(feature = "manual-seal")]
+	pub command_sink:
+		Option<futures::channel::mpsc::Sender<sc_consensus_manual_seal::rpc::EngineCommand<Hash>>>,
 }
 
 pub fn overrides_handle<C, BE>(client: Arc<C>) -> Arc<OverrideHandle<Block>>
@@ -89,7 +95,7 @@ where
 
 	Arc::new(OverrideHandle {
 		schemas: overrides_map,
-		fallback: Box::new(RuntimeApiStorageOverride::new(client.clone())),
+		fallback: Box::new(RuntimeApiStorageOverride::new(client)),
 	})
 }
 
@@ -115,29 +121,29 @@ where
 {
 	use fc_rpc::{
 		Eth, EthApiServer, EthDevSigner, EthFilter, EthFilterApiServer, EthPubSub,
-		EthPubSubApiServer, EthSigner, Net, NetApiServer, Web3,
-		Web3ApiServer,
+		EthPubSubApiServer, EthSigner, Net, NetApiServer, Web3, Web3ApiServer,
 	};
 	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
 	use substrate_frame_rpc_system::{System, SystemApiServer};
 
-	let mut io = jsonrpsee::RpcModule::new(());
+	let mut io = RpcModule::new(());
 	let FullDeps {
 		client,
 		pool,
 		graph,
 		deny_unsafe,
 		is_authority,
+		enable_dev_signer,
 		network,
 		filter_pool,
-		command_sink,
 		backend,
 		max_past_logs,
-		fee_history_cache_limit,
 		fee_history_cache,
-		enable_dev_signer,
+		fee_history_cache_limit,
 		overrides,
 		block_data_cache,
+		#[cfg(feature = "manual-seal")]
+		command_sink,
 	} = deps;
 
 	io.merge(System::new(client.clone(), pool.clone(), deny_unsafe).into_rpc())?;
@@ -158,10 +164,12 @@ where
 			signers,
 			overrides.clone(),
 			backend.clone(),
+			// Is authority.
 			is_authority,
 			block_data_cache.clone(),
 			fee_history_cache,
 			fee_history_cache_limit,
+			10,
 		)
 		.into_rpc(),
 	)?;
@@ -171,30 +179,18 @@ where
 			EthFilter::new(
 				client.clone(),
 				backend,
-				filter_pool.clone(),
-				500 as usize, // max stored filters
+				filter_pool,
+				500_usize, // max stored filters
 				max_past_logs,
-				block_data_cache.clone(),
+				block_data_cache,
 			)
 			.into_rpc(),
 		)?;
 	}
 
 	io.merge(
-		Net::new(
-			client.clone(),
-			network.clone(),
-			// Whether to format the `peer_count` response as Hex (default) or not.
-			true,
-		)
-		.into_rpc(),
-	)?;
-
-	io.merge(Web3::new(client.clone()).into_rpc())?;
-
-	io.merge(
 		EthPubSub::new(
-			pool.clone(),
+			pool,
 			client.clone(),
 			network.clone(),
 			subscription_task_executor,
@@ -203,7 +199,19 @@ where
 		.into_rpc(),
 	)?;
 
-	// #[cfg(feature = "manual-seal")]
+	io.merge(
+		Net::new(
+			client.clone(),
+			network,
+			// Whether to format the `peer_count` response as Hex (default) or not.
+			true,
+		)
+		.into_rpc(),
+	)?;
+
+	io.merge(Web3::new(client).into_rpc())?;
+
+	#[cfg(feature = "manual-seal")]
 	if let Some(command_sink) = command_sink {
 		io.merge(
 			// We provide the rpc handler with the sending end of the channel to allow the rpc

@@ -1,4 +1,4 @@
-use pallet_evm::{Precompile, PrecompileResult, PrecompileSet, PrecompileHandle};
+use pallet_evm::{Precompile, PrecompileHandle, PrecompileResult, PrecompileSet};
 use sp_core::H160;
 use sp_std::marker::PhantomData;
 
@@ -16,20 +16,14 @@ where
 		Self(Default::default())
 	}
 	pub fn used_addresses() -> sp_std::vec::Vec<H160> {
-		sp_std::vec![1, 2, 3, 4, 5, 1024, 1025]
-			.into_iter()
-			.map(|x| hash(x))
-			.collect()
+		sp_std::vec![1, 2, 3, 4, 5, 1024, 1025].into_iter().map(|x| hash(x)).collect()
 	}
 }
 impl<R> PrecompileSet for FrontierPrecompiles<R>
 where
 	R: pallet_evm::Config,
 {
-	fn execute(
-		&self,
-		handle: &mut impl PrecompileHandle,
-	) -> Option<PrecompileResult> {
+	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<PrecompileResult> {
 		match handle.code_address() {
 			// Ethereum precompiles :
 			a if a == hash(1) => Some(ECRecover::execute(handle)),
@@ -38,12 +32,8 @@ where
 			a if a == hash(4) => Some(Identity::execute(handle)),
 			a if a == hash(5) => Some(Modexp::execute(handle)),
 			// Non-Frontier specific nor Ethereum precompiles :
-			a if a == hash(1024) => {
-				Some(Sha3FIPS256::execute(handle))
-			}
-			a if a == hash(1025) => Some(ECRecoverPublicKey::execute(
-				handle,
-			)),
+			a if a == hash(1024) => Some(Sha3FIPS256::execute(handle)),
+			a if a == hash(1025) => Some(ECRecoverPublicKey::execute(handle)),
 			_ => None,
 		}
 	}

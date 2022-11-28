@@ -1,21 +1,21 @@
 [package]
 name = "pallet-quantum-portal"
 version = "1.0.0-dev"
-description = "Quantum Portal Offline worker."
 authors = ["Ferrum Network"]
-homepage = "https://ferrum.network/"
 edition = "2021"
+homepage = "https://ferrum.network/"
 license = "Unlicense"
 publish = false
 repository = "https://github.com/ferrum-x-network"
+description = "Quantum Portal Offline worker."
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
 
 [package.metadata.substrate]
 categories = [
-	"pallet",
-	"offchain worker",
+  "pallet",
+  "offchain worker",
 ]
 [dependencies]
 log = { version = "0.4.14", default-features = false }
@@ -26,21 +26,21 @@ serde = { version = '1.0.130', default-features = false, features = ['derive'] }
 serde_json = { version = '1.0.67', default-features = false, features = ['alloc'] }
 
 # Substrate packages
+byte-slice-cast = { version = "1.2.1", default-features = false, features = [] }
+ethereum = { version = "0.12.0", default-features = false }
 frame-support = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = "polkadot-v0.9.30" }
 frame-system = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = "polkadot-v0.9.30" }
-sp-arithmetic = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = "polkadot-v0.9.30" }
-sp-core = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = "polkadot-v0.9.30" }
-sp-runtime = { version = "6.0.0", git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = "polkadot-v0.9.30" }
-sp-std = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = "polkadot-v0.9.30" }
-sp-io = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = "polkadot-v0.9.30" }
-ethereum = { version = "0.12.0", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 hex-literal = "0.3.4"
-numtoa = { version = "0.2.4", default-features = false }
 libsecp256k1 = { version = "0.7.0", default-features = false, features = ['static-context'] }
+numtoa = { version = "0.2.4", default-features = false }
 rlp = { version = "0.5.1", default-features = false }
+sp-arithmetic = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = "polkadot-v0.9.30" }
+sp-core = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = "polkadot-v0.9.30" }
+sp-io = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = "polkadot-v0.9.30" }
+sp-runtime = { version = "6.0.0", git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = "polkadot-v0.9.30" }
+sp-std = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = "polkadot-v0.9.30" }
 tiny-keccak = { version = "2.0.2", features = ["sha3", "keccak"] }
-byte-slice-cast = { version= "1.2.1", default-features = false, features = [] }
 
 [dependencies.ethabi-nostd]
 default-features = false
@@ -50,13 +50,13 @@ path = '../../libraries/ethabi-nostd'
 [features]
 default = ['std']
 std = [
-	'frame-support/std',
-	'frame-system/std',
-	'log/std',
-	'parity-scale-codec/std',
-	'sp-arithmetic/std',
-	'sp-io/std',
-	'sp-runtime/std',
-	'sp-std/std',
+  'frame-support/std',
+  'frame-system/std',
+  'log/std',
+  'parity-scale-codec/std',
+  'sp-arithmetic/std',
+  'sp-io/std',
+  'sp-runtime/std',
+  'sp-std/std',
 ]
 try-runtime = ["frame-support/try-runtime"]

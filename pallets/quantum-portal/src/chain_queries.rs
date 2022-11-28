@@ -1,26 +1,20 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use sp_runtime::{
-	offchain::{
-		http,
-		Duration,
-	},
-	codec::{
-		Decode, Encode
-	},
-};
+use crate::chain_utils::{ChainRequestError, ChainRequestResult, ChainUtils, JsonSer, ToJson};
+use ethereum::TransactionV2;
 use serde::{Deserialize, Deserializer, Serialize};
+use sp_core::H256;
+use sp_runtime::{
+	codec::{Decode, Encode},
+	offchain::{http, Duration},
+};
 use sp_std::{prelude::*, str};
-use crate::chain_utils::{ChainRequestError, ChainRequestResult, ToJson, JsonSer};
-use crate::chain_utils::ChainUtils;
-use sp_core::{ H256 };
-use ethereum::{TransactionV2};
 
 const FETCH_TIMEOUT_PERIOD: u64 = 30000; // in milli-seconds
 
 pub fn de_string_list_to_bytes_list<'de, D>(de: D) -> Result<Vec<Vec<u8>>, D::Error>
-	where
-		D: Deserializer<'de>,
+where
+	D: Deserializer<'de>,
 {
 	let s: Vec<&str> = Deserialize::deserialize(de)?;
 	let list = s.iter().map(|v| v.as_bytes().to_vec()).collect();
@@ -28,8 +22,8 @@ pub fn de_string_list_to_bytes_list<'de, D>(de: D) -> Result<Vec<Vec<u8>>, D::Er
 }
 
 pub fn de_string_to_bytes<'de, D>(de: D) -> Result<Vec<u8>, D::Error>
-	where
-		D: Deserializer<'de>,
+where
+	D: Deserializer<'de>,
 {
 	let s: &str = Deserialize::deserialize(de)?;
 	Ok(s.as_bytes().to_vec())
@@ -48,7 +42,7 @@ pub struct JsonRpcRequest {
 }
 
 #[derive(Deserialize, Encode, Decode)]
-pub struct  JsonRpcResponse<T> {
+pub struct JsonRpcResponse<T> {
 	pub id: u32,
 	#[serde(deserialize_with = "de_string_to_bytes")]
 	pub jsonrpc: Vec<u8>,
@@ -74,45 +68,63 @@ impl ToJson for TransactionV2 {
 	fn to_json(&self) -> Vec<u8> {
 		let mut j = JsonSer::new();
 		let j = match self {
-			TransactionV2::Legacy(tx) =>
-				j
-					.start()
-					.string("nonce",
-							str::from_utf8(ChainUtils::u256_to_hex_0x(&tx.nonce).as_slice()).unwrap())
-					.string("gas_price",
-							str::from_utf8(ChainUtils::u256_to_hex_0x(&tx.gas_price).as_slice()).unwrap())
-					.string("gas_limit",
-							str::from_utf8(ChainUtils::u256_to_hex_0x(&tx.gas_limit).as_slice()).unwrap())
-					// .string("action",
-					// 		str::from_utf8(ChainUtils::u256_to_hex_0x(&tx.action).as_slice()).unwrap())
-					.string("value",
-							str::from_utf8(ChainUtils::u256_to_hex_0x(&tx.value).as_slice()).unwrap())
-					.string("input", str::from_utf8(&tx.input).unwrap())
-					.val("signature",
-						str::from_utf8(
+			TransactionV2::Legacy(tx) => j
+				.start()
+				.string(
+					"nonce",
+					str::from_utf8(ChainUtils::u256_to_hex_0x(&tx.nonce).as_slice()).unwrap(),
+				)
+				.string(
+					"gas_price",
+					str::from_utf8(ChainUtils::u256_to_hex_0x(&tx.gas_price).as_slice()).unwrap(),
+				)
+				.string(
+					"gas_limit",
+					str::from_utf8(ChainUtils::u256_to_hex_0x(&tx.gas_limit).as_slice()).unwrap(),
+				)
+				// .string("action",
+				// 		str::from_utf8(ChainUtils::u256_to_hex_0x(&tx.action).as_slice()).unwrap())
+				.string(
+					"value",
+					str::from_utf8(ChainUtils::u256_to_hex_0x(&tx.value).as_slice()).unwrap(),
+				)
+				.string("input", str::from_utf8(&tx.input).unwrap())
+				.val(
+					"signature",
+					str::from_utf8(
 						JsonSer::new()
 							.start()
-							.string("r", str::from_utf8(ChainUtils::h256_to_hex_0x(tx.signature.r()).as_slice()).unwrap())
-							.string("s", str::from_utf8(ChainUtils::h256_to_hex_0x(tx.signature.s()).as_slice()).unwrap())
+							.string(
+								"r",
+								str::from_utf8(
+									ChainUtils::h256_to_hex_0x(tx.signature.r()).as_slice(),
+								)
+								.unwrap(),
+							)
+							.string(
+								"s",
+								str::from_utf8(
+									ChainUtils::h256_to_hex_0x(tx.signature.s()).as_slice(),
+								)
+								.unwrap(),
+							)
 							.num("v", tx.signature.v())
 							.end()
-							.to_vec().as_slice()
-						).unwrap()
+							.to_vec()
+							.as_slice(),
 					)
-					.end()
-					.to_vec()
-			,
+					.unwrap(),
+				)
+				.end()
+				.to_vec(),
 			TransactionV2::EIP1559(_) => Vec::new(),
-			TransactionV2::EIP2930(_) => Vec::new()
+			TransactionV2::EIP2930(_) => Vec::new(),
 		};
 		Vec::from(j)
 	}
 }
 
-fn fetch_json_rpc_body(
-	base_url: &str,
-	req: &JsonRpcRequest,
-) -> Result<Vec<u8>, ChainRequestError> {
+fn fetch_json_rpc_body(base_url: &str, req: &JsonRpcRequest) -> Result<Vec<u8>, ChainRequestError> {
 	let mut params = JsonSer::new();
 	(&req.params).into_iter().for_each(|p| {
 		params.arr_val(str::from_utf8(p.as_slice()).unwrap());
@@ -124,17 +136,14 @@ fn fetch_json_rpc_body(
 		.num("id", req.id as u64)
 		.string("method", str::from_utf8(&req.method).unwrap())
 		.string("jsonrpc", "2.0")
-		.arr("params",
-			str::from_utf8(params.to_vec().as_slice()).unwrap()
-		)
+		.arr("params", str::from_utf8(params.to_vec().as_slice()).unwrap())
 		.end()
 		.to_vec();
 	let json_req_str = str::from_utf8(&json_req_s).unwrap();
 	log::info!("About to submit {}", json_req_str);
-	let request: http::Request<Vec<&[u8]>> = http::Request::post(base_url,
-	 Vec::from([json_req_s.as_slice()]));
-	let timeout = sp_io::offchain::timestamp()
-		.add(Duration::from_millis(FETCH_TIMEOUT_PERIOD));
+	let request: http::Request<Vec<&[u8]>> =
+		http::Request::post(base_url, Vec::from([json_req_s.as_slice()]));
+	let timeout = sp_io::offchain::timestamp().add(Duration::from_millis(FETCH_TIMEOUT_PERIOD));
 
 	let pending = request
 		// .deadline(timeout) // Setting the timeout time
@@ -175,7 +184,7 @@ fn fetch_json_rpc_body(
 			log::info!("An ERROR HAPPNED 2!");
 			log::info!("An ERROR HAPPNED UYPOOOOOOOOOOO 2 ! {:?}", e);
 			Err(ChainRequestError::ErrorGettingJsonRpcResponse)
-		}
+		},
 	}?;
 	// let response = pending
 	// 	.try_wait(timeout)
@@ -193,7 +202,11 @@ fn fetch_json_rpc_body(
 
 	// log::info!("Response is ready!");
 	let body = response.body().collect::<Vec<u8>>().clone();
-	log::info!("Response code got : {}-{}", &response.code, str::from_utf8(&body.as_slice()).unwrap());
+	log::info!(
+		"Response code got : {}-{}",
+		&response.code,
+		str::from_utf8(&body.as_slice()).unwrap()
+	);
 
 	if response.code != 200 {
 		log::error!("Unexpected http request status code: {}", response.code);
@@ -203,11 +216,10 @@ fn fetch_json_rpc_body(
 	Ok(body)
 }
 
-pub fn fetch_json_rpc<T>(
-	base_url: &str,
-	req: &JsonRpcRequest,
-) -> Result<Box<T>, ChainRequestError>
-where T: for<'de> Deserialize<'de> {
+pub fn fetch_json_rpc<T>(base_url: &str, req: &JsonRpcRequest) -> Result<Box<T>, ChainRequestError>
+where
+	T: for<'de> Deserialize<'de>,
+{
 	// println!("fetchin {} : {:?}", base_url, req);
 	let body = fetch_json_rpc_body(base_url, req)?;
 	// println!("Response body got : {}", str::from_utf8(&body).unwrap());
@@ -244,18 +256,13 @@ pub struct GetTransactionReceiptResponse {
 	result: Option<GetTransactionReceiptResponseData>,
 }
 
-pub struct ChainQueries/*<T: Config>*/ {
-}
+pub struct ChainQueries /* <T: Config> */ {}
 
 impl ChainQueries {
 	#[allow(dead_code)]
 	pub fn chain_id(url: &str) -> Result<u32, ChainRequestError> {
 		log::info!("About to get chain_id {}", url);
-		let req = JsonRpcRequest {
-			id: 1,
-			params: Vec::new(),
-			method: b"eth_chainId".to_vec(),
-		};
+		let req = JsonRpcRequest { id: 1, params: Vec::new(), method: b"eth_chainId".to_vec() };
 		// log::info!("Have request {:?}", &req);
 		let res: Box<GetChainIdResponse> = fetch_json_rpc(url, &req)?;
 		log::info!("Result is {:?}", &res);
@@ -263,17 +270,21 @@ impl ChainQueries {
 		Ok(chain_id as u32)
 	}
 
-	pub fn get_transaction_receipt(url: &str, tx_id: &H256)
-		-> ChainRequestResult<Option<GetTransactionReceiptResponseData>> {
+	pub fn get_transaction_receipt(
+		url: &str,
+		tx_id: &H256,
+	) -> ChainRequestResult<Option<GetTransactionReceiptResponseData>> {
 		log::info!("TX_ID is: {:?}", &tx_id.0);
 		let tx_id = ChainUtils::h256_to_hex_0x(tx_id);
-		log::info!("About to get eth_getTransactionReceipt {}: {}",
+		log::info!(
+			"About to get eth_getTransactionReceipt {}: {}",
 			url,
-			str::from_utf8(tx_id.as_slice()).unwrap());
+			str::from_utf8(tx_id.as_slice()).unwrap()
+		);
 
 		let req = JsonRpcRequest {
 			id: 1,
-			params: vec![ ChainUtils::wrap_in_quotes(tx_id.as_slice()).to_vec() ],
+			params: vec![ChainUtils::wrap_in_quotes(tx_id.as_slice()).to_vec()],
 			method: b"eth_getTransactionReceipt".to_vec(),
 		};
 		// log::info!("Have request {:?}", &req);
@@ -282,15 +293,21 @@ impl ChainQueries {
 		Ok(res.result)
 	}
 
-	pub fn get_transaction_status(url: &str, tx_id: &H256)
-		-> ChainRequestResult<TransactionStatus> {
+	pub fn get_transaction_status(
+		url: &str,
+		tx_id: &H256,
+	) -> ChainRequestResult<TransactionStatus> {
 		let rv = Self::get_transaction_receipt(url, tx_id)?;
 		let res = match rv {
 			None => TransactionStatus::NotFound,
 			Some(tx) => {
 				let status = ChainUtils::hex_to_u64(tx.status.as_slice())?;
-				if status == 1 { TransactionStatus::Confirmed } else { TransactionStatus::Failed }
-			}
+				if status == 1 {
+					TransactionStatus::Confirmed
+				} else {
+					TransactionStatus::Failed
+				}
+			},
 		};
 		Ok(res)
 	}

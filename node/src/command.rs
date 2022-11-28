@@ -57,9 +57,8 @@ impl SubstrateCli for Cli {
 		Ok(match id {
 			"dev" => Box::new(chain_spec::development_config(self)?),
 			"" | "local" => Box::new(chain_spec::local_testnet_config(self)?),
-			path => Box::new(chain_spec::ChainSpec::from_json_file(
-				std::path::PathBuf::from(path),
-			)?),
+			path =>
+				Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?),
 		})
 	}
 
@@ -77,53 +76,39 @@ pub fn run() -> sc_cli::Result<()> {
 		Some(Subcommand::BuildSpec(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			runner.sync_run(|config| cmd.run(config.chain_spec, config.network))
-		}
+		},
 		Some(Subcommand::CheckBlock(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			runner.async_run(|config| {
-				let PartialComponents {
-					client,
-					task_manager,
-					import_queue,
-					..
-				} = service::new_partial(&config, &cli)?;
+				let PartialComponents { client, task_manager, import_queue, .. } =
+					service::new_partial(&config, &cli)?;
 				Ok((cmd.run(client, import_queue), task_manager))
 			})
-		}
+		},
 		Some(Subcommand::ExportBlocks(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			runner.async_run(|config| {
-				let PartialComponents {
-					client,
-					task_manager,
-					..
-				} = service::new_partial(&config, &cli)?;
+				let PartialComponents { client, task_manager, .. } =
+					service::new_partial(&config, &cli)?;
 				Ok((cmd.run(client, config.database), task_manager))
 			})
-		}
+		},
 		Some(Subcommand::ExportState(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			runner.async_run(|config| {
-				let PartialComponents {
-					client,
-					task_manager,
-					..
-				} = service::new_partial(&config, &cli)?;
+				let PartialComponents { client, task_manager, .. } =
+					service::new_partial(&config, &cli)?;
 				Ok((cmd.run(client, config.chain_spec), task_manager))
 			})
-		}
+		},
 		Some(Subcommand::ImportBlocks(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			runner.async_run(|config| {
-				let PartialComponents {
-					client,
-					task_manager,
-					import_queue,
-					..
-				} = service::new_partial(&config, &cli)?;
+				let PartialComponents { client, task_manager, import_queue, .. } =
+					service::new_partial(&config, &cli)?;
 				Ok((cmd.run(client, import_queue), task_manager))
 			})
-		}
+		},
 		Some(Subcommand::PurgeChain(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			runner.sync_run(|config| {
@@ -137,53 +122,46 @@ pub fn run() -> sc_cli::Result<()> {
 					DatabaseSource::ParityDb { .. } => DatabaseSource::ParityDb {
 						path: frontier_database_dir(&db_config_dir, "paritydb"),
 					},
-					_ => {
-						return Err(format!("Cannot purge `{:?}` database", config.database).into())
-					}
+					_ =>
+						return Err(format!("Cannot purge `{:?}` database", config.database).into()),
 				};
 				cmd.run(frontier_database_config)?;
 				cmd.run(config.database)
 			})
-		}
+		},
 		Some(Subcommand::Revert(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			runner.async_run(|config| {
-				let PartialComponents {
-					client,
-					task_manager,
-					backend,
-					..
-				} = service::new_partial(&config, &cli)?;
+				let PartialComponents { client, task_manager, backend, .. } =
+					service::new_partial(&config, &cli)?;
 				let aux_revert = Box::new(move |client, _, blocks| {
 					sc_finality_grandpa::revert(client, blocks)?;
 					Ok(())
 				});
 				Ok((cmd.run(client, backend, Some(aux_revert)), task_manager))
 			})
-		}
+		},
 		#[cfg(feature = "runtime-benchmarks")]
 		Some(Subcommand::Benchmark(cmd)) => {
 			use crate::benchmarking::{
 				inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder,
 			};
+			use ferrum_x_runtime::{Block, ExistentialDeposit};
 			use frame_benchmarking_cli::{
 				BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE,
 			};
-			use ferrum_x_runtime::{Block, ExistentialDeposit};
 
 			let runner = cli.create_runner(cmd)?;
 			match cmd {
-				BenchmarkCmd::Pallet(cmd) => {
-					runner.sync_run(|config| cmd.run::<Block, service::ExecutorDispatch>(config))
-				}
+				BenchmarkCmd::Pallet(cmd) =>
+					runner.sync_run(|config| cmd.run::<Block, service::ExecutorDispatch>(config)),
 				BenchmarkCmd::Block(cmd) => runner.sync_run(|config| {
 					let PartialComponents { client, .. } = service::new_partial(&config, &cli)?;
 					cmd.run(client)
 				}),
 				BenchmarkCmd::Storage(cmd) => runner.sync_run(|config| {
-					let PartialComponents {
-						client, backend, ..
-					} = service::new_partial(&config, &cli)?;
+					let PartialComponents { client, backend, .. } =
+						service::new_partial(&config, &cli)?;
 					let db = backend.expose_db();
 					let storage = backend.expose_storage();
 
@@ -193,13 +171,7 @@ pub fn run() -> sc_cli::Result<()> {
 					let PartialComponents { client, .. } = service::new_partial(&config, &cli)?;
 					let ext_builder = RemarkBuilder::new(client.clone());
 
-					cmd.run(
-						config,
-						client,
-						inherent_benchmark_data()?,
-						Vec::new(),
-						&ext_builder,
-					)
+					cmd.run(config, client, inherent_benchmark_data()?, Vec::new(), &ext_builder)
 				}),
 				BenchmarkCmd::Extrinsic(cmd) => runner.sync_run(|config| {
 					let PartialComponents { client, .. } = service::new_partial(&config, &cli)?;
@@ -215,11 +187,10 @@ pub fn run() -> sc_cli::Result<()> {
 
 					cmd.run(client, inherent_benchmark_data()?, Vec::new(), &ext_factory)
 				}),
-				BenchmarkCmd::Machine(cmd) => {
-					runner.sync_run(|config| cmd.run(&config, SUBSTRATE_REFERENCE_HARDWARE.clone()))
-				}
+				BenchmarkCmd::Machine(cmd) =>
+					runner.sync_run(|config| cmd.run(&config, SUBSTRATE_REFERENCE_HARDWARE.clone())),
 			}
-		}
+		},
 		#[cfg(not(feature = "runtime-benchmarks"))]
 		Some(Subcommand::Benchmark) => Err("Benchmarking wasn't enabled when building the node. \
 			You can enable it with `--features runtime-benchmarks`."
@@ -231,12 +202,12 @@ pub fn run() -> sc_cli::Result<()> {
 				let frontier_backend = other.2;
 				cmd.run::<_, ferrum_x_runtime::opaque::Block>(client, frontier_backend)
 			})
-		}
+		},
 		None => {
 			let runner = cli.create_runner(&cli.run.base)?;
 			runner.run_node_until_exit(|config| async move {
 				service::new_full(config, &cli).map_err(sc_cli::Error::Service)
 			})
-		}
+		},
 	}
 }

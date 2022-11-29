@@ -1838,18 +1838,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ferrum-primitives"
-version = "1.0.0-dev"
-dependencies = [
- "frame-system",
- "parity-scale-codec",
- "scale-info",
- "sp-application-crypto",
- "sp-core",
- "sp-runtime",
-]
-
-[[package]]
 name = "ferrum-x-network"
 version = "0.0.1"
 dependencies = [
@@ -1872,6 +1860,7 @@ dependencies = [
  "frame-system",
  "futures",
  "jsonrpsee",
+ "libsecp256k1",
  "log",
  "pallet-quantum-portal",
  "pallet-transaction-payment",
@@ -1906,6 +1895,7 @@ dependencies = [
  "sp-finality-grandpa",
  "sp-inherents",
  "sp-keyring",
+ "sp-keystore",
  "sp-runtime",
  "sp-timestamp",
  "substrate-build-script-utils",
@@ -1917,7 +1907,6 @@ dependencies = [
 name = "ferrum-x-runtime"
 version = "0.0.1"
 dependencies = [
- "ferrum-primitives",
  "fp-rpc",
  "fp-self-contained",
  "frame-benchmarking",
@@ -4799,7 +4788,6 @@ dependencies = [
  "byte-slice-cast",
  "ethabi-nostd",
  "ethereum",
- "ferrum-primitives",
  "frame-support",
  "frame-system",
  "hex",

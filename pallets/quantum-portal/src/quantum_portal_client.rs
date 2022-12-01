@@ -273,35 +273,6 @@ impl<T: Config> QuantumPortalClient<T> {
             .map(|f| Token::FixedBytes(Vec::from(f.0.as_slice())))
             .collect();
 
-        // prepare message to sign
-        let encoded_bytes = encoder::encode_function_u8(method_signature, inputs);
-        let encoded_bytes_0x = ChainUtils::bytes_to_hex(&encoded_bytes.as_slice());
-        let encoded_bytes_slice = encoded_bytes_0x.as_slice();
-        let encoded_bytes_slice = ChainUtils::hex_add_0x(encoded_bytes_slice);
-        let encoded = str::from_utf8(encoded_bytes_slice.as_slice()).unwrap();
-        log::info!("encoded {}", encoded);
-
-
-        let signature = b"finalize(uint256,uint256,bytes32,address[],bytes32,uint64,bytes)";
-        let hash_data = b"finalize(uint256,uint256,bytes32,address[],bytes32,uint64,bytes)";
-        let hash = ChainUtils::keccack(hash_data);
-        log::info!("Finalize transaction hash {:?})", hash);
-
-        // ensure we have keys in keystore to sign
-        let signer = Signer::<T, T::AuthorityId>::any_account();
-        if !signer.can_sign() {
-            return Err(ChainRequestError::JsonRpcError(Vec::from(
-                "No keys found in keystore! Insert keys via `author_insertKey` RPC.",
-            )));
-        }
-
-        let ecdsa_signer = ContractClientSignature::from(signer);
-
-        // sign the message
-        let signature: ecdsa::Signature = ecdsa_signer.signer(&hash);
-        let sig_bytes: &[u8] = &signature.0;
-        log::info!("Finalize transaction signature {:?})", sig_bytes);
-
         let salt = Token::FixedBytes(vec![
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0,

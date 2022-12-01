@@ -15,6 +15,7 @@ use sp_std::{
     prelude::*,
     str,
 };
+use eip_712::{EIP712, hash_structured_data};
 
 #[derive(Debug, Clone)]
 pub struct ContractClient {
@@ -228,6 +229,55 @@ impl ContractClient {
         let rv: Box<CallResponse> = fetch_json_rpc(http_api, &req)?;
         let gp = ChainUtils::hex_to_u256(rv.result.as_slice())?;
         Ok(U256::from(gp))
+    }
+
+    pub fn produce_eip_712_signature(&self,
+    chainId: &[u8],
+    networkId: &[u8],
+    contractAddress: Address,
+    eip_params : EIP712
+    ) -> Result<U256, ChainRequestError> {
+        // prepare message to sign
+        let encoded_bytes = encoder::encode_function_u8(method_signature, inputs);
+        let encoded_bytes_0x = ChainUtils::bytes_to_hex(&encoded_bytes.as_slice());
+        let encoded_bytes_slice = encoded_bytes_0x.as_slice();
+        let encoded_bytes_slice = ChainUtils::hex_add_0x(encoded_bytes_slice);
+        let encoded = str::from_utf8(encoded_bytes_slice.as_slice()).unwrap();
+        log::info!("encoded {}", encoded);
+
+        let signature = b"finalize(uint256,uint256,bytes32,address[],bytes32,uint64,bytes)";
+        let hash_data = b"finalize(uint256,uint256,bytes32,address[],bytes32,uint64,bytes)";
+        let hash = ChainUtils::keccack(hash_data);
+        log::info!("Finalize transaction hash {:?})", hash);
+
+        // ensure we have keys in keystore to sign
+        let signer = Signer::<T, T::AuthorityId>::any_account();
+        if !signer.can_sign() {
+            return Err(ChainRequestError::JsonRpcError(Vec::from(
+                "No keys found in keystore! Insert keys via `author_insertKey` RPC.",
+            )));
+        }
+
+        let ecdsa_signer = ContractClientSignature::from(signer);
+
+        // sign the message
+        let signature: ecdsa::Signature = ecdsa_signer.signer(&hash);
+        let sig_bytes: &[u8] = &signature.0;
+        log::info!("Finalize transaction signature {:?})", sig_bytes);
+    }
+
+    pub fn get_eip_712_types(&self, _encoded: &[u8]) -> Result<eip_712::EIP712> {
+        let json = r#"{
+            "types": {
+                [
+                    { type: 'uint256', name: 'action', value: '1' },
+				    { type: 'bytes32', name: 'msgHash', value: msgHash },
+                    { type: 'bytes32', name:'salt', value: salt},
+				    { type: 'uint64', name: 'expiry', value: expiry },
+                ]
+            }
+        }"#;
+        let typed_data = from_str::<EIP712>(json).unwrap();    
     }
 
     pub fn estimate_gas(

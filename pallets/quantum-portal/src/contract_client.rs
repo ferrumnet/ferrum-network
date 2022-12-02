@@ -15,7 +15,7 @@ use sp_std::{
     prelude::*,
     str,
 };
-use eip_712::{EIP712, hash_structured_data};
+use crate::eip_712::{EIP712, hash_structured_data};
 
 #[derive(Debug, Clone)]
 pub struct ContractClient {

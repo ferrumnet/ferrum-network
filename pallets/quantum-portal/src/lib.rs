@@ -7,7 +7,6 @@ mod chain_utils;
 mod contract_client;
 mod erc_20_client;
 pub mod qp_types;
-pub mod eip_712;
 mod quantum_portal_client;
 pub mod quantum_portal_service;
 

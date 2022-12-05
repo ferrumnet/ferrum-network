@@ -11,10 +11,42 @@ use frame_system::offchain::Signer;
 use sp_core::ecdsa;
 use sp_core::{H256, U256};
 use sp_std::prelude::*;
+use ethers_derive_eip712::*;
+use ethers_core::types::{transaction::eip712::Eip712};
 
 #[allow(dead_code)]
 const DUMMY_HASH: H256 = H256::zero();
 const ZERO_HASH: H256 = H256::zero();
+
+#[eip712(
+    name = "FinalizeTransaction",
+    version = "1",
+    chain_id = 8001,
+    // TODO : Fix this contract_address as required
+    verifying_contract = "0x0000000000000000000000000000000000000000"
+)]
+pub struct FinalizeTransaction {
+    pub remote_chain_id: uint256,
+    pub blockNonce: uint256,
+    pub finalizeHash: H160,
+    pub address: Vec<H160>,
+}
+
+#[eip712(
+    name = "MineRemoteBlock",
+    version = "1",
+    chain_id = 8001,
+    // TODO : Fix this contract_address as required
+    verifying_contract = "0x0000000000000000000000000000000000000000"
+)]
+pub struct MineRemoteBlock {
+    pub remote_chain_id: uint256,
+    pub blockNonce: uint256, 
+    pub transactions: Vec<H160>,
+    pub salt : H160,
+    pub expiry : u1nt256,
+    pub multi_sig : H160,
+}
 
 pub struct QuantumPortalClient<T: Config> {
     pub contract: ContractClient,
@@ -268,15 +300,11 @@ impl<T: Config> QuantumPortalClient<T> {
         // ) ...
         // The last item is a bit complicated, but for now we pass an empty array.
         // Support buytes and dynamic arrays in future
-        let finalizer_list = finalizers
-            .into_iter()
-            .map(|f| Token::FixedBytes(Vec::from(f.0.as_slice())))
-            .collect();
-
-        let salt = Token::FixedBytes(vec![
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0,
-        ]);
+        let finalizer_list = finalizers.into_iter().map(
+            |f| Token::FixedBytes(Vec::from(f.0.as_slice()))
+        ).collect();
+        let signature = b"finalize(uint256,uint256,bytes32,address[],bytes32,uint64,bytes)";
+        let salt = Token::FixedBytes(vec![0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
 
         let expiry = Token::Uint(U256::from(0));
         let multi_sig = Token::Bytes(vec![0]);

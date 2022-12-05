@@ -24,7 +24,8 @@ parking_lot = "0.11"
 scale-info = { default-features = false, features = ['derive'], version = '2.1.2' }
 serde = { version = '1.0.130', default-features = false, features = ['derive'] }
 serde_json = { version = '1.0.67', default-features = false, features = ['alloc'] }
-# eip712 = { version = '0.1.0', default-features = false }
+ethers-derive-eip712 = "0.2.1"
+ethers-core = "0.14.0"
 
 # Substrate packages
 byte-slice-cast = { version = "1.2.1", default-features = false, features = [] }
@@ -57,6 +58,6 @@ std = [
 	'sp-runtime/std',
 	'sp-std/std',
 	'sp-application-crypto/std',
-	# 'eip712/std'
+	'ethabi-nostd/std'
 ]
 try-runtime = ["frame-support/try-runtime"]

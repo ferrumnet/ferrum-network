@@ -161,34 +161,34 @@ pub fn new_partial(
 
     // let keystore = keystore_container.sync_keystore();
     // if config.offchain_worker.enabled {
-	// 	// Initialize seed for signing transaction using off-chain workers. This is a convenience
-	// 	// so learners can see the transactions submitted simply running the node.
-	// 	// Typically these keys should be inserted with RPC calls to `author_insertKey`.
-	// 	sp_keystore::SyncCryptoStore::ecdsa_generate_new(
-	// 		&*keystore,
-	// 		ferrum_x_runtime::pallet_quantum_portal::OFFCHAIN_SIGNER_KEY_TYPE,
-	// 		// Some("//life away soul black either fluid emerge motion wool author meat wood"),
-	// 		Some("//Alice"),
-	// 	).expect("Creating key with account Alice should succeed.");
-	// 	let l: Vec<sp_core::ecdsa::Public> = sp_keystore::SyncCryptoStore::ecdsa_public_keys(
-	// 		&*keystore,
-	// 		ferrum_x_runtime::pallet_quantum_portal::OFFCHAIN_SIGNER_KEY_TYPE, );
-	// 	println!("ALL KEYS ECDSA {:?}", l);
-	// 	let l_ser = l.first().unwrap();
-	// 	let lk = libsecp256k1::PublicKey::parse_slice(&l_ser.0, None).unwrap();
-	// 	let lks = lk.serialize();
-	// 	println!("ALL KEYS ECDSA - full {:?}", lks);
-	// 	sp_keystore::SyncCryptoStore::sr25519_generate_new(
-	// 		&*keystore,
-	// 		ferrum_x_runtime::pallet_quantum_portal::OFFCHAIN_SIGNER_KEY_TYPE,
-	// 		// Some("//life away soul black either fluid emerge motion wool author meat wood"),
-	// 		Some("//Alice"),
-	// 	).expect("Creating key with account Alice should succeed.");
-	// 	let l = sp_keystore::SyncCryptoStore::sr25519_public_keys(
-	// 		&*keystore,
-	// 		ferrum_x_runtime::pallet_quantum_portal::OFFCHAIN_SIGNER_KEY_TYPE, );
-	// 	println!("ALL KEYS SR25519 {:?}", l);
-	// }
+    // 	// Initialize seed for signing transaction using off-chain workers. This is a convenience
+    // 	// so learners can see the transactions submitted simply running the node.
+    // 	// Typically these keys should be inserted with RPC calls to `author_insertKey`.
+    // 	sp_keystore::SyncCryptoStore::ecdsa_generate_new(
+    // 		&*keystore,
+    // 		ferrum_x_runtime::pallet_quantum_portal::OFFCHAIN_SIGNER_KEY_TYPE,
+    // 		// Some("//life away soul black either fluid emerge motion wool author meat wood"),
+    // 		Some("//Alice"),
+    // 	).expect("Creating key with account Alice should succeed.");
+    // 	let l: Vec<sp_core::ecdsa::Public> = sp_keystore::SyncCryptoStore::ecdsa_public_keys(
+    // 		&*keystore,
+    // 		ferrum_x_runtime::pallet_quantum_portal::OFFCHAIN_SIGNER_KEY_TYPE, );
+    // 	println!("ALL KEYS ECDSA {:?}", l);
+    // 	let l_ser = l.first().unwrap();
+    // 	let lk = libsecp256k1::PublicKey::parse_slice(&l_ser.0, None).unwrap();
+    // 	let lks = lk.serialize();
+    // 	println!("ALL KEYS ECDSA - full {:?}", lks);
+    // 	sp_keystore::SyncCryptoStore::sr25519_generate_new(
+    // 		&*keystore,
+    // 		ferrum_x_runtime::pallet_quantum_portal::OFFCHAIN_SIGNER_KEY_TYPE,
+    // 		// Some("//life away soul black either fluid emerge motion wool author meat wood"),
+    // 		Some("//Alice"),
+    // 	).expect("Creating key with account Alice should succeed.");
+    // 	let l = sp_keystore::SyncCryptoStore::sr25519_public_keys(
+    // 		&*keystore,
+    // 		ferrum_x_runtime::pallet_quantum_portal::OFFCHAIN_SIGNER_KEY_TYPE, );
+    // 	println!("ALL KEYS SR25519 {:?}", l);
+    // }
 
     #[cfg(feature = "aura")]
     {

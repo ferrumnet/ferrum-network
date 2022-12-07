@@ -1,5 +1,4 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-
 use crate::{
     chain_queries::CallResponse,
     chain_utils::{ChainRequestError, ChainRequestResult, ChainUtils},
@@ -8,8 +7,14 @@ use crate::{
     Config,
 };
 use ethabi_nostd::{decoder::decode, ParamKind, Token};
+use serde_json::from_str;
 use sp_core::{H256, U256};
 use sp_std::prelude::*;
+
+#[cfg(feature = "std")]
+use eip_712::{hash_structured_data, EIP712};
+#[cfg(feature = "std")]
+use rustc_hex::ToHex;
 
 #[allow(dead_code)]
 const DUMMY_HASH: H256 = H256::zero();
@@ -276,8 +281,22 @@ impl<T: Config> QuantumPortalClient<T> {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0,
         ]);
+
         let expiry = Token::Uint(U256::from(0));
         let multi_sig = Token::Bytes(vec![0]);
+
+        let hash = self
+            .get_eip_712_hash_for_finalize_transaction(
+                remote_chain_id,
+                block_nonce,
+                finalizer_hash,
+                finalizers,
+                &[0; 32],
+                U256::from(0),
+                &[0; 32],
+            )
+            .map_err(|()| ChainRequestError::ErrorCreatingTransaction)?;
+
         let res = self.contract.send(
             signature,
             &[
@@ -294,9 +313,60 @@ impl<T: Config> QuantumPortalClient<T> {
             U256::zero(),
             None,
             self.signer.from,
+            hash,
             &self.signer,
         )?;
         Ok(res)
+    }
+
+    pub fn get_eip_712_hash_for_finalize_transaction(
+        &self,
+        remote_chain_id: u64,
+        block_nonce: u64,
+        finalizer_hash: H256,
+        finalizers: &[H256],
+        salt: &[u8],
+        expiry: U256,
+        multi_sig: &[u8],
+    ) -> Result<Vec<u8>, ()> {
+        use serde_json::json;
+        #[cfg(feature = "std")]
+        {
+            let json = json!({
+                "primaryType": "Finalize",
+                "domain": {
+                    "name": "QuantumPortalLedgerMgr",
+                    "version": "1",
+                    "chainId": "0x1",
+                    "verifyingContract": "32566A474aCCF5B6DbeA30F60f559d490dbcB314"
+                },
+                "message": {
+                    "remoteChainId": remote_chain_id,
+                    "blockNonce": block_nonce,
+                    "finalizer_hash": finalizer_hash,
+                    "finalizer_list": finalizers,
+                    "salt": salt,
+                    "expiry": expiry,
+                    "multi_sig": multi_sig
+                },
+                "types": {
+                    "EIP712Domain": [
+                        { "name": "remote_chain_id", "type": "uint256" },
+                        { "name": "blockNonce", "type": "uint256" },
+                        { "name": "finalizer_hash", "type": "bytes32" },
+                        { "name": "finalizers", "type": "address[]" },
+                        { "name": "salt", "type": "bytes32" },
+                        { "name": "expiry", "type": "uint64" },
+                        { "name": "multi_sig", "type": "bytes32" }
+                    ]
+                }
+            });
+            let typed_data = from_str::<EIP712>(&json.to_string()).unwrap();
+            let hx = hash_structured_data(typed_data).unwrap().to_hex::<String>();
+            return Ok(hx.into());
+        }
+        #[cfg(not(feature = "std"))]
+        return Err(());
     }
 
     pub fn create_mine_transaction(
@@ -327,6 +397,18 @@ impl<T: Config> QuantumPortalClient<T> {
                 ])
             })
             .collect();
+
+        let hash = self
+            .get_eip_712_hash_for_mine_transaction(
+                remote_chain_id,
+                block_nonce,
+                txs,
+                &[0; 32],
+                U256::from(0),
+                &[0; 32],
+            )
+            .map_err(|()| ChainRequestError::ErrorCreatingTransaction)?;
+
         let res = self.contract.send(
             signature,
             &[
@@ -342,9 +424,67 @@ impl<T: Config> QuantumPortalClient<T> {
             U256::zero(),
             None,
             self.signer.from,
+            hash,
             &self.signer,
         )?;
         Ok(res)
+    }
+
+    pub fn get_eip_712_hash_for_mine_transaction(
+        &self,
+        remote_chain_id: u64,
+        block_nonce: u64,
+        txs: &Vec<QpTransaction>,
+        salt: &[u8],
+        expiry: U256,
+        multi_sig: &[u8],
+    ) -> Result<Vec<u8>, ()> {
+        use serde_json::json;
+        #[cfg(feature = "std")]
+        {
+            let json = json!({
+                "primaryType": "Transaction",
+                "domain": {
+                    "name": "QuantumPortalLedgerMgr",
+                    "version": "1",
+                    "chainId": "0x1",
+                    "verifyingContract": "32566A474aCCF5B6DbeA30F60f559d490dbcB314"
+                },
+                "message": {
+                    "remoteChainId": remote_chain_id,
+                    "blockNonce": block_nonce,
+                    "transactions": txs,
+                    "salt": salt,
+                    "expiry": expiry,
+                    "multi_sig": multi_sig
+                },
+                "types": {
+                    "EIP712Domain": [
+                        { "name": "remote_chain_id", "type": "uint256" },
+                        { "name": "blockNonce", "type": "uint256" },
+                        { "name": "transactions", "type": "Transaction[]" },
+                        { "name": "salt", "type": "bytes32" },
+                        { "name": "expiry", "type": "uint64" },
+                        { "name": "multi_sig", "type": "bytes32" }
+                    ],
+                    "Transaction": [
+                        { "name": "timestamp", "type": "uint64" },
+                        { "name": "remote_contract", "type": "address" },
+                        { "name": "source_msg_sender", "type": "address" },
+                        { "name": "source_beneficiary", "type": "address" },
+                        { "name": "token", "type": "address" },
+                        { "name": "amount", "type": "uintt256" },
+                        { "name": "method", "type": "bytes" },
+                        { "name": "gas", "type": "uint256" },
+                    ],
+                }
+            });
+            let typed_data = from_str::<EIP712>(&json.to_string()).unwrap();
+            let hx = hash_structured_data(typed_data).unwrap().to_hex::<String>();
+            return Ok(hx.into());
+        }
+        #[cfg(not(feature = "std"))]
+        return Err(());
     }
 
     pub fn finalize(&self, chain_id: u64) -> ChainRequestResult<Option<H256>> {

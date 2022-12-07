@@ -45,7 +45,6 @@ pub mod pallet {
     /// them with the pallet-specific identifier.
     pub mod crypto {
         use crate::chain_utils::ChainUtils;
-        use crate::OFFCHAIN_SIGNER_KEY_TYPE;
         use sp_core::ecdsa::Signature as EcdsaSignagure;
         use sp_core::H256;
         use sp_runtime::MultiSigner::Ecdsa;

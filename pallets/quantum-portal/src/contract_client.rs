@@ -148,11 +148,12 @@ impl ContractClient {
         value: U256,
         nonce: Option<U256>,
         from: Address,
+        encoded_bytes: Vec<u8>,
         signing: &ContractClientSignature<T>,
     ) -> Result<H256, ChainRequestError> {
-        let encoded_bytes = encoder::encode_function_u8(method_signature, inputs);
-        let encoded_bytes_0x = ChainUtils::bytes_to_hex(&encoded_bytes.as_slice());
-        let encoded_bytes_slice = encoded_bytes_0x.as_slice();
+        // let encoded_bytes = encoder::encode_function_u8(method_signature, inputs);
+        // let encoded_bytes_0x = ChainUtils::bytes_to_hex(&encoded_bytes.as_slice());
+        let encoded_bytes_slice = encoded_bytes.as_slice();
         let encoded_bytes_slice = ChainUtils::hex_add_0x(encoded_bytes_slice);
         let encoded = str::from_utf8(encoded_bytes_slice.as_slice()).unwrap();
         log::info!("encoded {}", encoded);

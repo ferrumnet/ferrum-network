@@ -113,7 +113,10 @@ impl Token {
             }
             Token::Tuple(ref tokens) => {
                 if let ParamKind::Tuple(ref param_type) = *param_type {
-                    tokens.iter().enumerate().all(|(i, t)| t.type_check(&param_type[i]))
+                    tokens
+                        .iter()
+                        .enumerate()
+                        .all(|(i, t)| t.type_check(&param_type[i]))
                 } else {
                     false
                 }
@@ -203,7 +206,10 @@ impl Token {
     /// Check if all the types of the tokens match the given parameter types.
     pub fn types_check(tokens: &[Token], param_types: &[ParamKind]) -> bool {
         param_types.len() == tokens.len() && {
-            param_types.iter().zip(tokens).all(|(param_type, token)| token.type_check(param_type))
+            param_types
+                .iter()
+                .zip(tokens)
+                .all(|(param_type, token)| token.type_check(param_type))
         }
     }
 
@@ -232,26 +238,50 @@ mod tests {
             assert!(!Token::types_check(&tokens, &param_types))
         }
 
-        assert_type_check(vec![Token::Uint(0.into()), Token::Bool(false)], vec![ParamKind::Uint(256), ParamKind::Bool]);
-        assert_type_check(vec![Token::Uint(0.into()), Token::Bool(false)], vec![ParamKind::Uint(32), ParamKind::Bool]);
+        assert_type_check(
+            vec![Token::Uint(0.into()), Token::Bool(false)],
+            vec![ParamKind::Uint(256), ParamKind::Bool],
+        );
+        assert_type_check(
+            vec![Token::Uint(0.into()), Token::Bool(false)],
+            vec![ParamKind::Uint(32), ParamKind::Bool],
+        );
 
-        assert_not_type_check(vec![Token::Uint(0.into())], vec![ParamKind::Uint(32), ParamKind::Bool]);
-        assert_not_type_check(vec![Token::Uint(0.into()), Token::Bool(false)], vec![ParamKind::Uint(32)]);
+        assert_not_type_check(
+            vec![Token::Uint(0.into())],
+            vec![ParamKind::Uint(32), ParamKind::Bool],
+        );
+        assert_not_type_check(
+            vec![Token::Uint(0.into()), Token::Bool(false)],
+            vec![ParamKind::Uint(32)],
+        );
         assert_not_type_check(
             vec![Token::Bool(false), Token::Uint(0.into())],
             vec![ParamKind::Uint(32), ParamKind::Bool],
         );
 
-        assert_type_check(vec![Token::FixedBytes(vec![0, 0, 0, 0])], vec![ParamKind::FixedBytes(4)]);
-        assert_type_check(vec![Token::FixedBytes(vec![0, 0, 0])], vec![ParamKind::FixedBytes(4)]);
-        assert_not_type_check(vec![Token::FixedBytes(vec![0, 0, 0, 0])], vec![ParamKind::FixedBytes(3)]);
+        assert_type_check(
+            vec![Token::FixedBytes(vec![0, 0, 0, 0])],
+            vec![ParamKind::FixedBytes(4)],
+        );
+        assert_type_check(
+            vec![Token::FixedBytes(vec![0, 0, 0])],
+            vec![ParamKind::FixedBytes(4)],
+        );
+        assert_not_type_check(
+            vec![Token::FixedBytes(vec![0, 0, 0, 0])],
+            vec![ParamKind::FixedBytes(3)],
+        );
 
         assert_type_check(
             vec![Token::Array(vec![Token::Bool(false), Token::Bool(true)])],
             vec![ParamKind::Array(Box::new(ParamKind::Bool))],
         );
         assert_not_type_check(
-            vec![Token::Array(vec![Token::Bool(false), Token::Uint(0.into())])],
+            vec![Token::Array(vec![
+                Token::Bool(false),
+                Token::Uint(0.into()),
+            ])],
             vec![ParamKind::Array(Box::new(ParamKind::Bool))],
         );
         assert_not_type_check(
@@ -260,26 +290,42 @@ mod tests {
         );
 
         assert_type_check(
-            vec![Token::FixedArray(vec![Token::Bool(false), Token::Bool(true)])],
+            vec![Token::FixedArray(vec![
+                Token::Bool(false),
+                Token::Bool(true),
+            ])],
             vec![ParamKind::FixedArray(Box::new(ParamKind::Bool), 2)],
         );
         assert_not_type_check(
-            vec![Token::FixedArray(vec![Token::Bool(false), Token::Bool(true)])],
+            vec![Token::FixedArray(vec![
+                Token::Bool(false),
+                Token::Bool(true),
+            ])],
             vec![ParamKind::FixedArray(Box::new(ParamKind::Bool), 3)],
         );
         assert_not_type_check(
-            vec![Token::FixedArray(vec![Token::Bool(false), Token::Uint(0.into())])],
+            vec![Token::FixedArray(vec![
+                Token::Bool(false),
+                Token::Uint(0.into()),
+            ])],
             vec![ParamKind::FixedArray(Box::new(ParamKind::Bool), 2)],
         );
         assert_not_type_check(
-            vec![Token::FixedArray(vec![Token::Bool(false), Token::Bool(true)])],
+            vec![Token::FixedArray(vec![
+                Token::Bool(false),
+                Token::Bool(true),
+            ])],
             vec![ParamKind::FixedArray(Box::new(ParamKind::Address), 2)],
         );
     }
 
     #[test]
     fn test_is_dynamic() {
-        assert_eq!(Token::Address("0000000000000000000000000000000000000000".parse().unwrap()).is_dynamic(), false);
+        assert_eq!(
+            Token::Address("0000000000000000000000000000000000000000".parse().unwrap())
+                .is_dynamic(),
+            false
+        );
         assert_eq!(Token::Bytes(vec![0, 0, 0, 0]).is_dynamic(), true);
         assert_eq!(Token::FixedBytes(vec![0, 0, 0, 0]).is_dynamic(), false);
         assert_eq!(Token::Uint(0.into()).is_dynamic(), false);
@@ -287,8 +333,17 @@ mod tests {
         assert_eq!(Token::Bool(false).is_dynamic(), false);
         assert_eq!(Token::String("".into()).is_dynamic(), true);
         assert_eq!(Token::Array(vec![Token::Bool(false)]).is_dynamic(), true);
-        assert_eq!(Token::FixedArray(vec![Token::Uint(0.into())]).is_dynamic(), false);
-        assert_eq!(Token::FixedArray(vec![Token::String("".into())]).is_dynamic(), true);
-        assert_eq!(Token::FixedArray(vec![Token::Array(vec![Token::Bool(false)])]).is_dynamic(), true);
+        assert_eq!(
+            Token::FixedArray(vec![Token::Uint(0.into())]).is_dynamic(),
+            false
+        );
+        assert_eq!(
+            Token::FixedArray(vec![Token::String("".into())]).is_dynamic(),
+            true
+        );
+        assert_eq!(
+            Token::FixedArray(vec![Token::Array(vec![Token::Bool(false)])]).is_dynamic(),
+            true
+        );
     }
 }

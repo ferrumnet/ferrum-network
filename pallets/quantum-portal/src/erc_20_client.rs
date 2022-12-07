@@ -1,12 +1,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use crate::chain_queries::{de_string_to_bytes};
-use sp_core::{U256};
-use sp_std::{str};
-use crate::chain_utils::{ChainRequestError};
-use serde::{Deserialize};
-use sp_std::prelude::*;
-use crate::contract_client::{ContractClient};
+use crate::{
+    chain_queries::de_string_to_bytes, chain_utils::ChainRequestError,
+    contract_client::ContractClient,
+};
+use serde::Deserialize;
+use sp_core::U256;
+use sp_std::{prelude::*, str};
 
 #[allow(dead_code)]
 #[derive(Debug, Deserialize)]
@@ -22,9 +22,7 @@ pub struct Erc20Client {
 #[allow(dead_code)]
 impl Erc20Client {
     pub fn new(client: ContractClient) -> Self {
-        Erc20Client {
-            contract: client,
-        }
+        Erc20Client { contract: client }
     }
 
     pub fn total_supply(&self) -> Result<U256, ChainRequestError> {
@@ -34,7 +32,7 @@ impl Erc20Client {
         res.result.remove(0);
         let res_str = str::from_utf8(res.result.as_slice()).unwrap();
         log::info!("result {}", res_str);
-        let mut bytes: [u8;32] = [0 as u8;32];
+        let mut bytes: [u8; 32] = [0 as u8; 32];
         log::info!("result as u256 {:?}", &res.result);
         hex::decode_to_slice(res_str, &mut bytes).unwrap();
         log::info!("result as u256 {:?}", &bytes);
@@ -68,13 +66,14 @@ impl Erc20Client {
 
 #[cfg(test)]
 mod tests {
-    use crate::erc_20_client::{Erc20Client};
-    use sp_std::prelude::*; //vec::{Vec};
+    use crate::{contract_client::ContractClient, erc_20_client::Erc20Client};
     use parity_scale_codec::Encode;
-    use sp_core::{H160};
+    use sp_core::{
+        offchain::{testing, OffchainWorkerExt},
+        H160,
+    };
     use sp_io::TestExternalities;
-    use sp_core::offchain::{testing, OffchainWorkerExt};
-    use crate::contract_client::ContractClient;
+    use sp_std::prelude::*; //vec::{Vec};
 
     #[test]
     fn test_total_supply() {
@@ -87,11 +86,13 @@ mod tests {
             // println!("==<>====<>===<>===<>===<>===<>===<>===<>===<>===<>==========");
             // println!("USING {}", &rpc_endpoint);
             let mut addr_f = [0u8; 32];
-            hex::decode_to_slice("f6832ea221ebfdc2363729721a146e6745354b14000000000000000000000000", &mut addr_f as &mut [u8]).unwrap();
-            let client = ContractClient::new(
-                rpc_endpoint.clone().encode(),
-                &H160::zero(),
-                4 as u64);
+            hex::decode_to_slice(
+                "f6832ea221ebfdc2363729721a146e6745354b14000000000000000000000000",
+                &mut addr_f as &mut [u8],
+            )
+            .unwrap();
+            let client =
+                ContractClient::new(rpc_endpoint.clone().encode(), &H160::zero(), 4 as u64);
             let erc_20 = Erc20Client::new(client);
             log::info!("Erc20 address got");
             let ts = erc_20.total_supply();

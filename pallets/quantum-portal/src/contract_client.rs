@@ -105,6 +105,8 @@ impl ContractClient {
     where
         T: for<'de> Deserialize<'de>,
     {
+        log::info!("CALL : method_signature {:?}", method_signature);
+        log::info!("CALL : inputs {:?}", inputs);
         let encoded_bytes = encoder::encode_function_u8(method_signature, inputs);
         let encoded_bytes_0x = ChainUtils::bytes_to_hex(encoded_bytes.as_slice());
         let encoded_bytes_slice = encoded_bytes_0x.as_slice();
@@ -125,6 +127,7 @@ impl ContractClient {
             )
             .end()
             .to_vec();
+
         log::info!("call_json is {}", str::from_utf8(&call_json).unwrap());
         let req = JsonRpcRequest {
             id: 1,
@@ -153,6 +156,9 @@ impl ContractClient {
     ) -> Result<H256, ChainRequestError> {
         // let encoded_bytes = encoder::encode_function_u8(method_signature, inputs);
         // let encoded_bytes_0x = ChainUtils::bytes_to_hex(&encoded_bytes.as_slice());
+        log::info!("SEND : method_signature {:?}", method_signature);
+        log::info!("SEND : inputs {:?}", inputs);
+
         let encoded_bytes_slice = encoded_bytes.as_slice();
         let encoded_bytes_slice = ChainUtils::hex_add_0x(encoded_bytes_slice);
         let encoded = str::from_utf8(encoded_bytes_slice.as_slice()).unwrap();

@@ -10,6 +10,7 @@ use ethabi_nostd::{decoder::decode, ParamKind, Token};
 use serde_json::from_str;
 use sp_core::{H256, U256};
 use sp_std::prelude::*;
+// use ethereum_types::U256;
 
 #[cfg(feature = "std")]
 use eip_712::{hash_structured_data, EIP712};
@@ -287,8 +288,8 @@ impl<T: Config> QuantumPortalClient<T> {
 
         let hash = self
             .get_eip_712_hash_for_finalize_transaction(
-                remote_chain_id,
-                block_nonce,
+                U256::from(remote_chain_id),
+                U256::from(block_nonce),
                 finalizer_hash,
                 finalizers,
                 &[0; 32],
@@ -321,8 +322,8 @@ impl<T: Config> QuantumPortalClient<T> {
 
     pub fn get_eip_712_hash_for_finalize_transaction(
         &self,
-        remote_chain_id: u64,
-        block_nonce: u64,
+        remote_chain_id: U256,
+        block_nonce: U256,
         finalizer_hash: H256,
         finalizers: &[H256],
         salt: &[u8],
@@ -338,26 +339,26 @@ impl<T: Config> QuantumPortalClient<T> {
                     "name": "QuantumPortalLedgerMgr",
                     "version": "1",
                     "chainId": "0x1",
-                    "verifyingContract": "32566A474aCCF5B6DbeA30F60f559d490dbcB314"
+                    "verifyingContract": "0x1451DD8984bdEA205F27E051886fa6463Ec767cA"
                 },
                 "message": {
                     "remoteChainId": remote_chain_id,
                     "blockNonce": block_nonce,
-                    "finalizer_hash": finalizer_hash,
-                    "finalizer_list": finalizers,
+                    "finalizersHash": finalizer_hash,
+                    "finalizers": finalizers,
                     "salt": salt,
                     "expiry": expiry,
-                    "multi_sig": multi_sig
+                    "multiSignature": multi_sig
                 },
                 "types": {
                     "EIP712Domain": [
-                        { "name": "remote_chain_id", "type": "uint256" },
+                        { "name": "remoteChainId", "type": "uint256" },
                         { "name": "blockNonce", "type": "uint256" },
-                        { "name": "finalizer_hash", "type": "bytes32" },
+                        { "name": "finalizersHash", "type": "bytes32" },
                         { "name": "finalizers", "type": "address[]" },
                         { "name": "salt", "type": "bytes32" },
                         { "name": "expiry", "type": "uint64" },
-                        { "name": "multi_sig", "type": "bytes32" }
+                        { "name": "multiSignature", "type": "bytes32" }
                     ]
                 }
             });
@@ -400,8 +401,8 @@ impl<T: Config> QuantumPortalClient<T> {
 
         let hash = self
             .get_eip_712_hash_for_mine_transaction(
-                remote_chain_id,
-                block_nonce,
+                U256::from(remote_chain_id),
+                U256::from(block_nonce),
                 txs,
                 &[0; 32],
                 U256::from(0),
@@ -432,8 +433,8 @@ impl<T: Config> QuantumPortalClient<T> {
 
     pub fn get_eip_712_hash_for_mine_transaction(
         &self,
-        remote_chain_id: u64,
-        block_nonce: u64,
+        remote_chain_id: U256,
+        block_nonce: U256,
         txs: &Vec<QpTransaction>,
         salt: &[u8],
         expiry: U256,
@@ -448,38 +449,39 @@ impl<T: Config> QuantumPortalClient<T> {
                     "name": "QuantumPortalLedgerMgr",
                     "version": "1",
                     "chainId": "0x1",
-                    "verifyingContract": "32566A474aCCF5B6DbeA30F60f559d490dbcB314"
+                    "verifyingContract": "0x1451DD8984bdEA205F27E051886fa6463Ec767cA"
                 },
                 "message": {
-                    "remoteChainId": remote_chain_id,
-                    "blockNonce": block_nonce,
+                    "remoteChainId": "0x1",
+                    "blockNonce": "0x1",
                     "transactions": txs,
                     "salt": salt,
                     "expiry": expiry,
-                    "multi_sig": multi_sig
+                    "multiSignature": multi_sig
                 },
                 "types": {
                     "EIP712Domain": [
-                        { "name": "remote_chain_id", "type": "uint256" },
+                        { "name": "name", "type": "string" },
+                        { "name": "version", "type": "string" },
+                        { "name": "chainId", "type": "uint256" },
+                        { "name": "verifyingContract", "type": "address" }
+                        
+                    ],
+                    "Transaction": [
+                        { "name": "remoteChainId", "type": "uint256" },
                         { "name": "blockNonce", "type": "uint256" },
                         { "name": "transactions", "type": "Transaction[]" },
                         { "name": "salt", "type": "bytes32" },
-                        { "name": "expiry", "type": "uint64" },
-                        { "name": "multi_sig", "type": "bytes32" }
-                    ],
-                    "Transaction": [
-                        { "name": "timestamp", "type": "uint64" },
-                        { "name": "remote_contract", "type": "address" },
-                        { "name": "source_msg_sender", "type": "address" },
-                        { "name": "source_beneficiary", "type": "address" },
-                        { "name": "token", "type": "address" },
-                        { "name": "amount", "type": "uintt256" },
-                        { "name": "method", "type": "bytes" },
-                        { "name": "gas", "type": "uint256" },
+                        { "name": "expiry", "type": "uint256" },
+                        { "name": "multiSignature", "type": "bytes32" }
                     ],
                 }
             });
-            let typed_data = from_str::<EIP712>(&json.to_string()).unwrap();
+            let string_data = json.to_string();
+            log::info!("String : {:?}", string_data);
+            let typed_data = from_str::<EIP712>(&string_data).unwrap();
+            log::info!("Typed Data : {:?}", typed_data);
+            // assert_eq!(typed_data.validate().is_err(), true);
             let hx = hash_structured_data(typed_data).unwrap().to_hex::<String>();
             return Ok(hx.into());
         }

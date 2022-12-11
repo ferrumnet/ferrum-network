@@ -4956,6 +4956,7 @@ dependencies = [
  "eip-712",
  "ethabi-nostd",
  "ethereum",
+ "ethereum-types 0.13.1",
  "frame-support",
  "frame-system",
  "hex",

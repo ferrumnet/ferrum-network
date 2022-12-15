@@ -24,6 +24,8 @@ pub struct NetworkItem {
     pub url: Vec<u8>,
     #[serde(with = "serde_bytes")]
     pub ledger_manager: Vec<u8>,
+    #[serde(with = "serde_bytes")]
+    pub authority_manager: Vec<u8>,
     pub id: u64,
 }
 
@@ -41,6 +43,7 @@ pub fn convert(network_config: NetworkConfig) -> QpConfig {
             .map(|network_item| QpNetworkItem {
                 url: network_item.url,
                 ledger_manager: network_item.ledger_manager,
+                authority_manager: network_item.authority_manager,
                 id: network_item.id,
             })
             .collect(),

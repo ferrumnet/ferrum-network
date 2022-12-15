@@ -48,6 +48,7 @@ pub struct QpNetworkItem {
     pub url: Vec<u8>,
     // #[serde(with = "serde_bytes")]
     pub ledger_manager: Vec<u8>,
+    pub authority_manager: Vec<u8>,
     pub id: u64,
 }
 

@@ -67,6 +67,20 @@ impl<C: Config> ContractClientSignature<C> {
         );
         ecdsa::Signature::try_from(&sig_bytes.as_slice()[1..]).unwrap()
     }
+
+    pub fn get_signer_address(&self) -> Vec<u8> {
+        log::info!("Signer is {:?}", &self._signer.can_sign());
+        let signed = self._signer.sign_message(&[]);
+        match signed {
+            None => panic!("No signature"),
+            Some((a, _b)) => {
+                let public_key = a.public.encode();
+                let public_key = &public_key.as_slice()[1..];
+                let addr = ChainUtils::eth_address_from_public_key(public_key);
+                addr
+            }
+        }
+    }
 }
 
 // impl <T: SigningTypes + crate::Config, C: AppCrypto<T::Public, T::Signature>> From<Signer<T, C,
@@ -151,18 +165,14 @@ impl ContractClient {
         value: U256,
         nonce: Option<U256>,
         from: Address,
-        encoded_bytes: Vec<u8>,
+        // encoded_bytes: Vec<u8>,
         signing: &ContractClientSignature<T>,
     ) -> Result<H256, ChainRequestError> {
-        // let encoded_bytes = encoder::encode_function_u8(method_signature, inputs);
-        // let encoded_bytes_0x = ChainUtils::bytes_to_hex(&encoded_bytes.as_slice());
-        log::info!("SEND : method_signature {:?}", method_signature);
-        log::info!("SEND : inputs {:?}", inputs);
-
-        let encoded_bytes_slice = encoded_bytes.as_slice();
+        let encoded_bytes = encoder::encode_function_u8(method_signature, inputs);
+        let encoded_bytes_0x = ChainUtils::bytes_to_hex(&encoded_bytes.as_slice());
+        let encoded_bytes_slice = encoded_bytes_0x.as_slice();
         let encoded_bytes_slice = ChainUtils::hex_add_0x(encoded_bytes_slice);
-        let encoded = str::from_utf8(encoded_bytes_slice.as_slice()).unwrap();
-        log::info!("encoded {}", encoded);
+
         let nonce_val = match nonce {
             None => self.nonce(from)?,
             Some(v) => v,

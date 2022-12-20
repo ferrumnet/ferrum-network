@@ -46,14 +46,14 @@ pub use frame_support::{
 };
 pub use pallet_balances::Call as BalancesCall;
 use pallet_ethereum::{Call::transact, Transaction as EthereumTransaction};
-use pallet_evm::{Account as EVMAccount, EnsureAddressTruncated, HashedAddressMapping, Runner};
+use pallet_evm::{Account as EVMAccount, EnsureAddressTruncated, HashedAddressMapping, Runner, EnsureAddressNever, EnsureAddressRoot};
 pub use pallet_quantum_portal;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::CurrencyAdapter;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
-
+pub use ferrum_primitives::{EthereumSignature};
 pub use pallet_quantum_portal::crypto::AuthorityId as QPOffchainId;
 
 mod precompiles;
@@ -63,7 +63,7 @@ use precompiles::FrontierPrecompiles;
 pub type BlockNumber = u32;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
-pub type Signature = MultiSignature;
+pub type Signature = EthereumSignature;
 // pub type Signature = ecdsa::Signature;
 
 /// Some way of identifying an account on the chain. We intentionally make it equivalent
@@ -106,7 +106,7 @@ pub mod opaque {
         pub struct SessionKeys {
             pub aura: Aura,
             pub grandpa: Grandpa,
-            pub quantam_portal: QuantumPortal,
+            //pub quantam_portal: QuantumPortal,
         }
     }
 }
@@ -169,7 +169,7 @@ impl frame_system::Config for Runtime {
     /// The aggregated dispatch type that is available for extrinsics.
     type RuntimeCall = RuntimeCall;
     /// The lookup mechanism to get account ID from whatever is passed in dispatchers.
-    type Lookup = AccountIdLookup<AccountId, ()>;
+    type Lookup = sp_runtime::traits::IdentityLookup<AccountId>;
     /// The index type for storing how many extrinsics an account has signed.
     type Index = Index;
     /// The index type for blocks.
@@ -301,6 +301,17 @@ impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
     }
 }
 
+/// And ipmlementation of Frontier's AddressMapping trait for Accounts.
+/// This is basically identical to Frontier's own IdentityAddressMapping, but it works for any type
+/// that is Into<H160> like AccountId20 for example.
+pub struct IntoAddressMapping;
+
+impl<T: From<H160>> pallet_evm::AddressMapping<T> for IntoAddressMapping {
+	fn into_account_id(address: H160) -> T {
+		address.into()
+	}
+}
+
 parameter_types! {
     pub const ChainId: u64 = 26000;
     pub BlockGasLimit: U256 = U256::from(u32::max_value());
@@ -312,10 +323,10 @@ impl pallet_evm::Config for Runtime {
     type FeeCalculator = BaseFee;
     type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
     type BlockHashMapping = pallet_ethereum::EthereumBlockHashMapping<Self>;
-    type CallOrigin = EnsureAddressTruncated;
+    type CallOrigin = EnsureAddressRoot<AccountId>;
     type WeightPerGas = WeightPerGas;
-    type WithdrawOrigin = EnsureAddressTruncated;
-    type AddressMapping = HashedAddressMapping<BlakeTwo256>;
+    type WithdrawOrigin = EnsureAddressNever<AccountId>;
+    type AddressMapping = IntoAddressMapping;
     type Currency = Balances;
     type RuntimeEvent = RuntimeEvent;
     type Runner = pallet_evm::runner::stack::Runner<Self>;
@@ -368,65 +379,65 @@ impl pallet_base_fee::Config for Runtime {
 
 impl pallet_randomness_collective_flip::Config for Runtime {}
 
-// For pallet_quantum_portal
-parameter_types! {
-    // pub const UnsignedInterval: BlockNumber = 3;
-    // pub const UnsignedPriority: BlockNumber = 3;
-}
+// // For pallet_quantum_portal
+// parameter_types! {
+//     // pub const UnsignedInterval: BlockNumber = 3;
+//     // pub const UnsignedPriority: BlockNumber = 3;
+// }
 
-impl pallet_quantum_portal::Config for Runtime {
-    type AuthorityId = QPOffchainId;
-    type RuntimeCall = RuntimeCall;
-    type RuntimeEvent = RuntimeEvent;
-    // type GracePeriod = GracePeriod;
-    // type UnsignedInterval = UnsignedInterval;
-    // type UnsignedPriority = UnsignedPriority;
-}
+// impl pallet_quantum_portal::Config for Runtime {
+//     type AuthorityId = QPOffchainId;
+//     type RuntimeCall = RuntimeCall;
+//     type RuntimeEvent = RuntimeEvent;
+//     // type GracePeriod = GracePeriod;
+//     // type UnsignedInterval = UnsignedInterval;
+//     // type UnsignedPriority = UnsignedPriority;
+// }
 
-impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
-where
-    RuntimeCall: From<LocalCall>,
-{
-    fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
-        call: RuntimeCall,
-        public: <Signature as sp_runtime::traits::Verify>::Signer,
-        account: AccountId,
-        index: Index,
-    ) -> Option<(
-        RuntimeCall,
-        <UncheckedExtrinsic as sp_runtime::traits::Extrinsic>::SignaturePayload,
-    )> {
-        let period = BlockHashCount::get() as u64;
-        let current_block = System::block_number() as u64;
-        let tip = 0;
-        let extra: SignedExtra = (
-            frame_system::CheckSpecVersion::<Runtime>::new(),
-            frame_system::CheckTxVersion::<Runtime>::new(),
-            frame_system::CheckGenesis::<Runtime>::new(),
-            frame_system::CheckEra::<Runtime>::from(generic::Era::mortal(period, current_block)),
-            frame_system::CheckNonce::<Runtime>::from(index),
-            frame_system::CheckWeight::<Runtime>::new(),
-            pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
-        );
+// impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
+// where
+//     RuntimeCall: From<LocalCall>,
+// {
+//     fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
+//         call: RuntimeCall,
+//         public: <Signature as sp_runtime::traits::Verify>::Signer,
+//         account: AccountId,
+//         index: Index,
+//     ) -> Option<(
+//         RuntimeCall,
+//         <UncheckedExtrinsic as sp_runtime::traits::Extrinsic>::SignaturePayload,
+//     )> {
+//         let period = BlockHashCount::get() as u64;
+//         let current_block = System::block_number() as u64;
+//         let tip = 0;
+//         let extra: SignedExtra = (
+//             frame_system::CheckSpecVersion::<Runtime>::new(),
+//             frame_system::CheckTxVersion::<Runtime>::new(),
+//             frame_system::CheckGenesis::<Runtime>::new(),
+//             frame_system::CheckEra::<Runtime>::from(generic::Era::mortal(period, current_block)),
+//             frame_system::CheckNonce::<Runtime>::from(index),
+//             frame_system::CheckWeight::<Runtime>::new(),
+//             pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
+//         );
 
-        let raw_payload = SignedPayload::new(call, extra)
-            .map_err(|e| {
-                log::warn!("Unable to create signed payload: {:?}", e);
-            })
-            .ok()?;
-        let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
-        let address = account;
-        let (call, extra, _) = raw_payload.deconstruct();
-        Some((
-            call,
-            (
-                sp_runtime::MultiAddress::Id(address),
-                signature.into(),
-                extra,
-            ),
-        ))
-    }
-}
+//         let raw_payload = SignedPayload::new(call, extra)
+//             .map_err(|e| {
+//                 log::warn!("Unable to create signed payload: {:?}", e);
+//             })
+//             .ok()?;
+//         let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
+//         let address = account;
+//         let (call, extra, _) = raw_payload.deconstruct();
+//         Some((
+//             call,
+//             (
+//                 sp_runtime::MultiAddress::Id(address),
+//                 signature.into(),
+//                 extra,
+//             ),
+//         ))
+//     }
+// }
 
 impl frame_system::offchain::SigningTypes for Runtime {
     type Public = <Signature as sp_runtime::traits::Verify>::Signer;
@@ -451,7 +462,7 @@ construct_runtime!(
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage},
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-        Aura: pallet_aura::{Pallet, Config<T>},
+        Aura: pallet_aura::{Pallet, Storage, Config<T>},
         Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>},
@@ -460,7 +471,7 @@ construct_runtime!(
         EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>},
         DynamicFee: pallet_dynamic_fee::{Pallet, Call, Storage, Config, Inherent},
         BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event},
-        QuantumPortal: pallet_quantum_portal::{Pallet, Call, Storage, Config, Event<T>/*, ValidateUnsigned*/},
+        //QuantumPortal: pallet_quantum_portal::{Pallet, Call, Storage, Config, Event<T>/*, ValidateUnsigned*/},
     }
 );
 
@@ -489,7 +500,7 @@ impl fp_rpc::ConvertTransaction<opaque::UncheckedExtrinsic> for TransactionConve
 }
 
 /// The address format for describing accounts.
-pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
+pub type Address = AccountId;
 // pub type Address = AccountId;
 /// Block header type as expected by this runtime.
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;

@@ -1823,6 +1823,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "ferrum-primitives"
+version = "0.1.1"
+dependencies = [
+ "blake2-rfc",
+ "hex",
+ "impl-serde",
+ "libsecp256k1",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sha3",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-runtime-interface",
+ "sp-std",
+]
+
+[[package]]
 name = "ferrum-x-network"
 version = "0.0.1"
 dependencies = [
@@ -1892,6 +1912,7 @@ dependencies = [
 name = "ferrum-x-runtime"
 version = "0.0.1"
 dependencies = [
+ "ferrum-primitives",
  "fp-rpc",
  "fp-self-contained",
  "frame-benchmarking",

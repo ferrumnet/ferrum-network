@@ -6,9 +6,9 @@ use crate::{
     qp_types::{QpLocalBlock, QpRemoteBlock, QpTransaction},
     Config,
 };
+use ethabi_nostd::encoder;
 use ethabi_nostd::{decoder::decode, ParamKind, Token};
-use ethabi_nostd::{encoder};
-use sp_core::{U256, H256};
+use sp_core::{H256, U256};
 use sp_std::prelude::*;
 
 #[allow(dead_code)]
@@ -267,22 +267,31 @@ impl<T: Config> QuantumPortalClient<T> {
         // ) ...
         // The last item is a bit complicated, but for now we pass an empty array.
         // Support buytes and dynamic arrays in future
-        let finalizer_list : Vec<Token> = finalizers
+        let finalizer_list: Vec<Token> = finalizers
             .into_iter()
             .map(|f| Token::FixedBytes(Vec::from(f.as_slice())))
             .collect();
-        
+
         let signature = b"finalize(uint256,uint256,bytes32,address[],bytes32,uint64,bytes)";
 
         let salt = Token::FixedBytes(vec![
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 1,
         ]);
-        
+
         let expiry = Token::Uint(U256::from(2147483647)); // Using max expiry as the default TODO : Use an expiry slightly in the future
 
-        let multi_sig = self.generate_multi_signature(remote_chain_id, block_nonce, finalizer_hash, finalizer_list.clone(), salt.clone(), expiry.clone()).unwrap();
-        
+        let multi_sig = self
+            .generate_multi_signature(
+                remote_chain_id,
+                block_nonce,
+                finalizer_hash,
+                finalizer_list.clone(),
+                salt.clone(),
+                expiry.clone(),
+            )
+            .unwrap();
+
         let inputs = [
             Token::Uint(U256::from(self.contract.chain_id)),
             Token::Uint(U256::from(block_nonce)),
@@ -320,12 +329,11 @@ impl<T: Config> QuantumPortalClient<T> {
         salt: Token,
         expiry: Token,
     ) -> Result<[u8; 65], ()> {
-
         // Generate the domain seperator hash, the hash is generated from the given arguments
         let domain_seperator_hash = ChainUtils::generate_eip_712_domain_seperator_hash(
-            b"FERRUM_QUANTUM_PORTAL_AUTHORITY_MGR", // ContractName
-            b"000.010", // ContractVersion
-            self.contract.chain_id, // ChainId
+            b"FERRUM_QUANTUM_PORTAL_AUTHORITY_MGR",      // ContractName
+            b"000.010",                                  // ContractVersion
+            self.contract.chain_id,                      // ChainId
             b"6ed18E5598650113D56B8Bc02B5C0e2852332c87", // VerifyingAddress
         );
 
@@ -337,11 +345,11 @@ impl<T: Config> QuantumPortalClient<T> {
         let encoded_message = encoder::encode(&[
             Token::FixedBytes(Vec::from(finalize_method_signature_hash.as_bytes())), // finalize method signature hash
             Token::Uint(U256::from(remote_chain_id)), // remote chain id
-            Token::Uint(U256::from(block_nonce)), // block nonce
+            Token::Uint(U256::from(block_nonce)),     // block nonce
             Token::FixedBytes(Vec::from(finalizer_hash.as_bytes())), // finalizers hash
-            Token::Array(finalizer_list.clone()), // finalizers
-            salt.clone(), // salt
-            expiry.clone(), // expiry
+            Token::Array(finalizer_list.clone()),     // finalizers
+            salt.clone(),                             // salt
+            expiry.clone(),                           // expiry
         ]);
 
         let encoded_message_hash = ChainUtils::keccack(&encoded_message);
@@ -353,15 +361,15 @@ impl<T: Config> QuantumPortalClient<T> {
         // Generate the encoded eip message
         let eip_args = encoder::encode(&[
             Token::FixedBytes(Vec::from(method_hash.as_bytes())), // method hash
-            Token::Uint(U256::from(1)), // action
+            Token::Uint(U256::from(1)),                           // action
             Token::FixedBytes(Vec::from(encoded_message_hash.as_bytes())), // msgHash
-            salt.clone(), // salt
-            expiry, // expiry
+            salt.clone(),                                         // salt
+            expiry,                                               // expiry
         ]);
         let eip_args_hash = ChainUtils::keccack(&eip_args);
 
-
-	    let eip_712_hash = self.generate_eip_712_hash(&domain_seperator_hash[..], &eip_args_hash[..]);
+        let eip_712_hash =
+            self.generate_eip_712_hash(&domain_seperator_hash[..], &eip_args_hash[..]);
         log::info!("EIP712 Hash {:?}", eip_712_hash);
 
         // Sign the eip message, we only consider a single signer here since we only expect a single key in the keystore
@@ -372,10 +380,14 @@ impl<T: Config> QuantumPortalClient<T> {
     }
 
     /// This function takes the domain_seperator_hash and eip_args_hash as input and returns the EIP712 format hash
-    pub fn generate_eip_712_hash(&self, domain_seperator_hash : &[u8], eip_args_hash : &[u8]) -> H256 {
+    pub fn generate_eip_712_hash(
+        &self,
+        domain_seperator_hash: &[u8],
+        eip_args_hash: &[u8],
+    ) -> H256 {
         let prefix = (b"\x19\x01").to_vec();
         let concat = [&prefix[..], &domain_seperator_hash[..], &eip_args_hash[..]].concat();
-	    ChainUtils::keccack(&concat)
+        ChainUtils::keccack(&concat)
     }
 
     pub fn create_mine_transaction(

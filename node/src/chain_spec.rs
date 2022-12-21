@@ -1,6 +1,15 @@
 use ferrum_x_runtime::{
-    AccountId, AuraConfig, BalancesConfig, EVMConfig, EthereumConfig, GenesisConfig, GrandpaConfig,
-    Signature, SudoConfig, SystemConfig, WASM_BINARY, //QuantumPortalConfig
+    AccountId,
+    AuraConfig,
+    BalancesConfig,
+    EVMConfig,
+    EthereumConfig,
+    GenesisConfig,
+    GrandpaConfig,
+    Signature,
+    SudoConfig,
+    SystemConfig,
+    WASM_BINARY, //QuantumPortalConfig
 };
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;

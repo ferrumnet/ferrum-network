@@ -75,13 +75,6 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// The overarching dispatch call type.
         type RuntimeCall: From<frame_system::Call<Self>>;
-        // The identifier type for an authority.
-        // type AuthorityId: Member
-        //     + Parameter
-        //     + RuntimeAppPublic
-        //     + MaybeSerializeDeserialize
-        //     + MaxEncodedLen
-        //     + AppCrypto<Self::Public, Self::Signature>;
     }
 
     #[pallet::pallet]
@@ -205,38 +198,4 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {}
-
-    // impl<T: Config> BlockNumberProvider for Pallet<T> {
-    //     type BlockNumber = T::BlockNumber;
-
-    //     fn current_block_number() -> Self::BlockNumber {
-    //         <frame_system::Pallet<T>>::block_number()
-    //     }
-    // }
-
-    // impl<T: Config> sp_runtime::BoundToRuntimeAppPublic for Pallet<T> {
-    //     type Public = T::AuthorityId;
-    // }
-
-    // impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T> {
-    //     type Key = T::AuthorityId;
-
-    //     fn on_genesis_session<'a, I: 'a>(_validators: I)
-    //     where
-    //         I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
-    //     {
-    //         // nothing to do here
-    //     }
-
-    //     fn on_new_session<'a, I: 'a>(_changed: bool, _validators: I, _queued_validators: I)
-    //     where
-    //         I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
-    //     {
-    //         // nothing to do here
-    //     }
-
-    //     fn on_disabled(_i: u32) {
-    //         // nothing to do here
-    //     }
-    // }
 }

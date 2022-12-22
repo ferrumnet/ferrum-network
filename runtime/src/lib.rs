@@ -108,7 +108,6 @@ pub mod opaque {
         pub struct SessionKeys {
             pub aura: Aura,
             pub grandpa: Grandpa,
-            // pub quantam_portal: QuantumPortal,
         }
     }
 }

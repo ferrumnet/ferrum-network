@@ -4796,6 +4796,7 @@ dependencies = [
  "byte-slice-cast",
  "ethabi-nostd",
  "ethereum",
+ "ferrum-primitives",
  "frame-support",
  "frame-system",
  "hex",

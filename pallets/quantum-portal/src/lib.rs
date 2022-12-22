@@ -45,8 +45,6 @@ pub mod pallet {
         }
     }
 
-    pub const OFFCHAIN_SIGNER_KEY_TYPE: KeyTypeId = KeyTypeId(*b"ofsg");
-
     // ref: https://serde.rs/container-attrs.html#crate
     #[derive(Deserialize, Encode, Decode, Default, RuntimeDebug, scale_info::TypeInfo)]
     struct SnapshotInfo {

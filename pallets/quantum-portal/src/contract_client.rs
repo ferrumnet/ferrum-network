@@ -1,10 +1,11 @@
 use crate::{
     chain_queries::{fetch_json_rpc, CallResponse, JsonRpcRequest},
     chain_utils::{ChainRequestError, ChainUtils, JsonSer},
-    Config, OFFCHAIN_SIGNER_KEY_TYPE,
+    Config,
 };
 use ethabi_nostd::{encoder, Address, Token};
 use ethereum::{LegacyTransaction, TransactionAction};
+use ferrum_primitives::OFFCHAIN_SIGNER_KEY_TYPE;
 use frame_system::offchain::{ForAny, SignMessage, Signer};
 use parity_scale_codec::Encode;
 use rlp::Encodable;
@@ -40,6 +41,7 @@ impl ContractClientSignature {
     }
 
     pub fn signer(&self, hash: &H256) -> ecdsa::Signature {
+        // TODO : We should handle this properly, if the signing is not possible maybe propogate the error upstream
         let signed: ecdsa::Signature =
             crypto::ecdsa_sign_prehashed(OFFCHAIN_SIGNER_KEY_TYPE, &self._signer, &hash.0).unwrap();
         let sig_bytes = signed.encode();

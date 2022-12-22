@@ -1855,6 +1855,7 @@ dependencies = [
  "fc-mapping-sync",
  "fc-rpc",
  "fc-rpc-core",
+ "ferrum-primitives",
  "ferrum-x-runtime",
  "fp-consensus",
  "fp-dynamic-fee",

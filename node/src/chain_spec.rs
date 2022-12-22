@@ -253,8 +253,8 @@ fn testnet_genesis(
         ethereum: EthereumConfig {},
         dynamic_fee: Default::default(),
         base_fee: Default::default(),
-        // quantum_portal: QuantumPortalConfig {
-        //     networks: convert(networks),
-        // },
+        quantum_portal: ferrum_x_runtime::QuantumPortalConfig {
+            networks: convert(networks),
+        },
     }
 }

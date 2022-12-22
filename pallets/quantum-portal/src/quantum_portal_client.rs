@@ -15,9 +15,9 @@ use sp_std::prelude::*;
 const DUMMY_HASH: H256 = H256::zero();
 const ZERO_HASH: H256 = H256::zero();
 
-pub struct QuantumPortalClient<T: Config> {
+pub struct QuantumPortalClient {
     pub contract: ContractClient,
-    pub signer: ContractClientSignature<T>,
+    pub signer: ContractClientSignature,
     pub now: u64,
     pub block_number: u64,
 }
@@ -146,10 +146,10 @@ fn decode_remote_transaction_from_tuple(dec: &[Token]) -> ChainRequestResult<QpT
     }
 }
 
-impl<T: Config> QuantumPortalClient<T> {
+impl QuantumPortalClient {
     pub fn new(
         contract: ContractClient,
-        signer: ContractClientSignature<T>,
+        signer: ContractClientSignature,
         now: u64,
         block_number: u64,
     ) -> Self {
@@ -464,7 +464,7 @@ impl<T: Config> QuantumPortalClient<T> {
         }
     }
 
-    pub fn mine(&self, remote_client: &QuantumPortalClient<T>) -> ChainRequestResult<Option<H256>> {
+    pub fn mine(&self, remote_client: &QuantumPortalClient) -> ChainRequestResult<Option<H256>> {
         let local_chain = self.contract.chain_id;
         let remote_chain = remote_client.contract.chain_id;
         log::info!("mine({} => {})", remote_chain, local_chain);

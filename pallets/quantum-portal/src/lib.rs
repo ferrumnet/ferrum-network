@@ -45,6 +45,8 @@ pub mod pallet {
         }
     }
 
+    pub const OFFCHAIN_SIGNER_KEY_TYPE: KeyTypeId = KeyTypeId(*b"ofsg");
+
     // ref: https://serde.rs/container-attrs.html#crate
     #[derive(Deserialize, Encode, Decode, Default, RuntimeDebug, scale_info::TypeInfo)]
     struct SnapshotInfo {
@@ -75,13 +77,13 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// The overarching dispatch call type.
         type RuntimeCall: From<frame_system::Call<Self>>;
-        /// The identifier type for an authority.
-        type AuthorityId: Member
-            + Parameter
-            + RuntimeAppPublic
-            + MaybeSerializeDeserialize
-            + MaxEncodedLen
-            + AppCrypto<Self::Public, Self::Signature>;
+        // The identifier type for an authority.
+        // type AuthorityId: Member
+        //     + Parameter
+        //     + RuntimeAppPublic
+        //     + MaybeSerializeDeserialize
+        //     + MaxEncodedLen
+        //     + AppCrypto<Self::Public, Self::Signature>;
     }
 
     #[pallet::pallet]
@@ -160,11 +162,11 @@ pub mod pallet {
         pub fn configure_network(
             block_number: u64,
             network_item: QpNetworkItem,
-        ) -> QuantumPortalClient<T> {
+        ) -> QuantumPortalClient {
             let rpc_endpoint = network_item.url;
             let id = network_item.id;
 
-            let signer = Signer::<T, T::AuthorityId>::any_account();
+            let signer = ChainUtils::hex_to_ecdsa_pub_key(&network_item.signer_public_key[..]);
             let lgr_mgr = ChainUtils::hex_to_address(&network_item.ledger_manager[..]);
             let client = ContractClient::new(rpc_endpoint, &lgr_mgr, id);
             QuantumPortalClient::new(
@@ -206,37 +208,37 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {}
 
-    impl<T: Config> BlockNumberProvider for Pallet<T> {
-        type BlockNumber = T::BlockNumber;
+    // impl<T: Config> BlockNumberProvider for Pallet<T> {
+    //     type BlockNumber = T::BlockNumber;
 
-        fn current_block_number() -> Self::BlockNumber {
-            <frame_system::Pallet<T>>::block_number()
-        }
-    }
+    //     fn current_block_number() -> Self::BlockNumber {
+    //         <frame_system::Pallet<T>>::block_number()
+    //     }
+    // }
 
-    impl<T: Config> sp_runtime::BoundToRuntimeAppPublic for Pallet<T> {
-        type Public = T::AuthorityId;
-    }
+    // impl<T: Config> sp_runtime::BoundToRuntimeAppPublic for Pallet<T> {
+    //     type Public = T::AuthorityId;
+    // }
 
-    impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T> {
-        type Key = T::AuthorityId;
+    // impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T> {
+    //     type Key = T::AuthorityId;
 
-        fn on_genesis_session<'a, I: 'a>(_validators: I)
-        where
-            I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
-        {
-            // nothing to do here
-        }
+    //     fn on_genesis_session<'a, I: 'a>(_validators: I)
+    //     where
+    //         I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
+    //     {
+    //         // nothing to do here
+    //     }
 
-        fn on_new_session<'a, I: 'a>(_changed: bool, _validators: I, _queued_validators: I)
-        where
-            I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
-        {
-            // nothing to do here
-        }
+    //     fn on_new_session<'a, I: 'a>(_changed: bool, _validators: I, _queued_validators: I)
+    //     where
+    //         I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
+    //     {
+    //         // nothing to do here
+    //     }
 
-        fn on_disabled(_i: u32) {
-            // nothing to do here
-        }
-    }
+    //     fn on_disabled(_i: u32) {
+    //         // nothing to do here
+    //     }
+    // }
 }

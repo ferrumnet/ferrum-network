@@ -34,7 +34,7 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
-pub use ferrum_primitives::crypto::AuthorityId as QPOffchainId;
+// pub use ferrum_primitives::crypto::AuthorityId as QPOffchainId;
 pub use ferrum_primitives::EthereumSignature;
 use fp_rpc::TransactionStatus;
 pub use frame_support::{
@@ -108,7 +108,7 @@ pub mod opaque {
         pub struct SessionKeys {
             pub aura: Aura,
             pub grandpa: Grandpa,
-            pub quantam_portal: QuantumPortal,
+            // pub quantam_portal: QuantumPortal,
         }
     }
 }
@@ -388,7 +388,7 @@ parameter_types! {
 }
 
 impl pallet_quantum_portal::Config for Runtime {
-    type AuthorityId = QPOffchainId;
+    //type AuthorityId = QPOffchainId;
     type RuntimeCall = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
     // type GracePeriod = GracePeriod;

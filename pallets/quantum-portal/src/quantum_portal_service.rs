@@ -27,12 +27,12 @@ impl Default for PendingTransaction {
 }
 
 pub struct QuantumPortalService<T: Config> {
-    pub clients: Vec<QuantumPortalClient<T>>,
+    pub clients: Vec<QuantumPortalClient>,
     _config: Option<T>, // To allow compilation. Not sued
 }
 
 impl<T: Config> QuantumPortalService<T> {
-    pub fn new(clients: Vec<QuantumPortalClient<T>>) -> Self {
+    pub fn new(clients: Vec<QuantumPortalClient>) -> Self {
         QuantumPortalService {
             clients,
             _config: None,
@@ -153,9 +153,9 @@ impl<T: Config> QuantumPortalService<T> {
             );
             return Ok(());
         }
-        let local_client: &QuantumPortalClient<T> =
+        let local_client: &QuantumPortalClient =
             &self.clients[self.find_client_idx(local_chain)];
-        let remote_client: &QuantumPortalClient<T> =
+        let remote_client: &QuantumPortalClient =
             &self.clients[self.find_client_idx(remote_chain)];
         log::info!(
             "Clients: {} <> {} :: {} <> {}",

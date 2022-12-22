@@ -1,19 +1,3 @@
-// Copyright 2019-2022 PureStake Inc.
-// This file is part of Moonbeam.
-
-// Moonbeam is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// Moonbeam is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
-
 //! The Ethereum Signature implementation.
 //!
 //! It includes the Verify and IdentifyAccount traits for the AccountId20
@@ -36,98 +20,8 @@ pub use serde::{de::DeserializeOwned, Deserialize, Serialize};
 /// The keys can be inserted manually via RPC (see `author_insertKey`).
 pub const OFFCHAIN_SIGNER_KEY_TYPE: KeyTypeId = KeyTypeId(*b"ofsg");
 
-/// Based on the above `KeyTypeId` we need to generate a pallet-specific crypto type wrapper.
-/// We can utilize the supported crypto kinds (`sr25519`, `ed25519` and `ecdsa`) and augment
-/// them with the pallet-specific identifier.
-pub mod crypto {
-    use sp_core::ecdsa::Signature as EcdsaSignagure;
-    use sp_core::H256;
-    use sp_runtime::MultiSigner::Ecdsa;
-    use sp_runtime::{
-        app_crypto::{app_crypto, ecdsa},
-        traits::Verify,
-        MultiSignature, MultiSigner,
-    };
-	use super::*;
 
-	use sp_core::offchain::KeyTypeId;
-    use sp_std::prelude::*;
-    use sp_std::str;
-	use sp_io::crypto;
-
-    app_crypto!(ecdsa, crate::OFFCHAIN_SIGNER_KEY_TYPE);
-
-	pub fn sign_transaction_hash(
-		key_pair: &ecdsa::Public,
-		hash: &H256,
-	) -> Result<Vec<u8>, ()> {
-		let sig: ecdsa::Signature =
-			crypto::ecdsa_sign_prehashed(OFFCHAIN_SIGNER_KEY_TYPE, key_pair, &hash.0).unwrap();
-		let sig_bytes: &[u8] = &sig.0;
-		Ok(Vec::from(sig_bytes))
-	}
-
-    /// Identity for the offchain signer key
-    pub type AuthorityId = Public;
-
-    /// Signature associated with the offchain signer ecdsa key
-    pub type AuthoritySignature = Signature;
-
-    impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for AuthorityId {
-        type RuntimeAppPublic = Public;
-        type GenericSignature = sp_core::ecdsa::Signature; // sr25519::Signature;
-        type GenericPublic = sp_core::ecdsa::Public;
-
-        fn sign(payload: &[u8], public: MultiSigner) -> Option<MultiSignature> {
-            let ecdsa_pub = match public {
-                Ecdsa(p) => p,
-                _ => panic!("Wrong public type"),
-            };
-            let hash = H256::from_slice(payload); // ChainUtils::keccack(payload);
-            let sig = sign_transaction_hash(&ecdsa_pub, &hash).unwrap();
-
-            let mut buf: [u8; 65] = [0; 65];
-            buf.copy_from_slice(sig.as_slice());
-            let signature = ecdsa::Signature(buf);
-            Some(MultiSignature::Ecdsa(signature))
-        }
-    }
-
-	impl frame_system::offchain::AppCrypto<EthereumSigner, EthereumSignature> for AuthorityId {
-        type RuntimeAppPublic = Public;
-        type GenericSignature = sp_core::ecdsa::Signature; // sr25519::Signature;
-        type GenericPublic = sp_core::ecdsa::Public;
-
-        fn sign(payload: &[u8], public: MultiSigner) -> Option<MultiSignature> {
-            let ecdsa_pub = match public {
-                Ecdsa(p) => p,
-                _ => panic!("Wrong public type"),
-            };
-            let hash = H256::from_slice(payload); // ChainUtils::keccack(payload);
-            let sig = sign_transaction_hash(&ecdsa_pub, &hash).unwrap();
-
-            let mut buf: [u8; 65] = [0; 65];
-            buf.copy_from_slice(sig.as_slice());
-            let signature = ecdsa::Signature(buf);
-            Some(MultiSignature::Ecdsa(signature))
-        }
-    }
-
-    // implemented for mock runtime in test
-    impl frame_system::offchain::AppCrypto<<EcdsaSignagure as Verify>::Signer, EcdsaSignagure>
-        for AuthorityId
-    {
-        type RuntimeAppPublic = Public;
-        type GenericSignature = sp_core::ecdsa::Signature;
-        type GenericPublic = sp_core::ecdsa::Public;
-    }
-}
-
-//TODO Maybe this should be upstreamed into Frontier (And renamed accordingly) so that it can
-// be used in palletEVM as well. It may also need more traits such as AsRef, AsMut, etc like
-// AccountId32 has.
-
-/// The account type to be used in Moonbeam. It is a wrapper for 20 fixed bytes. We prefer to use
+/// The account type to be used in Ferrum. It is a wrapper for 20 fixed bytes. We prefer to use
 /// a dedicated type to prevent using arbitrary 20 byte arrays were AccountIds are expected. With
 /// the introduction of the `scale-info` crate this benefit extends even to non-Rust tools like
 /// Polkadot JS.

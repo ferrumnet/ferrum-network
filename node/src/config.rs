@@ -20,12 +20,19 @@ pub struct ChinSpecConfig {
 
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize)]
 pub struct NetworkItem {
+    /// The rpc url for this network
     #[serde(with = "serde_bytes")]
     pub url: Vec<u8>,
+    /// The ledger_manager contract address for this network
     #[serde(with = "serde_bytes")]
     pub ledger_manager: Vec<u8>,
+    /// The authority_mananger contract address for this network
     #[serde(with = "serde_bytes")]
     pub authority_manager: Vec<u8>,
+    // The public key for the signer account
+    #[serde(with = "serde_bytes")]
+    pub signer_public_key: Vec<u8>,
+    /// The ChainId for this network
     pub id: u64,
 }
 
@@ -44,6 +51,7 @@ pub fn convert(network_config: NetworkConfig) -> QpConfig {
                 url: network_item.url,
                 ledger_manager: network_item.ledger_manager,
                 authority_manager: network_item.authority_manager,
+                signer_public_key: network_item.signer_public_key,
                 id: network_item.id,
             })
             .collect(),

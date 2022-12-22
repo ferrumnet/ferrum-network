@@ -134,6 +134,12 @@ impl ChainUtils {
         Address::from_slice(&addr_bytes)
     }
 
+    pub fn hex_to_ecdsa_pub_key(hex: &[u8]) -> sp_core::ecdsa::Public {
+        let mut addr_bytes: [u8; 33] = [0; 33];
+        hex::decode_to_slice(hex, &mut addr_bytes).unwrap();
+        sp_core::ecdsa::Public::from_raw(addr_bytes)
+    }
+
     pub fn hex_add_0x(s: &[u8]) -> Vec<u8> {
         if s.len() >= 2 && s[0] == '0' as u8 && s[1] == 'x' as u8 {
             return Vec::from(s.clone());

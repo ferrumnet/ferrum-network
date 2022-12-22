@@ -7,8 +7,8 @@
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sha3::{Digest, Keccak256};
-use sp_core::{ecdsa, H160, H256};
 use sp_core::offchain::KeyTypeId;
+use sp_core::{ecdsa, H160, H256};
 
 #[cfg(feature = "std")]
 pub use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -19,7 +19,6 @@ pub use serde::{de::DeserializeOwned, Deserialize, Serialize};
 /// `KeyTypeId` via the keystore to sign the transaction.
 /// The keys can be inserted manually via RPC (see `author_insertKey`).
 pub const OFFCHAIN_SIGNER_KEY_TYPE: KeyTypeId = KeyTypeId(*b"ofsg");
-
 
 /// The account type to be used in Ferrum. It is a wrapper for 20 fixed bytes. We prefer to use
 /// a dedicated type to prevent using arbitrary 20 byte arrays were AccountIds are expected. With

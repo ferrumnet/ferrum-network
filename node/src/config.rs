@@ -12,11 +12,16 @@ pub struct Config {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct ChinSpecConfig {
+    /// Secret seed for initial authorities [aura, grandpa]
     pub initial_authourity_seed_list: Vec<String>,
+    /// AccountId of the Sudo authority
     pub root_seed: String,
+    /// List of AccountId to populate balances in genesis block
     pub endowed_accounts_seed_list: Vec<String>,
+    /// List of AccountIds for EVM configuration
     pub address_list: Vec<String>,
-    pub offchain_signer_secret_seed: String
+    /// Secret seed for offchain signer key
+    pub offchain_signer_secret_seed: String,
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize)]

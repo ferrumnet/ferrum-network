@@ -153,10 +153,8 @@ impl<T: Config> QuantumPortalService<T> {
             );
             return Ok(());
         }
-        let local_client: &QuantumPortalClient =
-            &self.clients[self.find_client_idx(local_chain)];
-        let remote_client: &QuantumPortalClient =
-            &self.clients[self.find_client_idx(remote_chain)];
+        let local_client: &QuantumPortalClient = &self.clients[self.find_client_idx(local_chain)];
+        let remote_client: &QuantumPortalClient = &self.clients[self.find_client_idx(remote_chain)];
         log::info!(
             "Clients: {} <> {} :: {} <> {}",
             local_client.block_number,

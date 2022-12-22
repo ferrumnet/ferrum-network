@@ -16,6 +16,7 @@ pub struct ChinSpecConfig {
     pub root_seed: String,
     pub endowed_accounts_seed_list: Vec<String>,
     pub address_list: Vec<String>,
+    pub offchain_signer_secret_seed: String
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize)]

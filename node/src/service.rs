@@ -25,10 +25,19 @@ use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
 // Runtime
 use ferrum_x_runtime::{opaque::Block, RuntimeApi};
 use sp_core::offchain::KeyTypeId;
+use crate::config::Config;
 
 use crate::cli::Cli;
 #[cfg(feature = "manual-seal")]
 use crate::cli::Sealing;
+
+const DEFAULT_DEV_PATH_BUF: &str = "./default_dev_config.json";
+
+// read configuration file and return Config
+pub fn read_config_from_file(path : &str) -> Result<Config, String> {
+    let path_buf = PathBuf::from(path);
+    crate::config::read_config_from_file(path_buf)
+}
 
 // Our native executor instance.
 pub struct ExecutorDispatch;
@@ -162,33 +171,29 @@ pub fn new_partial(
 
     let keystore = keystore_container.sync_keystore();
     if config.offchain_worker.enabled {
-    	// Initialize seed for signing transaction using off-chain workers. This is a convenience
-    	// so learners can see the transactions submitted simply running the node.
-    	// Typically these keys should be inserted with RPC calls to `author_insertKey`.
-    	sp_keystore::SyncCryptoStore::ecdsa_generate_new(
+        // We will try to insert the keys for offchain signer to work
+        // Try to read the secret seed from the config file and then insert into keystore
+        // We have to do this here since we use the compressed AccountId20 as a PublicKey but require
+        // the full ecdsa::PublicKey to generate signatures, so this code will store the secret
+        // key mapped to the ecdsa::PublicKey so that the offchain worker can read the keys from
+        // storage at the time of signing.
+
+        // read the secret seed from the config file
+        let config = read_config_from_file(DEFAULT_DEV_PATH_BUF).expect("Failed to read chainspec config file");
+        let ecdsa_signer_seed = config.chain_spec.offchain_signer_secret_seed;
+
+        // insert the secret key into the keystore
+        sp_keystore::SyncCryptoStore::ecdsa_generate_new(
     		&*keystore,
     		ferrum_primitives::OFFCHAIN_SIGNER_KEY_TYPE,
-    		// Some("//life away soul black either fluid emerge motion wool author meat wood"),
-    		Some("//Alice"),
-    	).expect("Creating key with account Alice should succeed.");
-    	let l: Vec<sp_core::ecdsa::Public> = sp_keystore::SyncCryptoStore::ecdsa_public_keys(
-    		&*keystore,
-    		ferrum_primitives::OFFCHAIN_SIGNER_KEY_TYPE, );
-    	println!("ALL KEYS ECDSA {:?}", l);
-    	let l_ser = l.first().unwrap();
-    	let lk = libsecp256k1::PublicKey::parse_slice(&l_ser.0, None).unwrap();
-    	let lks = lk.serialize();
-    	println!("ALL KEYS ECDSA - full {:?}", lks);
-    	sp_keystore::SyncCryptoStore::sr25519_generate_new(
-    		&*keystore,
-    		ferrum_primitives::OFFCHAIN_SIGNER_KEY_TYPE,
-    		// Some("//life away soul black either fluid emerge motion wool author meat wood"),
-    		Some("//Alice"),
-    	).expect("Creating key with account Alice should succeed.");
-    	let l = sp_keystore::SyncCryptoStore::sr25519_public_keys(
-    		&*keystore,
-    		ferrum_primitives::OFFCHAIN_SIGNER_KEY_TYPE, );
-    	println!("ALL KEYS SR25519 {:?}", l);
+    		Some(&ecdsa_signer_seed),
+    	).expect("Invalid offchain_signer_secret_seed, unable to generate keys!");
+
+        // just a sanity check to make sure the keystore is populated correctly
+        let ecdsa_keys: Vec<sp_core::ecdsa::Public> = sp_keystore::SyncCryptoStore::ecdsa_public_keys(
+            	&*keystore,
+            	ferrum_primitives::OFFCHAIN_SIGNER_KEY_TYPE, );
+            println!("ECDSA KEYS in keystore {:?}", ecdsa_keys);
     }
 
     #[cfg(feature = "aura")]

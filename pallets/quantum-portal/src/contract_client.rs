@@ -54,6 +54,7 @@ impl ContractClientSignature {
     }
 
     pub fn get_signer_address(&self) -> Vec<u8> {
+        log::info!("Signer address is : {:?}", self.from);
         self._signer.as_ref().to_vec()
     }
 }

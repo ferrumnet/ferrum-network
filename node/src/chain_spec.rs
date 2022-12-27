@@ -118,7 +118,7 @@ pub fn development_config(cli: &Cli) -> Result<ChainSpec, String> {
 
     Ok(ChainSpec::from_genesis(
         // Name
-        "Development",
+        "Ferrum X Development",
         // ID
         "dev",
         ChainType::Development,
@@ -162,7 +162,7 @@ pub fn local_testnet_config(cli: &Cli) -> Result<ChainSpec, String> {
 
     Ok(ChainSpec::from_genesis(
         // Name
-        "Local Testnet",
+        "Ferrum X Local Testnet",
         // ID
         "local_testnet",
         ChainType::Local,

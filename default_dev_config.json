@@ -9,15 +9,15 @@
     "networks": {
         "network_vec": [{
             "url": "https://rpc-mumbai.maticvigil.com/",
-            "ledger_manager": "78eae1c19a415f050e2EFafEDc396Cf4F463cB79",
-            "authority_manager": "78eae1c19a415f050e2EFafEDc396Cf4F463cB79",
+            "ledger_manager": "1dC011A64112fc8a2928E2EFe60007ef0F705ED9",
+            "authority_manager": "948d09CbC3E260Ed408C70027310d1ca4a42153B",
             "id": 80001,
             "signer_public_key": "020a1091341fe5664bfa1782d5e04779689068c916b04cb365ec3153755684d9a1"
         },
         {
             "url": "https://data-seed-prebsc-1-s1.binance.org:8545",
-            "ledger_manager": "78eae1c19a415f050e2EFafEDc396Cf4F463cB79",
-            "authority_manager": "78eae1c19a415f050e2EFafEDc396Cf4F463cB79",
+            "ledger_manager": "1dC011A64112fc8a2928E2EFe60007ef0F705ED9",
+            "authority_manager": "948d09CbC3E260Ed408C70027310d1ca4a42153B",
             "id": 97,
             "signer_public_key": "020a1091341fe5664bfa1782d5e04779689068c916b04cb365ec3153755684d9a1"
         }],

@@ -1,6 +1,15 @@
 use ferrum_x_runtime::{
-    AccountId, AuraConfig, BalancesConfig, EVMConfig, EthereumConfig, GenesisConfig, GrandpaConfig,
-    QuantumPortalConfig, Signature, SudoConfig, SystemConfig, WASM_BINARY,
+    AccountId,
+    AuraConfig,
+    BalancesConfig,
+    EVMConfig,
+    EthereumConfig,
+    GenesisConfig,
+    GrandpaConfig,
+    Signature,
+    SudoConfig,
+    SystemConfig,
+    WASM_BINARY, //QuantumPortalConfig
 };
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -69,7 +78,7 @@ pub fn chainspec_params(
 ) -> Result<
     (
         Vec<(AuraId, GrandpaId)>,
-        AccountId32,
+        AccountId,
         Vec<AccountId>,
         Vec<String>,
     ),
@@ -82,12 +91,11 @@ pub fn chainspec_params(
         .into_iter()
         .map(|seed| authority_keys_from_seed(&seed))
         .collect();
-    let root_key =
-        get_account_id_from_seed::<sr25519::Public>(chain_spec_config.root_seed.as_str());
+    let root_key = AccountId::from_str(chain_spec_config.root_seed.as_str()).unwrap();
     let endowed_accounts: Vec<AccountId> = chain_spec_config
         .endowed_accounts_seed_list
         .into_iter()
-        .map(|seed| get_account_id_from_seed::<sr25519::Public>(&seed))
+        .map(|seed| AccountId::from_str(chain_spec_config.root_seed.as_str()).unwrap())
         .collect();
 
     Ok((
@@ -110,7 +118,7 @@ pub fn development_config(cli: &Cli) -> Result<ChainSpec, String> {
 
     Ok(ChainSpec::from_genesis(
         // Name
-        "Development",
+        "Ferrum X Development",
         // ID
         "dev",
         ChainType::Development,
@@ -154,7 +162,7 @@ pub fn local_testnet_config(cli: &Cli) -> Result<ChainSpec, String> {
 
     Ok(ChainSpec::from_genesis(
         // Name
-        "Local Testnet",
+        "Ferrum X Local Testnet",
         // ID
         "local_testnet",
         ChainType::Local,
@@ -245,7 +253,7 @@ fn testnet_genesis(
         ethereum: EthereumConfig {},
         dynamic_fee: Default::default(),
         base_fee: Default::default(),
-        quantum_portal: QuantumPortalConfig {
+        quantum_portal: ferrum_x_runtime::QuantumPortalConfig {
             networks: convert(networks),
         },
     }

@@ -34,6 +34,8 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
+// pub use ferrum_primitives::crypto::AuthorityId as QPOffchainId;
+pub use ferrum_primitives::EthereumSignature;
 use fp_rpc::TransactionStatus;
 pub use frame_support::{
     construct_runtime, parameter_types,
@@ -46,15 +48,15 @@ pub use frame_support::{
 };
 pub use pallet_balances::Call as BalancesCall;
 use pallet_ethereum::{Call::transact, Transaction as EthereumTransaction};
-use pallet_evm::{Account as EVMAccount, EnsureAddressTruncated, HashedAddressMapping, Runner};
-pub use pallet_quantum_portal;
+use pallet_evm::{
+    Account as EVMAccount, EnsureAddressNever, EnsureAddressRoot, EnsureAddressTruncated,
+    HashedAddressMapping, Runner,
+};
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::CurrencyAdapter;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
-
-pub use pallet_quantum_portal::crypto::AuthorityId as QPOffchainId;
 
 mod precompiles;
 use precompiles::FrontierPrecompiles;
@@ -63,7 +65,7 @@ use precompiles::FrontierPrecompiles;
 pub type BlockNumber = u32;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
-pub type Signature = MultiSignature;
+pub type Signature = EthereumSignature;
 // pub type Signature = ecdsa::Signature;
 
 /// Some way of identifying an account on the chain. We intentionally make it equivalent
@@ -106,14 +108,13 @@ pub mod opaque {
         pub struct SessionKeys {
             pub aura: Aura,
             pub grandpa: Grandpa,
-            pub quantam_portal: QuantumPortal,
         }
     }
 }
 
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-    spec_name: create_runtime_str!("node-frontier-template"),
-    impl_name: create_runtime_str!("node-frontier-template"),
+    spec_name: create_runtime_str!("ferrum-x-runtime"),
+    impl_name: create_runtime_str!("ferrum-x-runtime"),
     authoring_version: 1,
     spec_version: 1,
     impl_version: 1,
@@ -169,7 +170,7 @@ impl frame_system::Config for Runtime {
     /// The aggregated dispatch type that is available for extrinsics.
     type RuntimeCall = RuntimeCall;
     /// The lookup mechanism to get account ID from whatever is passed in dispatchers.
-    type Lookup = AccountIdLookup<AccountId, ()>;
+    type Lookup = sp_runtime::traits::IdentityLookup<AccountId>;
     /// The index type for storing how many extrinsics an account has signed.
     type Index = Index;
     /// The index type for blocks.
@@ -301,6 +302,17 @@ impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
     }
 }
 
+/// And ipmlementation of Frontier's AddressMapping trait for Accounts.
+/// This is basically identical to Frontier's own IdentityAddressMapping, but it works for any type
+/// that is Into<H160> like AccountId20 for example.
+pub struct IntoAddressMapping;
+
+impl<T: From<H160>> pallet_evm::AddressMapping<T> for IntoAddressMapping {
+    fn into_account_id(address: H160) -> T {
+        address.into()
+    }
+}
+
 parameter_types! {
     pub const ChainId: u64 = 26000;
     pub BlockGasLimit: U256 = U256::from(u32::max_value());
@@ -312,10 +324,10 @@ impl pallet_evm::Config for Runtime {
     type FeeCalculator = BaseFee;
     type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
     type BlockHashMapping = pallet_ethereum::EthereumBlockHashMapping<Self>;
-    type CallOrigin = EnsureAddressTruncated;
+    type CallOrigin = EnsureAddressRoot<AccountId>;
     type WeightPerGas = WeightPerGas;
-    type WithdrawOrigin = EnsureAddressTruncated;
-    type AddressMapping = HashedAddressMapping<BlakeTwo256>;
+    type WithdrawOrigin = EnsureAddressNever<AccountId>;
+    type AddressMapping = IntoAddressMapping;
     type Currency = Balances;
     type RuntimeEvent = RuntimeEvent;
     type Runner = pallet_evm::runner::stack::Runner<Self>;
@@ -375,7 +387,7 @@ parameter_types! {
 }
 
 impl pallet_quantum_portal::Config for Runtime {
-    type AuthorityId = QPOffchainId;
+    //type AuthorityId = QPOffchainId;
     type RuntimeCall = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
     // type GracePeriod = GracePeriod;
@@ -417,14 +429,7 @@ where
         let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
         let address = account;
         let (call, extra, _) = raw_payload.deconstruct();
-        Some((
-            call,
-            (
-                sp_runtime::MultiAddress::Id(address),
-                signature.into(),
-                extra,
-            ),
-        ))
+        Some((call, (account, signature.into(), extra)))
     }
 }
 
@@ -451,7 +456,7 @@ construct_runtime!(
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage},
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-        Aura: pallet_aura::{Pallet, Config<T>},
+        Aura: pallet_aura::{Pallet, Storage, Config<T>},
         Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>},
@@ -489,7 +494,7 @@ impl fp_rpc::ConvertTransaction<opaque::UncheckedExtrinsic> for TransactionConve
 }
 
 /// The address format for describing accounts.
-pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
+pub type Address = AccountId;
 // pub type Address = AccountId;
 /// Block header type as expected by this runtime.
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;

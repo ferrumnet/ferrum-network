@@ -2,8 +2,8 @@ use ethereum::{LegacyTransaction, LegacyTransactionMessage, TransactionSignature
 use parity_scale_codec::Encode;
 
 pub struct ChainUtils;
-use crate::OFFCHAIN_SIGNER_KEY_TYPE;
-use ethabi_nostd::{Address, H256, U256, encoder, Token}; //vec::{Vec};
+// use crate::OFFCHAIN_SIGNER_KEY_TYPE;
+use ethabi_nostd::{encoder, Address, Token, H256, U256}; //vec::{Vec};
 use libsecp256k1;
 use numtoa::NumToA;
 use sp_core::ecdsa;
@@ -134,6 +134,12 @@ impl ChainUtils {
         Address::from_slice(&addr_bytes)
     }
 
+    pub fn hex_to_ecdsa_pub_key(hex: &[u8]) -> sp_core::ecdsa::Public {
+        let mut addr_bytes: [u8; 33] = [0; 33];
+        hex::decode_to_slice(hex, &mut addr_bytes).unwrap();
+        sp_core::ecdsa::Public::from_raw(addr_bytes)
+    }
+
     pub fn hex_add_0x(s: &[u8]) -> Vec<u8> {
         if s.len() >= 2 && s[0] == '0' as u8 && s[1] == 'x' as u8 {
             return Vec::from(s.clone());
@@ -196,15 +202,15 @@ impl ChainUtils {
         TransactionSignature::new(28, LOWER, LOWER).unwrap()
     }
 
-    pub fn sign_transaction_hash(
-        key_pair: &ecdsa::Public,
-        hash: &H256,
-    ) -> ChainRequestResult<Vec<u8>> {
-        let sig: ecdsa::Signature =
-            crypto::ecdsa_sign_prehashed(OFFCHAIN_SIGNER_KEY_TYPE, key_pair, &hash.0).unwrap();
-        let sig_bytes: &[u8] = &sig.0;
-        Ok(Vec::from(sig_bytes))
-    }
+    // pub fn sign_transaction_hash(
+    //     key_pair: &ecdsa::Public,
+    //     hash: &H256,
+    // ) -> ChainRequestResult<Vec<u8>> {
+    //     let sig: ecdsa::Signature =
+    //         crypto::ecdsa_sign_prehashed(OFFCHAIN_SIGNER_KEY_TYPE, key_pair, &hash.0).unwrap();
+    //     let sig_bytes: &[u8] = &sig.0;
+    //     Ok(Vec::from(sig_bytes))
+    // }
 
     pub fn tx_hash_to_sign(tx: &LegacyTransaction, chain_id: u64) -> H256 {
         let mut msg: LegacyTransactionMessage = ethereum::TransactionV0::from(tx.clone()).into();
@@ -265,11 +271,12 @@ impl ChainUtils {
         chain_id: u64,
         contract_address: &[u8],
     ) -> H256 {
-
-        let type_hash = ChainUtils::keccack(b"EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+        let type_hash = ChainUtils::keccack(
+            b"EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)",
+        );
         let hashed_name = ChainUtils::keccack(contract_name);
         let hashed_version = ChainUtils::keccack(contract_version);
-        
+
         let encoded_domain_seperator = encoder::encode(&[
             Token::FixedBytes(Vec::from(type_hash.as_bytes())),
             Token::FixedBytes(Vec::from(hashed_name.as_bytes())),

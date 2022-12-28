@@ -30,7 +30,7 @@ use crate::{
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
-        "Frontier Node".into()
+        "FerrumX Node".into()
     }
 
     fn impl_version() -> String {
@@ -50,7 +50,7 @@ impl SubstrateCli for Cli {
     }
 
     fn copyright_start_year() -> i32 {
-        2021
+        2022
     }
 
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {

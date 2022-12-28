@@ -1823,6 +1823,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "ferrum-primitives"
+version = "0.1.1"
+dependencies = [
+ "blake2-rfc",
+ "frame-system",
+ "hex",
+ "impl-serde",
+ "libsecp256k1",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sha3",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-runtime-interface",
+ "sp-std",
+]
+
+[[package]]
 name = "ferrum-x-network"
 version = "0.0.1"
 dependencies = [
@@ -1834,6 +1855,7 @@ dependencies = [
  "fc-mapping-sync",
  "fc-rpc",
  "fc-rpc-core",
+ "ferrum-primitives",
  "ferrum-x-runtime",
  "fp-consensus",
  "fp-dynamic-fee",
@@ -1892,6 +1914,7 @@ dependencies = [
 name = "ferrum-x-runtime"
 version = "0.0.1"
 dependencies = [
+ "ferrum-primitives",
  "fp-rpc",
  "fp-self-contained",
  "frame-benchmarking",
@@ -4773,6 +4796,7 @@ dependencies = [
  "byte-slice-cast",
  "ethabi-nostd",
  "ethereum",
+ "ferrum-primitives",
  "frame-support",
  "frame-system",
  "hex",

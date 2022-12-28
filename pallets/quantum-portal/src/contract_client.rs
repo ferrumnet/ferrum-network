@@ -5,11 +5,14 @@ use crate::{
 };
 use ethabi_nostd::{encoder, Address, Token};
 use ethereum::{LegacyTransaction, TransactionAction};
+use ferrum_primitives::OFFCHAIN_SIGNER_KEY_TYPE;
 use frame_system::offchain::{ForAny, SignMessage, Signer};
 use parity_scale_codec::Encode;
 use rlp::Encodable;
 use serde::Deserialize;
+use sp_core::offchain::KeyTypeId;
 use sp_core::{ecdsa, H160, H256, U256};
+use sp_io::crypto;
 use sp_std::{
     ops::{Div, Mul},
     prelude::*,
@@ -24,79 +27,46 @@ pub struct ContractClient {
 }
 
 // #[derive(Clone)]
-pub struct ContractClientSignature<T: Config> {
+pub struct ContractClientSignature {
     pub from: Address,
-    pub _signer: Box<Signer<T, T::AuthorityId>>,
-    // pub _signer: Box<Signer<Types::T, Types::C>>,
-    // pub _signer: fn(&H256) -> ecdsa::Signature,
+    pub _signer: ecdsa::Public,
 }
 
-impl<C: Config> ContractClientSignature<C> {
-    pub fn new(
-        from: Address,
-        signer: Signer<C, C::AuthorityId>,
-        // signer: fn(&H256) -> ecdsa::Signature,
-    ) -> Self {
+impl ContractClientSignature {
+    pub fn new(from: Address, signer: &[u8]) -> Self {
         ContractClientSignature {
             from,
-            _signer: Box::new(signer),
+            _signer: ecdsa::Public::try_from(signer).unwrap(),
         }
     }
 
     pub fn signer(&self, hash: &H256) -> ecdsa::Signature {
-        log::info!("Signer is {:?}", &self._signer.can_sign());
-        let signed = self._signer.sign_message(&hash.0);
-        let signed_m = match signed {
-            None => panic!("No signature"),
-            Some((a, b)) => {
-                let public_key = a.public.encode();
-                let public_key = &public_key.as_slice()[1..];
-                let addr = ChainUtils::eth_address_from_public_key(public_key);
-                log::info!(
-                    "Signer address is {:?}",
-                    str::from_utf8(ChainUtils::bytes_to_hex(addr.as_slice()).as_slice()).unwrap()
-                );
-                b
-            }
-        };
-        let sig_bytes = signed_m.encode();
+        // TODO : We should handle this properly, if the signing is not possible maybe propogate the error upstream
+        let signed: ecdsa::Signature =
+            crypto::ecdsa_sign_prehashed(OFFCHAIN_SIGNER_KEY_TYPE, &self._signer, &hash.0).unwrap();
+        let sig_bytes = signed.encode();
         log::info!(
             "Got a signature of size {}: {}",
             sig_bytes.len(),
             str::from_utf8(ChainUtils::bytes_to_hex(sig_bytes.as_slice()).as_slice()).unwrap()
         );
-        ecdsa::Signature::try_from(&sig_bytes.as_slice()[1..]).unwrap()
+        signed
     }
 
     pub fn get_signer_address(&self) -> Vec<u8> {
-        log::info!("Signer is {:?}", &self._signer.can_sign());
-        let signed = self._signer.sign_message(&[]);
-        match signed {
-            None => panic!("No signature"),
-            Some((a, _b)) => {
-                let public_key = a.public.encode();
-                let public_key = &public_key.as_slice()[1..];
-                let addr = ChainUtils::eth_address_from_public_key(public_key);
-                addr
-            }
-        }
+        log::info!("Signer address is : {:?}", self.from);
+        self._signer.as_ref().to_vec()
     }
 }
 
-// impl <T: SigningTypes + crate::Config, C: AppCrypto<T::Public, T::Signature>> From<Signer<T, C,
-// ForAny>> for ContractClientSignature {
-impl<T: Config> From<Signer<T, T::AuthorityId, ForAny>> for ContractClientSignature<T> {
-    fn from(signer: Signer<T, T::AuthorityId, ForAny>) -> Self {
-        log::info!("Signer is {:?}", &signer.can_sign());
-        let signed = signer.sign_message(&H256::zero().0);
-        let acc = signed.unwrap().0;
-        let public_key = acc.public.encode();
-        let public_key = &public_key.as_slice()[1..];
-        let addr = ChainUtils::eth_address_from_public_key(public_key);
+impl From<ecdsa::Public> for ContractClientSignature {
+    fn from(signer: ecdsa::Public) -> Self {
+        log::info!("PUBLIC KEY {:?}", signer);
+        let addr = ChainUtils::eth_address_from_public_key(&signer.0);
         let from = Address::from(H160::from_slice(addr.as_slice()));
 
         ContractClientSignature {
-            _signer: Box::new(signer),
+            _signer: signer,
             from,
         }
     }
@@ -156,7 +126,7 @@ impl ContractClient {
         fetch_json_rpc(http_api, &req)
     }
 
-    pub fn send<T: Config>(
+    pub fn send(
         &self,
         method_signature: &[u8],
         inputs: &[Token],
@@ -166,7 +136,7 @@ impl ContractClient {
         nonce: Option<U256>,
         from: Address,
         // encoded_bytes: Vec<u8>,
-        signing: &ContractClientSignature<T>,
+        signing: &ContractClientSignature,
     ) -> Result<H256, ChainRequestError> {
         let encoded_bytes = encoder::encode_function_u8(method_signature, inputs);
         let encoded_bytes_0x = ChainUtils::bytes_to_hex(&encoded_bytes.as_slice());

@@ -33,67 +33,6 @@ pub mod pallet {
     use sp_runtime::{traits::BlockNumberProvider, RuntimeAppPublic, RuntimeDebug};
     use sp_std::{prelude::*, str};
 
-    /// Defines application identifier for crypto keys for the offchain signer
-    ///
-    /// When an offchain worker is signing transactions it's going to request keys from type
-    /// `KeyTypeId` via the keystore to sign the transaction.
-    /// The keys can be inserted manually via RPC (see `author_insertKey`).
-    pub const OFFCHAIN_SIGNER_KEY_TYPE: KeyTypeId = KeyTypeId(*b"ofsg");
-
-    /// Based on the above `KeyTypeId` we need to generate a pallet-specific crypto type wrapper.
-    /// We can utilize the supported crypto kinds (`sr25519`, `ed25519` and `ecdsa`) and augment
-    /// them with the pallet-specific identifier.
-    pub mod crypto {
-        use crate::chain_utils::ChainUtils;
-        use sp_core::ecdsa::Signature as EcdsaSignagure;
-        use sp_core::H256;
-        use sp_runtime::MultiSigner::Ecdsa;
-        use sp_runtime::{
-            app_crypto::{app_crypto, ecdsa},
-            traits::Verify,
-            MultiSignature, MultiSigner,
-        };
-        use sp_std::prelude::*;
-        use sp_std::str;
-
-        app_crypto!(ecdsa, crate::OFFCHAIN_SIGNER_KEY_TYPE);
-
-        /// Identity for the offchain signer key
-        pub type AuthorityId = Public;
-
-        /// Signature associated with the offchain signer ecdsa key
-        pub type AuthoritySignature = Signature;
-
-        impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for AuthorityId {
-            type RuntimeAppPublic = Public;
-            type GenericSignature = sp_core::ecdsa::Signature; // sr25519::Signature;
-            type GenericPublic = sp_core::ecdsa::Public;
-
-            fn sign(payload: &[u8], public: MultiSigner) -> Option<MultiSignature> {
-                let ecdsa_pub = match public {
-                    Ecdsa(p) => p,
-                    _ => panic!("Wrong public type"),
-                };
-                let hash = H256::from_slice(payload); // ChainUtils::keccack(payload);
-                let sig = ChainUtils::sign_transaction_hash(&ecdsa_pub, &hash).unwrap();
-
-                let mut buf: [u8; 65] = [0; 65];
-                buf.copy_from_slice(sig.as_slice());
-                let signature = ecdsa::Signature(buf);
-                Some(MultiSignature::Ecdsa(signature))
-            }
-        }
-
-        // implemented for mock runtime in test
-        impl frame_system::offchain::AppCrypto<<EcdsaSignagure as Verify>::Signer, EcdsaSignagure>
-            for AuthorityId
-        {
-            type RuntimeAppPublic = Public;
-            type GenericSignature = sp_core::ecdsa::Signature;
-            type GenericPublic = sp_core::ecdsa::Public;
-        }
-    }
-
     #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
     pub struct Payload<Public> {
         number: u64,
@@ -136,13 +75,6 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// The overarching dispatch call type.
         type RuntimeCall: From<frame_system::Call<Self>>;
-        /// The identifier type for an authority.
-        type AuthorityId: Member
-            + Parameter
-            + RuntimeAppPublic
-            + MaybeSerializeDeserialize
-            + MaxEncodedLen
-            + AppCrypto<Self::Public, Self::Signature>;
     }
 
     #[pallet::pallet]
@@ -221,11 +153,11 @@ pub mod pallet {
         pub fn configure_network(
             block_number: u64,
             network_item: QpNetworkItem,
-        ) -> QuantumPortalClient<T> {
+        ) -> QuantumPortalClient {
             let rpc_endpoint = network_item.url;
             let id = network_item.id;
 
-            let signer = Signer::<T, T::AuthorityId>::any_account();
+            let signer = ChainUtils::hex_to_ecdsa_pub_key(&network_item.signer_public_key[..]);
             let lgr_mgr = ChainUtils::hex_to_address(&network_item.ledger_manager[..]);
             let client = ContractClient::new(rpc_endpoint, &lgr_mgr, id);
             QuantumPortalClient::new(
@@ -266,38 +198,4 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {}
-
-    impl<T: Config> BlockNumberProvider for Pallet<T> {
-        type BlockNumber = T::BlockNumber;
-
-        fn current_block_number() -> Self::BlockNumber {
-            <frame_system::Pallet<T>>::block_number()
-        }
-    }
-
-    impl<T: Config> sp_runtime::BoundToRuntimeAppPublic for Pallet<T> {
-        type Public = T::AuthorityId;
-    }
-
-    impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T> {
-        type Key = T::AuthorityId;
-
-        fn on_genesis_session<'a, I: 'a>(_validators: I)
-        where
-            I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
-        {
-            // nothing to do here
-        }
-
-        fn on_new_session<'a, I: 'a>(_changed: bool, _validators: I, _queued_validators: I)
-        where
-            I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
-        {
-            // nothing to do here
-        }
-
-        fn on_disabled(_i: u32) {
-            // nothing to do here
-        }
-    }
 }

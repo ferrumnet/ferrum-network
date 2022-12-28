@@ -7,14 +7,9 @@ use crate::{
     Config,
 };
 use ethabi_nostd::{decoder::decode, ParamKind, Token};
-use serde_json::from_str;
-use sp_core::{H256, U256};
+use ethabi_nostd::{encoder};
+use sp_core::{U256, H256};
 use sp_std::prelude::*;
-
-#[cfg(feature = "std")]
-use eip_712::{hash_structured_data, EIP712};
-#[cfg(feature = "std")]
-use rustc_hex::ToHex;
 
 #[allow(dead_code)]
 const DUMMY_HASH: H256 = H256::zero();
@@ -260,7 +255,7 @@ impl<T: Config> QuantumPortalClient<T> {
         remote_chain_id: u64,
         block_nonce: u64,
         finalizer_hash: H256,
-        finalizers: &[H256],
+        finalizers: &[Vec<u8>],
     ) -> ChainRequestResult<H256> {
         // because of sp_std, so here are the alternatives:
         // - Manually construct the function call as [u8].
@@ -272,101 +267,115 @@ impl<T: Config> QuantumPortalClient<T> {
         // ) ...
         // The last item is a bit complicated, but for now we pass an empty array.
         // Support buytes and dynamic arrays in future
-        let finalizer_list = finalizers
+        let finalizer_list : Vec<Token> = finalizers
             .into_iter()
-            .map(|f| Token::FixedBytes(Vec::from(f.0.as_slice())))
+            .map(|f| Token::FixedBytes(Vec::from(f.as_slice())))
             .collect();
+        
         let signature = b"finalize(uint256,uint256,bytes32,address[],bytes32,uint64,bytes)";
+
         let salt = Token::FixedBytes(vec![
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0,
+            0, 0, 1,
         ]);
+        
+        let expiry = Token::Uint(U256::from(2147483647)); // Using max expiry as the default TODO : Use an expiry slightly in the future
 
-        let expiry = Token::Uint(U256::from(0));
-        let multi_sig = Token::Bytes(vec![0]);
-
-        let hash = self
-            .get_eip_712_hash_for_finalize_transaction(
-                remote_chain_id,
-                block_nonce,
-                finalizer_hash,
-                finalizers,
-                &[0; 32],
-                U256::from(0),
-                &[0; 32],
-            )
-            .map_err(|()| ChainRequestError::ErrorCreatingTransaction)?;
+        let multi_sig = self.generate_multi_signature(remote_chain_id, block_nonce, finalizer_hash, finalizer_list.clone(), salt.clone(), expiry.clone()).unwrap();
+        
+        let inputs = [
+            Token::Uint(U256::from(self.contract.chain_id)),
+            Token::Uint(U256::from(block_nonce)),
+            Token::FixedBytes(Vec::from(finalizer_hash.as_bytes())),
+            Token::Array(finalizer_list.clone()),
+            salt.clone(),
+            expiry,
+            Token::FixedBytes(Vec::from(multi_sig)),
+        ];
 
         let res = self.contract.send(
             signature,
-            &[
-                Token::Uint(U256::from(remote_chain_id)),
-                Token::Uint(U256::from(block_nonce)),
-                Token::FixedBytes(Vec::from(finalizer_hash.as_bytes())),
-                Token::Array(finalizer_list),
-                salt,
-                expiry,
-                multi_sig,
-            ],
-            None, // Some(U256::from(1000000 as u64)), // None,
+            &inputs,
+            None, //Some(U256::from(1000000 as u64)), // None,
             None, // Some(U256::from(10000000000 as u64)), // None,
             U256::zero(),
             None,
             self.signer.from,
-            hash,
             &self.signer,
         )?;
         Ok(res)
     }
 
-    pub fn get_eip_712_hash_for_finalize_transaction(
+    /// Returns the multiSignature to sign finalize transactions
+    /// The function will
+    /// 1. Generate the domain seperator values, encoded and hashed
+    /// 2. Generate the message hash from the args of the finalize call and encoded it to the signature
+    /// 3. Generate the eip_712 type hash for the ValidateAuthoritySignature function
+    pub fn generate_multi_signature(
         &self,
         remote_chain_id: u64,
         block_nonce: u64,
         finalizer_hash: H256,
-        finalizers: &[H256],
-        salt: &[u8],
-        expiry: U256,
-        multi_sig: &[u8],
-    ) -> Result<Vec<u8>, ()> {
-        use serde_json::json;
-        #[cfg(feature = "std")]
-        {
-            let json = json!({
-                "primaryType": "Finalize",
-                "domain": {
-                    "name": "QuantumPortalLedgerMgr",
-                    "version": "1",
-                    "chainId": "0x1",
-                    "verifyingContract": "32566A474aCCF5B6DbeA30F60f559d490dbcB314"
-                },
-                "message": {
-                    "remoteChainId": remote_chain_id,
-                    "blockNonce": block_nonce,
-                    "finalizer_hash": finalizer_hash,
-                    "finalizer_list": finalizers,
-                    "salt": salt,
-                    "expiry": expiry,
-                    "multi_sig": multi_sig
-                },
-                "types": {
-                    "EIP712Domain": [
-                        { "name": "remote_chain_id", "type": "uint256" },
-                        { "name": "blockNonce", "type": "uint256" },
-                        { "name": "finalizer_hash", "type": "bytes32" },
-                        { "name": "finalizers", "type": "address[]" },
-                        { "name": "salt", "type": "bytes32" },
-                        { "name": "expiry", "type": "uint64" },
-                        { "name": "multi_sig", "type": "bytes32" }
-                    ]
-                }
-            });
-            let typed_data = from_str::<EIP712>(&json.to_string()).unwrap();
-            let hx = hash_structured_data(typed_data).unwrap().to_hex::<String>();
-            return Ok(hx.into());
-        }
-        #[cfg(not(feature = "std"))]
-        return Err(());
+        finalizer_list: Vec<Token>,
+        salt: Token,
+        expiry: Token,
+    ) -> Result<[u8; 65], ()> {
+
+        // Generate the domain seperator hash, the hash is generated from the given arguments
+        let domain_seperator_hash = ChainUtils::generate_eip_712_domain_seperator_hash(
+            b"FERRUM_QUANTUM_PORTAL_AUTHORITY_MGR", // ContractName
+            b"000.010", // ContractVersion
+            self.contract.chain_id, // ChainId
+            b"6ed18E5598650113D56B8Bc02B5C0e2852332c87", // VerifyingAddress
+        );
+
+        // Generate the finalize method sigature to encode the finalize call
+        let finalize_method_signature = b"Finalize(uint256 remoteChainId,uint256 blockNonce,bytes32 finalizersHash,address[] finalizers,bytes32 salt,uint64 expiry)";
+        let finalize_method_signature_hash = ChainUtils::keccack(finalize_method_signature);
+
+        // encode the finalize call to the expected format
+        let encoded_message = encoder::encode(&[
+            Token::FixedBytes(Vec::from(finalize_method_signature_hash.as_bytes())), // finalize method signature hash
+            Token::Uint(U256::from(remote_chain_id)), // remote chain id
+            Token::Uint(U256::from(block_nonce)), // block nonce
+            Token::FixedBytes(Vec::from(finalizer_hash.as_bytes())), // finalizers hash
+            Token::Array(finalizer_list.clone()), // finalizers
+            salt.clone(), // salt
+            expiry.clone(), // expiry
+        ]);
+
+        let encoded_message_hash = ChainUtils::keccack(&encoded_message);
+
+        // Generate the ValidateAuthoritySignature method signature to encode the eip_args
+        let method_signature = b"ValidateAuthoritySignature(uint256 action,bytes32 msgHash,bytes32 salt,uint64 expiry)";
+        let method_hash = ChainUtils::keccack(method_signature);
+
+        // Generate the encoded eip message
+        let eip_args = encoder::encode(&[
+            Token::FixedBytes(Vec::from(method_hash.as_bytes())), // method hash
+            Token::Uint(U256::from(1)), // action
+            Token::FixedBytes(Vec::from(encoded_message_hash.as_bytes())), // msgHash
+            salt.clone(), // salt
+            expiry, // expiry
+        ]);
+        let eip_args_hash = ChainUtils::keccack(&eip_args);
+
+
+	    let eip_712_hash = self.generate_eip_712_hash(&domain_seperator_hash[..], &eip_args_hash[..]);
+        log::info!("EIP712 Hash {:?}", eip_712_hash);
+
+        // Sign the eip message, we only consider a single signer here since we only expect a single key in the keystore
+        // TODO : Add the ability for multiple signers
+        let multi_sig_bytes = self.signer.signer(&eip_712_hash);
+
+        Ok(multi_sig_bytes.0)
+    }
+
+    /// This function takes the domain_seperator_hash and eip_args_hash as input and returns the EIP712 format hash
+    pub fn generate_eip_712_hash(&self, domain_seperator_hash : &[u8], eip_args_hash : &[u8]) -> H256 {
+        let prefix = (b"\x19\x01").to_vec();
+        let concat = [&prefix[..], &domain_seperator_hash[..], &eip_args_hash[..]].concat();
+	    ChainUtils::keccack(&concat)
     }
 
     pub fn create_mine_transaction(
@@ -376,12 +385,17 @@ impl<T: Config> QuantumPortalClient<T> {
         txs: &Vec<QpTransaction>,
     ) -> ChainRequestResult<H256> {
         let signature = b"mineRemoteBlock(uint64,uint64,(uint64,address,address,address,address,uint256,bytes,uint256)[],bytes32,uint64,bytes)";
+
         let salt = Token::FixedBytes(vec![
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0,
+            0, 0, 1,
         ]);
-        let expiry = Token::Uint(U256::from(0));
-        let multi_sig = Token::Bytes(vec![0]);
+        let expiry = Token::Uint(U256::from(2147483647));
+        let multi_sig = Token::Bytes(vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 1, 1,
+        ]);
+
         let tx_vec = txs
             .into_iter()
             .map(|t| {
@@ -398,17 +412,6 @@ impl<T: Config> QuantumPortalClient<T> {
             })
             .collect();
 
-        let hash = self
-            .get_eip_712_hash_for_mine_transaction(
-                remote_chain_id,
-                block_nonce,
-                txs,
-                &[0; 32],
-                U256::from(0),
-                &[0; 32],
-            )
-            .map_err(|()| ChainRequestError::ErrorCreatingTransaction)?;
-
         let res = self.contract.send(
             signature,
             &[
@@ -424,67 +427,9 @@ impl<T: Config> QuantumPortalClient<T> {
             U256::zero(),
             None,
             self.signer.from,
-            hash,
             &self.signer,
         )?;
         Ok(res)
-    }
-
-    pub fn get_eip_712_hash_for_mine_transaction(
-        &self,
-        remote_chain_id: u64,
-        block_nonce: u64,
-        txs: &Vec<QpTransaction>,
-        salt: &[u8],
-        expiry: U256,
-        multi_sig: &[u8],
-    ) -> Result<Vec<u8>, ()> {
-        use serde_json::json;
-        #[cfg(feature = "std")]
-        {
-            let json = json!({
-                "primaryType": "Transaction",
-                "domain": {
-                    "name": "QuantumPortalLedgerMgr",
-                    "version": "1",
-                    "chainId": "0x1",
-                    "verifyingContract": "32566A474aCCF5B6DbeA30F60f559d490dbcB314"
-                },
-                "message": {
-                    "remoteChainId": remote_chain_id,
-                    "blockNonce": block_nonce,
-                    "transactions": txs,
-                    "salt": salt,
-                    "expiry": expiry,
-                    "multi_sig": multi_sig
-                },
-                "types": {
-                    "EIP712Domain": [
-                        { "name": "remote_chain_id", "type": "uint256" },
-                        { "name": "blockNonce", "type": "uint256" },
-                        { "name": "transactions", "type": "Transaction[]" },
-                        { "name": "salt", "type": "bytes32" },
-                        { "name": "expiry", "type": "uint64" },
-                        { "name": "multi_sig", "type": "bytes32" }
-                    ],
-                    "Transaction": [
-                        { "name": "timestamp", "type": "uint64" },
-                        { "name": "remote_contract", "type": "address" },
-                        { "name": "source_msg_sender", "type": "address" },
-                        { "name": "source_beneficiary", "type": "address" },
-                        { "name": "token", "type": "address" },
-                        { "name": "amount", "type": "uintt256" },
-                        { "name": "method", "type": "bytes" },
-                        { "name": "gas", "type": "uint256" },
-                    ],
-                }
-            });
-            let typed_data = from_str::<EIP712>(&json.to_string()).unwrap();
-            let hx = hash_structured_data(typed_data).unwrap().to_hex::<String>();
-            return Ok(hx.into());
-        }
-        #[cfg(not(feature = "std"))]
-        return Err(());
     }
 
     pub fn finalize(&self, chain_id: u64) -> ChainRequestResult<Option<H256>> {
@@ -499,7 +444,7 @@ impl<T: Config> QuantumPortalClient<T> {
                 chain_id,
                 block.nonce,
                 H256::zero(),
-                &[],
+                &[self.signer.get_signer_address()],
             )?))
         } else {
             log::info!("Nothing to finalize for ({})", chain_id);

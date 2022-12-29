@@ -121,7 +121,7 @@ impl sp_runtime::traits::Verify for EthereumSignature {
     }
 }
 
-/// Public key for an Ethereum / Moonbeam compatible account
+/// Public key for an Ethereum compatible account
 #[derive(
     Eq, PartialEq, Ord, PartialOrd, Clone, Encode, Decode, sp_core::RuntimeDebug, TypeInfo,
 )]

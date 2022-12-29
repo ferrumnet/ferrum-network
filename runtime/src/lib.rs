@@ -380,19 +380,11 @@ impl pallet_base_fee::Config for Runtime {
 
 impl pallet_randomness_collective_flip::Config for Runtime {}
 
-// For pallet_quantum_portal
-parameter_types! {
-    // pub const UnsignedInterval: BlockNumber = 3;
-    // pub const UnsignedPriority: BlockNumber = 3;
-}
-
 impl pallet_quantum_portal::Config for Runtime {
-    //type AuthorityId = QPOffchainId;
     type RuntimeCall = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
-    // type GracePeriod = GracePeriod;
-    // type UnsignedInterval = UnsignedInterval;
-    // type UnsignedPriority = UnsignedPriority;
+    type PalletRandomness = RandomnessCollectiveFlip;
+    type Timestamp = Timestamp;
 }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime

@@ -5,6 +5,7 @@ pub use pallet::*;
 mod chain_queries;
 mod chain_utils;
 mod contract_client;
+mod eip_712_utils;
 mod erc_20_client;
 pub mod qp_types;
 mod quantum_portal_client;
@@ -17,13 +18,15 @@ pub mod pallet {
         chain_utils::ChainUtils,
         contract_client::{ContractClient, ContractClientSignature},
         qp_types,
-        qp_types::QpNetworkItem,
+        qp_types::{EIP712Config, QpNetworkItem},
         quantum_portal_client::QuantumPortalClient,
         quantum_portal_service::{PendingTransaction, QuantumPortalService},
     };
     use core::convert::TryInto;
     use frame_support::pallet_prelude::*;
     use frame_support::traits::OneSessionHandler;
+    use frame_support::traits::Randomness;
+    use frame_support::traits::UnixTime;
     use frame_system::{
         offchain::{AppCrypto, SignedPayload, Signer, SigningTypes},
         pallet_prelude::*,
@@ -75,6 +78,10 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// The overarching dispatch call type.
         type RuntimeCall: From<frame_system::Call<Self>>;
+        /// Randomeness generator for the runtime
+        type PalletRandomness: Randomness<Self::Hash, Self::BlockNumber>;
+        /// Onchain timestamp for the runtime
+        type Timestamp: UnixTime;
     }
 
     #[pallet::pallet]
@@ -153,11 +160,13 @@ pub mod pallet {
         pub fn configure_network(
             block_number: u64,
             network_item: QpNetworkItem,
-        ) -> QuantumPortalClient {
+            signer_public_key: Vec<u8>,
+            eip_712_config: EIP712Config,
+        ) -> QuantumPortalClient<T> {
             let rpc_endpoint = network_item.url;
             let id = network_item.id;
 
-            let signer = ChainUtils::hex_to_ecdsa_pub_key(&network_item.signer_public_key[..]);
+            let signer = ChainUtils::hex_to_ecdsa_pub_key(&signer_public_key[..]);
             let lgr_mgr = ChainUtils::hex_to_address(&network_item.ledger_manager[..]);
             let client = ContractClient::new(rpc_endpoint, &lgr_mgr, id);
             QuantumPortalClient::new(
@@ -165,6 +174,7 @@ pub mod pallet {
                 ContractClientSignature::from(signer),
                 sp_io::offchain::timestamp().unix_millis(),
                 block_number,
+                eip_712_config,
             )
         }
 
@@ -172,7 +182,14 @@ pub mod pallet {
             let client_vec: Vec<_> = qp_config_item
                 .network_vec
                 .into_iter()
-                .map(|item| Self::configure_network(block_number, item))
+                .map(|item| {
+                    Self::configure_network(
+                        block_number,
+                        item,
+                        qp_config_item.signer_public_key.clone(),
+                        qp_config_item.eip_712_config.clone(),
+                    )
+                })
                 .collect();
             let svc = QuantumPortalService::<T>::new(client_vec);
             let _res: Vec<_> = qp_config_item

@@ -32,7 +32,7 @@ impl EIP712Utils {
     /// This function takes the domain_seperator_hash and eip_args_hash as input and returns the EIP712 format hash
     pub fn generate_eip_712_hash(domain_seperator_hash: &[u8], eip_args_hash: &[u8]) -> H256 {
         let prefix = (b"\x19\x01").to_vec();
-        let concat = [&prefix[..], &domain_seperator_hash[..], &eip_args_hash[..]].concat();
+        let concat = [&prefix[..], domain_seperator_hash, eip_args_hash].concat();
         ChainUtils::keccack(&concat)
     }
 

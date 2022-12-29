@@ -120,15 +120,14 @@ impl ToJson for TransactionV2 {
             TransactionV2::EIP1559(_) => Vec::new(),
             TransactionV2::EIP2930(_) => Vec::new(),
         };
-        Vec::from(j)
+        j
     }
 }
 
 fn fetch_json_rpc_body(base_url: &str, req: &JsonRpcRequest) -> Result<Vec<u8>, ChainRequestError> {
     let mut params = JsonSer::new();
-    (&req.params).into_iter().for_each(|p| {
+    req.params.iter().for_each(|p| {
         params.arr_val(str::from_utf8(p.as_slice()).unwrap());
-        ()
     });
     let mut json_req = JsonSer::new();
     let json_req_s = json_req
@@ -204,11 +203,11 @@ fn fetch_json_rpc_body(base_url: &str, req: &JsonRpcRequest) -> Result<Vec<u8>, 
     // 	})?;
 
     // log::info!("Response is ready!");
-    let body = response.body().collect::<Vec<u8>>().clone();
+    let body = response.body().collect::<Vec<u8>>();
     log::info!(
         "Response code got : {}-{}",
         &response.code,
-        str::from_utf8(&body.as_slice()).unwrap()
+        str::from_utf8(body.as_slice()).unwrap()
     );
 
     if response.code != 200 {

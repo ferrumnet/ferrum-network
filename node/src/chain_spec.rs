@@ -32,7 +32,7 @@ pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
 
 /// Generate a crypto pair from seed.
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
-    TPublic::Pair::from_string(&format!("//{}", seed), None)
+    TPublic::Pair::from_string(&format!("//{seed}"), None)
         .expect("static values are valid; qed")
         .public()
 }
@@ -121,7 +121,7 @@ pub fn development_config(cli: &Cli) -> Result<ChainSpec, String> {
                 // Initial PoA authorities
                 initial_authoutities.clone(),
                 // Sudo account
-                root_key.clone(),
+                root_key,
                 // Pre-funded accounts
                 endowed_accounts.clone(),
                 address_list.clone(),
@@ -165,7 +165,7 @@ pub fn local_testnet_config(cli: &Cli) -> Result<ChainSpec, String> {
                 // Initial PoA authorities
                 initial_authoutities.clone(),
                 // Sudo account
-                root_key.clone(),
+                root_key,
                 // Pre-funded accounts
                 endowed_accounts.clone(),
                 address_list.clone(),

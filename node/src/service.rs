@@ -196,7 +196,7 @@ pub fn new_partial(
                 &*keystore,
                 ferrum_primitives::OFFCHAIN_SIGNER_KEY_TYPE,
             );
-        println!("ECDSA KEYS in keystore {:?}", ecdsa_keys);
+        println!("ECDSA KEYS in keystore {ecdsa_keys:?}");
     }
 
     #[cfg(feature = "aura")]
@@ -330,8 +330,7 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
             Ok(k) => keystore_container.set_remote_keystore(k),
             Err(e) => {
                 return Err(ServiceError::Other(format!(
-                    "Error hooking up remote keystore for {}: {}",
-                    url, e
+                    "Error hooking up remote keystore for {url}: {e}"
                 )))
             }
         };

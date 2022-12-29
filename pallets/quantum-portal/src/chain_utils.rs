@@ -4,7 +4,7 @@ use parity_scale_codec::Encode;
 pub struct ChainUtils;
 // use crate::OFFCHAIN_SIGNER_KEY_TYPE;
 use ethabi_nostd::{Address, H256, U256}; //vec::{Vec};
-use libsecp256k1;
+
 use numtoa::NumToA;
 use sp_std::{prelude::*, str};
 use tiny_keccak::{Hasher, Keccak};
@@ -40,7 +40,6 @@ fn u64_to_str(num: u64) -> Vec<u8> {
     let mut s: Vec<u8> = Vec::new();
     num_buffer.into_iter().filter(|u| *u != 0).for_each(|u| {
         s.push(u);
-        ()
     });
     log::info!("num2str2 : {:?}", s);
     s
@@ -56,8 +55,7 @@ fn val(c: u8) -> Result<u8, ChainRequestError> {
 }
 
 const HEX_TABLE: [u8; 16] = [
-    '0' as u8, '1' as u8, '2' as u8, '3' as u8, '4' as u8, '5' as u8, '6' as u8, '7' as u8,
-    '8' as u8, '9' as u8, 'a' as u8, 'b' as u8, 'c' as u8, 'd' as u8, 'e' as u8, 'f' as u8,
+    b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'a', b'b', b'c', b'd', b'e', b'f',
 ];
 
 #[allow(dead_code)]
@@ -71,12 +69,12 @@ impl ChainUtils {
         if s.len() < 2 {
             return Err(ChainRequestError::ConversionError);
         }
-        let hexb = if s[0] == '0' as u8 && s[1] == 'x' as u8 {
+        let hexb = if s[0] == b'0' && s[1] == b'x' {
             &s[2..]
         } else {
             s
         };
-        let hex = str::from_utf8(&hexb).map_err(|e| {
+        let hex = str::from_utf8(hexb).map_err(|e| {
             log::error!("Error when converting from hex: {:?}", e);
             ChainRequestError::ConversionError
         })?;
@@ -102,7 +100,7 @@ impl ChainUtils {
 
     pub fn bytes_to_hex(s: &[u8]) -> Vec<u8> {
         let mut rv = Vec::new();
-        s.into_iter().for_each(|u| {
+        s.iter().for_each(|u| {
             rv.push(HEX_TABLE[((u & 0xf0) >> 4) as usize]);
             rv.push(HEX_TABLE[(u & 0x0f) as usize]);
         });
@@ -139,10 +137,10 @@ impl ChainUtils {
     }
 
     pub fn hex_add_0x(s: &[u8]) -> Vec<u8> {
-        if s.len() >= 2 && s[0] == '0' as u8 && s[1] == 'x' as u8 {
+        if s.len() >= 2 && s[0] == b'0' && s[1] == b'x' {
             return Vec::from(s.clone());
         }
-        let mut zx = vec!['0' as u8, 'x' as u8];
+        let mut zx = vec![b'0', b'x'];
         zx.extend(s);
         zx
     }
@@ -151,7 +149,7 @@ impl ChainUtils {
         if s.len() < 2 {
             return Err(ChainRequestError::ConversionError);
         }
-        Ok(if s[0] == '0' as u8 && s[1] == 'x' as u8 {
+        Ok(if s[0] == b'0' && s[1] == b'x' {
             &s[2..]
         } else {
             s
@@ -159,9 +157,9 @@ impl ChainUtils {
     }
 
     pub fn wrap_in_quotes(s: &[u8]) -> Vec<u8> {
-        let mut zx = vec!['"' as u8];
+        let mut zx = vec![b'"'];
         zx.extend(s);
-        zx.extend(vec!['"' as u8]);
+        zx.extend(vec![b'"']);
         zx
     }
 
@@ -171,18 +169,18 @@ impl ChainUtils {
         let fmted: Vec<u8> = fmted
             .into_iter()
             .filter(|u| {
-                let u = u.clone();
+                let u = *u;
                 if u != 0 {
                     non_zero = true;
                 }
                 non_zero || u != 0
             })
             .collect();
-        if fmted.len() == 0 {
-            return vec!['0' as u8, 'x' as u8, '0' as u8];
+        if fmted.is_empty() {
+            return vec![b'0', b'x', b'0'];
         }
-        let mut zx = vec!['0' as u8, 'x' as u8];
-        zx.extend(fmted.into_iter().map(|i| i + '0' as u8));
+        let mut zx = vec![b'0', b'x'];
+        zx.extend(fmted.into_iter().map(|i| i + b'0'));
         zx
     }
 
@@ -211,7 +209,7 @@ impl ChainUtils {
     // }
 
     pub fn tx_hash_to_sign(tx: &LegacyTransaction, chain_id: u64) -> H256 {
-        let mut msg: LegacyTransactionMessage = ethereum::TransactionV0::from(tx.clone()).into();
+        let mut msg: LegacyTransactionMessage = tx.clone().into();
         msg.chain_id = Some(chain_id);
         msg.hash()
     }
@@ -225,12 +223,12 @@ impl ChainUtils {
             ChainRequestError::ErrorCreatingTransaction
         })?;
         let rid = chain_id * 2 + 35 + recovery_id.serialize() as u64;
-        Ok(TransactionSignature::new(
+        TransactionSignature::new(
             rid,
             H256::from_slice(&signature[0..32]),
             H256::from_slice(&signature[32..64]),
         )
-        .ok_or_else(|| ChainRequestError::ErrorCreatingTransaction)?)
+        .ok_or(ChainRequestError::ErrorCreatingTransaction)
     }
 
     pub fn eth_address_from_public_key(pk: &[u8]) -> Vec<u8> {
@@ -284,64 +282,56 @@ impl JsonSer {
     }
 
     pub fn start(&mut self) -> &mut Self {
-        if self.buff.len() > 0 {
+        if !self.buff.is_empty() {
             panic!("JSON already started")
         }
-        self.buff.push('{' as u8);
+        self.buff.push(b'{');
         self
     }
 
     pub fn end(&mut self) -> &mut Self {
-        self.buff.push('}' as u8);
+        self.buff.push(b'}');
         self
     }
 
     pub fn comma(&mut self) -> &mut Self {
         if !self.empty {
-            self.buff.push(',' as u8);
+            self.buff.push(b',');
         }
         self
     }
 
     pub fn name(&mut self, name: &str) -> &mut Self {
         self.comma();
-        self.buff.push('"' as u8);
-        name.as_bytes()
-            .into_iter()
-            .for_each(|b| self.buff.push(b.clone()));
-        self.buff.push('"' as u8);
-        self.buff.push(':' as u8);
+        self.buff.push(b'"');
+        name.as_bytes().iter().for_each(|b| self.buff.push(*b));
+        self.buff.push(b'"');
+        self.buff.push(b':');
         self
     }
 
     #[allow(dead_code)]
     pub fn arr_string(&mut self, val: &str) -> &mut Self {
         self.comma();
-        self.buff.push('"' as u8);
-        val.as_bytes()
-            .into_iter()
-            .for_each(|b| self.buff.push(b.clone()));
-        self.buff.push('"' as u8);
+        self.buff.push(b'"');
+        val.as_bytes().iter().for_each(|b| self.buff.push(*b));
+        self.buff.push(b'"');
         self.empty = false;
         self
     }
 
     pub fn arr_val(&mut self, val: &str) -> &mut Self {
         self.comma();
-        val.as_bytes()
-            .into_iter()
-            .for_each(|b| self.buff.push(b.clone()));
+        val.as_bytes().iter().for_each(|b| self.buff.push(*b));
         self.empty = false;
         self
     }
 
     pub fn string(&mut self, name: &str, val: &str) -> &mut Self {
         self.name(name);
-        self.buff.push('"' as u8);
-        val.as_bytes()
-            .into_iter()
-            .for_each(|b| self.buff.push(b.clone()));
-        self.buff.push('"' as u8);
+        self.buff.push(b'"');
+        val.as_bytes().iter().for_each(|b| self.buff.push(*b));
+        self.buff.push(b'"');
         self.empty = false;
         self
     }
@@ -350,20 +340,18 @@ impl JsonSer {
     pub fn u256(&mut self, name: &str, value: &U256) -> &mut Self {
         self.string(
             name,
-            str::from_utf8(ChainUtils::u256_to_hex_0x(&value).as_slice()).unwrap(),
+            str::from_utf8(ChainUtils::u256_to_hex_0x(value).as_slice()).unwrap(),
         )
     }
 
     pub fn num(&mut self, name: &str, val: u64) -> &mut Self {
         let v = u64_to_str(val);
-        self.val(name, str::from_utf8(&v.as_slice()).unwrap())
+        self.val(name, str::from_utf8(v.as_slice()).unwrap())
     }
 
     pub fn val(&mut self, name: &str, val: &str) -> &mut Self {
         self.name(name);
-        val.as_bytes()
-            .into_iter()
-            .for_each(|b| self.buff.push(b.clone()));
+        val.as_bytes().iter().for_each(|b| self.buff.push(*b));
         self.empty = false;
         self
     }
@@ -371,22 +359,20 @@ impl JsonSer {
     pub fn arr(&mut self, name: &str, val: &str) -> &mut Self {
         self.name(name);
         self.arr_start();
-        val.as_bytes()
-            .into_iter()
-            .for_each(|b| self.buff.push(b.clone()));
+        val.as_bytes().iter().for_each(|b| self.buff.push(*b));
         self.arr_end();
         self.empty = false;
         self
     }
 
     pub fn arr_start(&mut self) -> &mut Self {
-        self.buff.push('[' as u8);
+        self.buff.push(b'[');
         self.empty = true;
         self
     }
 
     pub fn arr_end(&mut self) -> &mut Self {
-        self.buff.push(']' as u8);
+        self.buff.push(b']');
         self.empty = false;
         self
     }
@@ -405,7 +391,7 @@ mod tests {
     fn jsonify_num() {
         let jo = JsonSer::new().start().num("id", 1).end().to_vec();
         log::info!("Jos is {:?}", jo);
-        println!("Jo is {:?}", jo);
+        println!("Jo is {jo:?}");
         let jos = str::from_utf8(jo.as_slice());
         println!("Jos is {}", jos.unwrap());
     }

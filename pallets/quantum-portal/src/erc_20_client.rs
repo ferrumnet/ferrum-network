@@ -32,7 +32,7 @@ impl Erc20Client {
         res.result.remove(0);
         let res_str = str::from_utf8(res.result.as_slice()).unwrap();
         log::info!("result {}", res_str);
-        let mut bytes: [u8; 32] = [0 as u8; 32];
+        let mut bytes: [u8; 32] = [0_u8; 32];
         log::info!("result as u256 {:?}", &res.result);
         hex::decode_to_slice(res_str, &mut bytes).unwrap();
         log::info!("result as u256 {:?}", &bytes);

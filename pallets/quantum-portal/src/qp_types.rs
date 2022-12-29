@@ -33,7 +33,16 @@ pub struct QpRemoteBlock {
 }
 
 #[derive(
-    Clone, Eq, PartialEq, Decode, Encode, Debug, Serialize, Deserialize, scale_info::TypeInfo,
+    Clone,
+    Eq,
+    PartialEq,
+    Decode,
+    Encode,
+    Debug,
+    Serialize,
+    Deserialize,
+    scale_info::TypeInfo,
+    Default,
 )]
 pub struct QpConfig {
     pub network_vec: Vec<QpNetworkItem>,
@@ -53,32 +62,20 @@ pub struct QpNetworkItem {
     pub id: u64,
 }
 
-impl Default for QpConfig {
-    fn default() -> QpConfig {
-        QpConfig {
-            network_vec: vec![],
-            pair_vec: vec![],
-            signer_public_key: vec![],
-            eip_712_config: Default::default(),
-        }
-    }
-}
-
 #[derive(
-    Clone, Eq, PartialEq, Decode, Encode, Debug, Serialize, Deserialize, scale_info::TypeInfo,
+    Clone,
+    Eq,
+    PartialEq,
+    Decode,
+    Encode,
+    Debug,
+    Serialize,
+    Deserialize,
+    scale_info::TypeInfo,
+    Default,
 )]
 pub struct EIP712Config {
     pub contract_name: Vec<u8>,
     pub contract_version: Vec<u8>,
     pub verifying_address: Vec<u8>,
-}
-
-impl Default for EIP712Config {
-    fn default() -> EIP712Config {
-        EIP712Config {
-            contract_name: vec![],
-            contract_version: vec![],
-            verifying_address: vec![],
-        }
-    }
 }

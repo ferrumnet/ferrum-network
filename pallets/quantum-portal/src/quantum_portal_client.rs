@@ -85,7 +85,7 @@ where
                 Box::new(ParamKind::Uint(256)), // gas
             ]))),
         ],
-        ChainUtils::hex_to_bytes(&data)?.as_slice(),
+        ChainUtils::hex_to_bytes(data)?.as_slice(),
     )
     .unwrap();
     log::info!("decoded {:?}, - {}", dec, dec.as_slice().len());
@@ -315,8 +315,8 @@ impl<T: Config> QuantumPortalClient<T> {
             Token::Uint(U256::from(remote_chain_id)),
             Token::Uint(U256::from(block_nonce)),
             finalizer_hash,
-            Token::Array(finalizer_list.clone()),
-            salt.clone(),
+            Token::Array(finalizer_list),
+            salt,
             expiry,
             Token::Bytes(multi_sig),
         ];
@@ -378,7 +378,7 @@ impl<T: Config> QuantumPortalClient<T> {
             Token::Uint(U256::from(remote_chain_id)), // remote chain id
             Token::Uint(U256::from(block_nonce)),     // block nonce
             finalizer_hash,                           // finalizers hash
-            Token::Array(finalizer_list.clone()),     // finalizers
+            Token::Array(finalizer_list),             // finalizers
             salt.clone(),                             // salt
             expiry.clone(),                           // expiry
         ]);
@@ -394,7 +394,7 @@ impl<T: Config> QuantumPortalClient<T> {
             Token::FixedBytes(Vec::from(method_hash.as_bytes())), // method hash
             Token::Uint(U256::from(1)),                           // action
             Token::FixedBytes(Vec::from(encoded_message_hash.as_bytes())), // msgHash
-            salt.clone(),                                         // salt
+            salt,                                                 // salt
             expiry,                                               // expiry
         ]);
         log::info!("eip_args_hash {:?}", eip_args_hash);
@@ -445,7 +445,7 @@ impl<T: Config> QuantumPortalClient<T> {
         ]);
 
         let tx_vec = txs
-            .into_iter()
+            .iter()
             .map(|t| {
                 Token::Tuple(vec![
                     Token::Uint(U256::from(t.timestamp)),
@@ -535,7 +535,7 @@ impl<T: Config> QuantumPortalClient<T> {
         log::info!(
             "Source block is GOT\n{:?}\n{:?}",
             source_block.0,
-            if source_block.1.len() > 0 {
+            if !source_block.1.is_empty() {
                 source_block.1.get(0).unwrap()
             } else {
                 &default_qp_transaction
@@ -607,8 +607,8 @@ impl<T: Config> QuantumPortalClient<T> {
                 Ok(QpRemoteBlock {
                     block_hash: H256::from_slice(block_hash.to_fixed_bytes().unwrap().as_slice()),
                     miner: miner.to_address().unwrap(),
-                    stake: U256::from(stake.to_uint().unwrap()),
-                    total_value: U256::from(total_value.to_uint().unwrap()),
+                    stake: stake.to_uint().unwrap(),
+                    total_value: total_value.to_uint().unwrap(),
                     block_metadata,
                 })
             }

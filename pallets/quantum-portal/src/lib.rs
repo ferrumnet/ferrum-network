@@ -134,19 +134,12 @@ pub mod pallet {
     }
 
     #[pallet::genesis_config]
+    #[derive(Default)]
     pub struct GenesisConfig {
         pub networks: qp_types::QpConfig,
     }
 
     #[cfg(feature = "std")]
-    impl Default for GenesisConfig {
-        fn default() -> Self {
-            Self {
-                networks: qp_types::QpConfig::default(),
-            }
-        }
-    }
-
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
@@ -206,7 +199,7 @@ pub mod pallet {
         fn offchain_worker(block_number: T::BlockNumber) {
             log::info!("Hello from pallet-ocw.");
             let qp_config_item = <QpConfigItem<T>>::get();
-            let bno = block_number.try_into().map_or(0 as u64, |f| f);
+            let bno = block_number.try_into().map_or(0_u64, |f| f);
             Self::test_qp(bno, qp_config_item);
         }
     }

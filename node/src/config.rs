@@ -72,8 +72,8 @@ pub fn read_config_from_file<P: AsRef<Path>>(path: P) -> Result<Config, String> 
             let reader = BufReader::new(file);
 
             match serde_json::from_reader(reader) {
-                Ok(config) => return Ok(config),
-                Err(err) => return Err(err.to_string()),
+                Ok(config) => Ok(config),
+                Err(err) => Err(err.to_string()),
             }
         }
         Err(err) => Err(err.to_string()),

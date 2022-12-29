@@ -55,9 +55,9 @@ impl From<[u8; 20]> for AccountId20 {
     }
 }
 
-impl Into<[u8; 20]> for AccountId20 {
-    fn into(self) -> [u8; 20] {
-        self.0
+impl From<AccountId20> for [u8; 20] {
+    fn from(val: AccountId20) -> Self {
+        val.0
     }
 }
 
@@ -67,9 +67,9 @@ impl From<H160> for AccountId20 {
     }
 }
 
-impl Into<H160> for AccountId20 {
-    fn into(self) -> H160 {
-        H160(self.0)
+impl From<AccountId20> for H160 {
+    fn from(val: AccountId20) -> Self {
+        H160(val.0)
     }
 }
 
@@ -102,7 +102,7 @@ impl sp_runtime::traits::Verify for EthereumSignature {
             Ok(pubkey) => {
                 // TODO This conversion could use a comment. Why H256 first, then H160?
                 // TODO actually, there is probably just a better way to go from Keccak digest.
-                AccountId20(H160::from(H256::from_slice(Keccak256::digest(&pubkey).as_slice())).0)
+                AccountId20(H160::from(H256::from_slice(Keccak256::digest(pubkey).as_slice())).0)
                     == *signer
             }
             Err(sp_io::EcdsaVerifyError::BadRS) => {
@@ -151,7 +151,7 @@ impl From<ecdsa::Public> for EthereumSigner {
         .serialize();
         let mut m = [0u8; 64];
         m.copy_from_slice(&decompressed[1..65]);
-        let account = H160::from(H256::from_slice(Keccak256::digest(&m).as_slice()));
+        let account = H160::from(H256::from_slice(Keccak256::digest(m).as_slice()));
         EthereumSigner(account.into())
     }
 }
@@ -160,7 +160,7 @@ impl From<libsecp256k1::PublicKey> for EthereumSigner {
     fn from(x: libsecp256k1::PublicKey) -> Self {
         let mut m = [0u8; 64];
         m.copy_from_slice(&x.serialize()[1..65]);
-        let account = H160::from(H256::from_slice(Keccak256::digest(&m).as_slice()));
+        let account = H160::from(H256::from_slice(Keccak256::digest(m).as_slice()));
         EthereumSigner(account.into())
     }
 }

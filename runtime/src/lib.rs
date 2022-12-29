@@ -417,7 +417,7 @@ where
             .ok()?;
         let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
         let (call, extra, _) = raw_payload.deconstruct();
-        Some((call, (account, signature.into(), extra)))
+        Some((call, (account, signature, extra)))
     }
 }
 

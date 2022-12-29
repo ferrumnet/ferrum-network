@@ -1,16 +1,13 @@
 use crate::{
     chain_queries::{fetch_json_rpc, CallResponse, JsonRpcRequest},
     chain_utils::{ChainRequestError, ChainUtils, JsonSer},
-    Config,
 };
 use ethabi_nostd::{encoder, Address, Token};
 use ethereum::{LegacyTransaction, TransactionAction};
 use ferrum_primitives::OFFCHAIN_SIGNER_KEY_TYPE;
-use frame_system::offchain::{ForAny, SignMessage, Signer};
 use parity_scale_codec::Encode;
 use rlp::Encodable;
 use serde::Deserialize;
-use sp_core::offchain::KeyTypeId;
 use sp_core::{ecdsa, H160, H256, U256};
 use sp_io::crypto;
 use sp_std::{

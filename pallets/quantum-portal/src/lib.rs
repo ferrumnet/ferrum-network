@@ -24,16 +24,14 @@ pub mod pallet {
     };
     use core::convert::TryInto;
     use frame_support::pallet_prelude::*;
-    use frame_support::traits::OneSessionHandler;
     use frame_support::traits::Randomness;
     use frame_support::traits::UnixTime;
     use frame_system::{
-        offchain::{AppCrypto, SignedPayload, Signer, SigningTypes},
+        offchain::{SignedPayload, SigningTypes},
         pallet_prelude::*,
     };
     use serde::{Deserialize, Deserializer};
-    use sp_core::crypto::KeyTypeId;
-    use sp_runtime::{traits::BlockNumberProvider, RuntimeAppPublic, RuntimeDebug};
+    use sp_runtime::RuntimeDebug;
     use sp_std::{prelude::*, str};
 
     #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]

@@ -3,11 +3,9 @@ use parity_scale_codec::Encode;
 
 pub struct ChainUtils;
 // use crate::OFFCHAIN_SIGNER_KEY_TYPE;
-use ethabi_nostd::{encoder, Address, Token, H256, U256}; //vec::{Vec};
+use ethabi_nostd::{Address, H256, U256}; //vec::{Vec};
 use libsecp256k1;
 use numtoa::NumToA;
-use sp_core::ecdsa;
-use sp_io::crypto;
 use sp_std::{prelude::*, str};
 use tiny_keccak::{Hasher, Keccak};
 
@@ -262,30 +260,6 @@ impl ChainUtils {
         sponge.update(msg);
         sponge.finalize(&mut buf);
         H256::from(buf)
-    }
-
-    /// Generate a EIP712Domain encoded hex for the given inputs
-    pub fn generate_eip_712_domain_seperator_hash(
-        contract_name: &[u8],
-        contract_version: &[u8],
-        chain_id: u64,
-        contract_address: &[u8],
-    ) -> H256 {
-        let type_hash = ChainUtils::keccack(
-            b"EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)",
-        );
-        let hashed_name = ChainUtils::keccack(contract_name);
-        let hashed_version = ChainUtils::keccack(contract_version);
-
-        let encoded_domain_seperator = encoder::encode(&[
-            Token::FixedBytes(Vec::from(type_hash.as_bytes())),
-            Token::FixedBytes(Vec::from(hashed_name.as_bytes())),
-            Token::FixedBytes(Vec::from(hashed_version.as_bytes())),
-            Token::Uint(U256::from(chain_id)),
-            Token::Address(ChainUtils::hex_to_address(contract_address)),
-        ]);
-
-        ChainUtils::keccack(&encoded_domain_seperator)
     }
 
     // /// Generate a crypto pair from seed.

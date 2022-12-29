@@ -7,12 +7,10 @@ use crate::{
     qp_types::{EIP712Config, QpLocalBlock, QpRemoteBlock, QpTransaction},
     Config,
 };
-use ethabi_nostd::encoder;
 use ethabi_nostd::{decoder::decode, ParamKind, Token};
 use frame_support::traits::Randomness;
 use frame_support::traits::UnixTime;
 use sp_core::{H256, U256};
-use sp_runtime::SaturatedConversion;
 use sp_std::marker::PhantomData;
 use sp_std::prelude::*;
 
@@ -264,8 +262,8 @@ impl<T: Config> QuantumPortalClient<T> {
         &self,
         remote_chain_id: u64,
         block_nonce: u64,
-        finalizer_hash: H256,
-        finalizers: &[Vec<u8>],
+        _finalizer_hash: H256,
+        _finalizers: &[Vec<u8>],
     ) -> ChainRequestResult<H256> {
         // because of sp_std, so here are the alternatives:
         // - Manually construct the function call as [u8].

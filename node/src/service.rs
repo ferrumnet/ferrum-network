@@ -25,7 +25,6 @@ use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
 // Runtime
 use crate::config::Config;
 use ferrum_x_runtime::{opaque::Block, RuntimeApi};
-use sp_core::offchain::KeyTypeId;
 
 use crate::cli::Cli;
 #[cfg(feature = "manual-seal")]

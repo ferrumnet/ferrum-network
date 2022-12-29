@@ -22,11 +22,11 @@ use sp_core::{
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
-        AccountIdLookup, BlakeTwo256, Block as BlockT, DispatchInfoOf, Dispatchable,
-        IdentifyAccount, NumberFor, PostDispatchInfoOf, Verify,
+        BlakeTwo256, Block as BlockT, DispatchInfoOf, Dispatchable, IdentifyAccount, NumberFor,
+        PostDispatchInfoOf, Verify,
     },
     transaction_validity::{TransactionSource, TransactionValidity, TransactionValidityError},
-    ApplyExtrinsicResult, MultiSignature,
+    ApplyExtrinsicResult,
 };
 use sp_std::{marker::PhantomData, prelude::*};
 #[cfg(feature = "std")]
@@ -48,10 +48,7 @@ pub use frame_support::{
 };
 pub use pallet_balances::Call as BalancesCall;
 use pallet_ethereum::{Call::transact, Transaction as EthereumTransaction};
-use pallet_evm::{
-    Account as EVMAccount, EnsureAddressNever, EnsureAddressRoot, EnsureAddressTruncated,
-    HashedAddressMapping, Runner,
-};
+use pallet_evm::{Account as EVMAccount, EnsureAddressNever, EnsureAddressRoot, Runner};
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::CurrencyAdapter;
 #[cfg(any(feature = "std", test))]
@@ -419,7 +416,6 @@ where
             })
             .ok()?;
         let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
-        let address = account;
         let (call, extra, _) = raw_payload.deconstruct();
         Some((call, (account, signature.into(), extra)))
     }

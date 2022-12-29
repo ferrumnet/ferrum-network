@@ -1,12 +1,6 @@
 use crate::chain_utils::ChainUtils;
-use ethabi_nostd::{encoder, Address, Token, H256, U256}; //vec::{Vec};
-use libsecp256k1;
-use numtoa::NumToA;
-use parity_scale_codec::Encode;
-use sp_core::ecdsa;
-use sp_io::crypto;
-use sp_std::{prelude::*, str};
-use tiny_keccak::{Hasher, Keccak};
+use ethabi_nostd::{encoder, Token, H256, U256}; //vec::{Vec};
+use sp_std::prelude::*;
 
 pub struct EIP712Utils;
 

@@ -186,7 +186,7 @@ mod tests {
                 .unwrap();
         let mut expected_hex_account = [0u8; 20];
         hex::decode_to_slice(
-            "976f8456e4e2034179b284a23c0e0c8f6d3da50c",
+            "e04cc55ebee1cbce552f250e85c57b70b2e2625b",
             &mut expected_hex_account,
         )
         .expect("example data is 20 bytes of valid hex");

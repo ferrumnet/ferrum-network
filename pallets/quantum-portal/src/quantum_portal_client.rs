@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 use crate::{
     chain_queries::CallResponse,
-    chain_utils::{ChainRequestError, ChainRequestResult, ChainUtils},
+    chain_utils::{ChainRequestError, ChainRequestResult, ChainUtils, TransactionCreationError},
     contract_client::{ContractClient, ContractClientSignature},
     eip_712_utils::EIP712Utils,
     qp_types::{EIP712Config, QpLocalBlock, QpRemoteBlock, QpTransaction},
@@ -277,7 +277,7 @@ impl<T: Config> QuantumPortalClient<T> {
         // Support buytes and dynamic arrays in future
         let finalizer_list: Vec<Token> = vec![Token::Address(self.signer.from)];
 
-        let signature = b"finalize(uint256,uint256,bytes32,address[],bytes32,uint64,bytes)";
+        let method_signature = b"finalize(uint256,uint256,bytes32,address[],bytes32,uint64,bytes)";
 
         // generate randomness for salt
         let (random_hash, _) = T::PalletRandomness::random_seed();
@@ -294,16 +294,14 @@ impl<T: Config> QuantumPortalClient<T> {
         let expiry_time = current_timestamp.saturating_add(expiry_buffer);
         let expiry = Token::Uint(U256::from(expiry_time.as_secs()));
 
-        let multi_sig = self
-            .generate_multi_signature(
-                remote_chain_id,
-                block_nonce,
-                finalizer_hash.clone(),
-                finalizer_list.clone(),
-                salt.clone(),
-                expiry.clone(),
-            )
-            .unwrap();
+        let multi_sig = self.generate_multi_signature(
+            remote_chain_id,
+            block_nonce,
+            finalizer_hash.clone(),
+            finalizer_list.clone(),
+            salt.clone(),
+            expiry.clone(),
+        )?;
 
         log::info!(
             "Encoded Multisig generated : {:?}",
@@ -322,7 +320,7 @@ impl<T: Config> QuantumPortalClient<T> {
         ];
 
         let res = self.contract.send(
-            signature,
+            method_signature,
             &inputs,
             None, //Some(U256::from(1000000 as u64)), // None,
             None, // Some(U256::from(10000000000 as u64)), // None,
@@ -347,7 +345,7 @@ impl<T: Config> QuantumPortalClient<T> {
         finalizer_list: Vec<Token>,
         salt: Token,
         expiry: Token,
-    ) -> Result<Vec<u8>, ()> {
+    ) -> Result<Vec<u8>, TransactionCreationError> {
         // Generate the domain seperator hash, the hash is generated from the given arguments
         let domain_seperator_hash = EIP712Utils::generate_eip_712_domain_seperator_hash(
             &self.eip_712_config.contract_name,     // ContractName
@@ -405,7 +403,7 @@ impl<T: Config> QuantumPortalClient<T> {
 
         // Sign the eip message, we only consider a single signer here since we only expect a single key in the keystore
         // TODO : Add the ability for multiple signers
-        let multi_sig_bytes = self.signer.signer(&eip_712_hash);
+        let multi_sig_bytes = self.signer.signer(&eip_712_hash)?;
 
         // Compute multisig format
         // This computation makes it match the implementation we have in qp smart contracts repo
@@ -432,7 +430,7 @@ impl<T: Config> QuantumPortalClient<T> {
         block_nonce: u64,
         txs: &Vec<QpTransaction>,
     ) -> ChainRequestResult<H256> {
-        let signature = b"mineRemoteBlock(uint64,uint64,(uint64,address,address,address,address,uint256,bytes,uint256)[],bytes32,uint64,bytes)";
+        let method_signature = b"mineRemoteBlock(uint64,uint64,(uint64,address,address,address,address,uint256,bytes,uint256)[],bytes32,uint64,bytes)";
 
         let salt = Token::FixedBytes(vec![
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -461,7 +459,7 @@ impl<T: Config> QuantumPortalClient<T> {
             .collect();
 
         let res = self.contract.send(
-            signature,
+            method_signature,
             &[
                 Token::Uint(U256::from(remote_chain_id)),
                 Token::Uint(U256::from(block_nonce)),

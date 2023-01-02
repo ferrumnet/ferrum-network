@@ -14,15 +14,29 @@ pub enum ChainRequestError {
     ErrorGettingJsonRpcResponse,
     BadRemoteData,
     ConversionError,
-    ErrorCreatingTransaction,
+    ErrorCreatingTransaction(TransactionCreationError),
     RemoteBlockAlreadyMined,
     JsonRpcError(Vec<u8>),
     InvalidHexCharacter,
 }
 
+#[derive(Debug)]
+pub enum TransactionCreationError {
+    NoSignerFound,
+    SigningFailed,
+    SignatureError,
+    MultisigError,
+}
+
 impl From<&[u8]> for ChainRequestError {
     fn from(msg: &[u8]) -> Self {
         ChainRequestError::JsonRpcError(Vec::from(msg))
+    }
+}
+
+impl From<TransactionCreationError> for ChainRequestError {
+    fn from(err: TransactionCreationError) -> Self {
+        ChainRequestError::ErrorCreatingTransaction(err)
     }
 }
 
@@ -220,7 +234,7 @@ impl ChainUtils {
     ) -> ChainRequestResult<TransactionSignature> {
         let recovery_id = libsecp256k1::RecoveryId::parse(signature[64]).map_err(|e| {
             log::error!("Error sign_transaction_hash {:?}", e);
-            ChainRequestError::ErrorCreatingTransaction
+            ChainRequestError::ErrorCreatingTransaction(TransactionCreationError::SignatureError)
         })?;
         let rid = chain_id * 2 + 35 + recovery_id.serialize() as u64;
         TransactionSignature::new(
@@ -228,7 +242,9 @@ impl ChainUtils {
             H256::from_slice(&signature[0..32]),
             H256::from_slice(&signature[32..64]),
         )
-        .ok_or(ChainRequestError::ErrorCreatingTransaction)
+        .ok_or(ChainRequestError::ErrorCreatingTransaction(
+            TransactionCreationError::SignatureError,
+        ))
     }
 
     pub fn eth_address_from_public_key(pk: &[u8]) -> Vec<u8> {

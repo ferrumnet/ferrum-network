@@ -86,8 +86,7 @@ impl<T: Config> QuantumPortalService<T> {
         log::info!("RESULTAT OF PENDING_TX {:?}", tx);
         let rv = self.process_pair(remote_chain, local_chain);
         self.remove_lock()?;
-        rv?;
-        Ok(())
+        rv
     }
 
     pub fn test_tx_storage_and_status(&self) -> ChainRequestResult<()> {

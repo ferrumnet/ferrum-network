@@ -163,11 +163,14 @@ pub fn local_testnet_config(cli: &Cli) -> Result<ChainSpec, String> {
             testnet_genesis(
                 wasm_binary,
                 // Initial PoA authorities
-                initial_authoutities.clone(),
+                vec![
+                    authority_keys_from_seed("Alice"),
+                    authority_keys_from_seed("Bob"),
+                ],
                 // Sudo account
-                root_key,
+                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
                 // Pre-funded accounts
-                endowed_accounts.clone(),
+                vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
                 address_list.clone(),
                 networks.clone(),
                 true,
@@ -246,8 +249,5 @@ fn testnet_genesis(
         ethereum: EthereumConfig {},
         dynamic_fee: Default::default(),
         base_fee: Default::default(),
-        quantum_portal: ferrum_x_runtime::QuantumPortalConfig {
-            networks: convert(networks),
-        },
     }
 }

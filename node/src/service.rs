@@ -10,11 +10,13 @@ use std::{
 use futures::{future, StreamExt};
 // Substrate
 use sc_cli::SubstrateCli;
+use sc_client_api::Backend;
 use sc_client_api::BlockchainEvents;
 use sc_executor::NativeElseWasmExecutor;
 use sc_keystore::LocalKeystore;
 use sc_service::{error::Error as ServiceError, BasePath, Configuration, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
+use sp_core::offchain::OffchainStorage;
 use sp_core::U256;
 // Frontier
 use fc_consensus::FrontierBlockImport;
@@ -169,6 +171,9 @@ pub fn new_partial(
     let fee_history_cache_limit: FeeHistoryCacheLimit = cli.run.fee_history_limit;
 
     let keystore = keystore_container.sync_keystore();
+
+    let mut offchain_storage = backend.offchain_storage().unwrap();
+
     if config.offchain_worker.enabled {
         // We will try to insert the keys for offchain signer to work
         // Try to read the secret seed from the config file and then insert into keystore
@@ -177,18 +182,25 @@ pub fn new_partial(
         // key mapped to the ecdsa::PublicKey so that the offchain worker can read the keys from
         // storage at the time of signing.
 
-        // read the secret seed from the config file
+        // read the config file
         let config = read_config_from_file(DEFAULT_DEV_PATH_BUF)
             .expect("Failed to read chainspec config file");
         let ecdsa_signer_seed = config.chain_spec.offchain_signer_secret_seed;
 
         // insert the secret key into the keystore
-        sp_keystore::SyncCryptoStore::ecdsa_generate_new(
-            &*keystore,
-            ferrum_primitives::OFFCHAIN_SIGNER_KEY_TYPE,
-            Some(&ecdsa_signer_seed),
-        )
-        .expect("Invalid offchain_signer_secret_seed, unable to generate keys!");
+        // sp_keystore::SyncCryptoStore::ecdsa_generate_new(
+        //     &*keystore,
+        //     ferrum_primitives::OFFCHAIN_SIGNER_KEY_TYPE,
+        //     Some(&ecdsa_signer_seed),
+        // )
+        // .expect("Invalid offchain_signer_secret_seed, unable to generate keys!");
+
+        // Load the configs for the offchain worker to function properly, we read from the file and write to the offchain storage
+        offchain_storage.set(
+            b"OFFCHAIN_SIGNER_CONFIG",
+            b"network_config",
+            &bincode::serialize(&config.networks).unwrap(),
+        );
 
         // just a sanity check to make sure the keystore is populated correctly
         let ecdsa_keys: Vec<sp_core::ecdsa::Public> =

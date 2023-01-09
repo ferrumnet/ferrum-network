@@ -1848,6 +1848,7 @@ name = "ferrum-x-network"
 version = "0.0.1"
 dependencies = [
  "async-trait",
+ "bincode",
  "clap",
  "fc-cli",
  "fc-consensus",
@@ -4793,6 +4794,7 @@ dependencies = [
 name = "pallet-quantum-portal"
 version = "1.0.0-dev"
 dependencies = [
+ "array-bytes",
  "byte-slice-cast",
  "ethabi-nostd",
  "ethereum",

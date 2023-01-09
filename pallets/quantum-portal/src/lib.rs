@@ -18,7 +18,7 @@ pub mod pallet {
         chain_utils::{ChainRequestError, ChainUtils},
         contract_client::{ContractClient, ContractClientSignature},
         qp_types,
-        qp_types::{EIP712Config, QpNetworkItem},
+        qp_types::{EIP712Config, QpConfig, QpNetworkItem, Role},
         quantum_portal_client::QuantumPortalClient,
         quantum_portal_service::{PendingTransaction, QuantumPortalService},
     };
@@ -31,6 +31,9 @@ pub mod pallet {
         pallet_prelude::*,
     };
     use serde::{Deserialize, Deserializer};
+    use sp_runtime::offchain::storage::StorageValueRef;
+    use sp_runtime::offchain::storage_lock::StorageLock;
+    use sp_runtime::offchain::storage_lock::Time;
     use sp_runtime::RuntimeDebug;
     use sp_std::{prelude::*, str};
 
@@ -96,10 +99,6 @@ pub mod pallet {
     pub(super) type Numbers<T> = StorageValue<_, u64, ValueQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn qp_config_item)]
-    pub type QpConfigItem<T> = StorageValue<_, qp_types::QpConfig, ValueQuery>;
-
-    #[pallet::storage]
     #[pallet::getter(fn pending_transactions)]
     pub(super) type PendingTransactions<T: Config> =
         StorageMap<_, Identity, u64, PendingTransaction, ValueQuery>;
@@ -113,12 +112,6 @@ pub mod pallet {
     // Errors inform users that something went wrong.
     #[pallet::error]
     pub enum Error<T> {}
-
-    #[pallet::genesis_config]
-    #[derive(Default)]
-    pub struct GenesisConfig {
-        pub networks: qp_types::QpConfig,
-    }
 
     /// Error which may occur while executing the off-chain code.
     #[cfg_attr(test, derive(PartialEq))]
@@ -137,14 +130,6 @@ pub mod pallet {
     }
 
     pub type OffchainResult<A> = Result<A, OffchainErr>;
-
-    #[cfg(feature = "std")]
-    #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig {
-        fn build(&self) {
-            <QpConfigItem<T>>::put(self.networks.clone());
-        }
-    }
 
     impl<T: Config> Pallet<T> {
         pub fn configure_network(
@@ -203,16 +188,45 @@ pub mod pallet {
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn offchain_worker(block_number: T::BlockNumber) {
             log::info!("OffchainWorker : Start Execution");
-            let qp_config_item = <QpConfigItem<T>>::get();
-            let now = block_number.try_into().map_or(0_u64, |f| f);
-            log::info!("Current block: {:?}", block_number);
-            if let Err(e) = Self::test_qp(now, qp_config_item) {
-                log::warn!(
-                    "Offchain worker failed to execute at block {:?} with error : {:?}",
-                    now,
-                    e,
-                )
+            log::info!("Reading configuration from storage");
+
+            let mut lock = StorageLock::<Time>::new(b"OffchainStorageLock");
+            {
+                if let Ok(_guard) = lock.try_lock() {
+                    let network_config = StorageValueRef::persistent(b"network_config");
+                    let decoded_config = network_config.get::<QpConfig>();
+
+                    if let Err(e) = decoded_config {
+                        log::info!("Error reading configuration, exiting offchain worker");
+                        return;
+                    }
+
+                    if let Ok(None) = decoded_config {
+                        log::info!("Configuration not found, exiting offchain worker");
+                        return;
+                    }
+
+                    if let Ok(Some(config)) = decoded_config {
+                        let expected_role = config.role.clone();
+
+                        if expected_role == Role::None {
+                            log::info!("Not a miner or finalizer, exiting offchain worker");
+                            return;
+                        }
+
+                        let now = block_number.try_into().map_or(0_u64, |f| f);
+                        log::info!("Current block: {:?}", block_number);
+                        if let Err(e) = Self::test_qp(now, config) {
+                            log::warn!(
+                                "Offchain worker failed to execute at block {:?} with error : {:?}",
+                                now,
+                                e,
+                            )
+                        }
+                    }
+                }
             }
+
             log::info!("OffchainWorker : End Execution");
         }
     }

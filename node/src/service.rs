@@ -26,6 +26,7 @@ use fc_rpc::{EthTask, OverrideHandle};
 use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
 // Runtime
 use crate::config::Config;
+use ferrum_primitives::{OFFCHAIN_SIGNER_CONFIG_KEY, OFFCHAIN_SIGNER_CONFIG_PREFIX};
 use ferrum_x_runtime::{opaque::Block, RuntimeApi};
 
 use crate::cli::Cli;
@@ -197,8 +198,8 @@ pub fn new_partial(
 
         // Load the configs for the offchain worker to function properly, we read from the file and write to the offchain storage
         offchain_storage.set(
-            b"OFFCHAIN_SIGNER_CONFIG",
-            b"network_config",
+            OFFCHAIN_SIGNER_CONFIG_PREFIX,
+            OFFCHAIN_SIGNER_CONFIG_KEY,
             &bincode::serialize(&config.networks).unwrap(),
         );
 

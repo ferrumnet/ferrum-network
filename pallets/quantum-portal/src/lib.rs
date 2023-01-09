@@ -23,6 +23,7 @@ pub mod pallet {
         quantum_portal_service::{PendingTransaction, QuantumPortalService},
     };
     use core::convert::TryInto;
+    use ferrum_primitives::{OFFCHAIN_SIGNER_CONFIG_KEY, OFFCHAIN_SIGNER_CONFIG_PREFIX};
     use frame_support::pallet_prelude::*;
     use frame_support::traits::Randomness;
     use frame_support::traits::UnixTime;
@@ -190,10 +191,10 @@ pub mod pallet {
             log::info!("OffchainWorker : Start Execution");
             log::info!("Reading configuration from storage");
 
-            let mut lock = StorageLock::<Time>::new(b"OffchainStorageLock");
+            let mut lock = StorageLock::<Time>::new(OFFCHAIN_SIGNER_CONFIG_PREFIX);
             {
                 if let Ok(_guard) = lock.try_lock() {
-                    let network_config = StorageValueRef::persistent(b"network_config");
+                    let network_config = StorageValueRef::persistent(OFFCHAIN_SIGNER_CONFIG_KEY);
                     let decoded_config = network_config.get::<QpConfig>();
 
                     if let Err(e) = decoded_config {

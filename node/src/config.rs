@@ -6,22 +6,7 @@ use pallet_quantum_portal::qp_types::{EIP712Config, QpConfig, QpNetworkItem, Rol
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
-    pub chain_spec: ChinSpecConfig,
     pub networks: NetworkConfig,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct ChinSpecConfig {
-    /// Secret seed for initial authorities [aura, grandpa]
-    pub initial_authourity_seed_list: Vec<String>,
-    /// AccountId of the Sudo authority
-    pub root_seed: String,
-    /// List of AccountId to populate balances in genesis block
-    pub endowed_accounts_seed_list: Vec<String>,
-    /// List of AccountIds for EVM configuration
-    pub address_list: Vec<String>,
-    /// Secret seed for offchain signer key
-    pub offchain_signer_secret_seed: String,
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
@@ -53,6 +38,7 @@ pub struct NetworkConfig {
     #[serde(with = "serde_bytes")]
     pub authority_manager_contract_address: Vec<u8>,
     /// The role of this node
+    #[serde(with = "serde_bytes")]
     pub role: Vec<u8>,
 }
 

@@ -21,9 +21,6 @@ use crate::{
     config::{convert, Config, NetworkConfig},
 };
 
-const DEFAULT_DEV_PATH_BUF: &str = "./default_dev_config.json";
-const DEFAULT_LOCAL_TESTNET_PATH_BUF: &str = "./default_dev_config.json";
-
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
 
@@ -50,64 +47,8 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
     (get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
 }
 
-pub fn config_path_buf(cli: &Cli, dev: bool) -> PathBuf {
-    if let Some(local_path_buf) = cli.run.config_file_path.clone() {
-        local_path_buf
-    } else if dev {
-        PathBuf::from(DEFAULT_DEV_PATH_BUF)
-    } else {
-        PathBuf::from(DEFAULT_LOCAL_TESTNET_PATH_BUF)
-    }
-}
-
-pub fn config_elem(cli: &Cli, dev: bool) -> Result<Config, String> {
-    let path_buf = config_path_buf(cli, dev);
-
-    crate::config::read_config_from_file(path_buf)
-}
-
-pub fn chainspec_params(
-    config_elem: Config,
-) -> Result<
-    (
-        Vec<(AuraId, GrandpaId)>,
-        AccountId,
-        Vec<AccountId>,
-        Vec<String>,
-    ),
-    String,
-> {
-    let chain_spec_config = config_elem.chain_spec;
-    let address_list = chain_spec_config.address_list.clone();
-    let initial_authoutities: Vec<_> = chain_spec_config
-        .initial_authourity_seed_list
-        .into_iter()
-        .map(|seed| authority_keys_from_seed(&seed))
-        .collect();
-    let root_key = AccountId::from_str(chain_spec_config.root_seed.as_str()).unwrap();
-    let endowed_accounts: Vec<AccountId> = chain_spec_config
-        .endowed_accounts_seed_list
-        .into_iter()
-        .map(|_seed| AccountId::from_str(chain_spec_config.root_seed.as_str()).unwrap())
-        .collect();
-
-    Ok((
-        initial_authoutities,
-        root_key,
-        endowed_accounts,
-        address_list,
-    ))
-}
-
 pub fn development_config(cli: &Cli) -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
-
-    let config_elem = config_elem(cli, true)?;
-
-    let networks = config_elem.networks.clone();
-
-    let (initial_authoutities, root_key, endowed_accounts, address_list) =
-        chainspec_params(config_elem)?;
 
     Ok(ChainSpec::from_genesis(
         // Name
@@ -119,13 +60,15 @@ pub fn development_config(cli: &Cli) -> Result<ChainSpec, String> {
             testnet_genesis(
                 wasm_binary,
                 // Initial PoA authorities
-                initial_authoutities.clone(),
+                vec![
+                    authority_keys_from_seed("Alice"),
+                    authority_keys_from_seed("Bob"),
+                ],
                 // Sudo account
-                root_key,
+                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
                 // Pre-funded accounts
-                endowed_accounts.clone(),
-                address_list.clone(),
-                networks.clone(),
+                vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
+                vec![],
                 true,
             )
         },
@@ -145,14 +88,6 @@ pub fn development_config(cli: &Cli) -> Result<ChainSpec, String> {
 
 pub fn local_testnet_config(cli: &Cli) -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
-
-    let config_elem = config_elem(cli, false)?;
-
-    let networks = config_elem.networks.clone();
-
-    let (initial_authoutities, root_key, endowed_accounts, address_list) =
-        chainspec_params(config_elem)?;
-
     Ok(ChainSpec::from_genesis(
         // Name
         "Ferrum X Local Testnet",
@@ -171,8 +106,7 @@ pub fn local_testnet_config(cli: &Cli) -> Result<ChainSpec, String> {
                 AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
                 // Pre-funded accounts
                 vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
-                address_list.clone(),
-                networks.clone(),
+                vec![],
                 true,
             )
         },
@@ -197,7 +131,6 @@ fn testnet_genesis(
     root_key: AccountId,
     endowed_accounts: Vec<AccountId>,
     address_list: Vec<String>,
-    networks: NetworkConfig,
     _enable_println: bool,
 ) -> GenesisConfig {
     GenesisConfig {

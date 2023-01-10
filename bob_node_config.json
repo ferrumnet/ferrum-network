@@ -1,11 +1,4 @@
 {
-    "chain_spec": {
-        "initial_authourity_seed_list": ["Alice", "Bob"],
-        "root_seed": "e04cc55ebee1cbce552f250e85c57b70b2e2625b",
-        "endowed_accounts_seed_list": ["e04cc55ebee1cbce552f250e85c57b70b2e2625b"],
-        "address_list": ["d43593c715fdd31c61141abd04a99fd6822c8558", "6be02d1d3665660d22ff9624b7be0551ee1ac91b", "0bdb79846e8331a19a65430363f240ec8acc2a52","467502ef1c444f98349dacdf0223ccb5e2019f36"], 
-        "offchain_signer_secret_seed" : "//Bob"
-    },
     "networks": {
         "network_vec": [{
             "url": "https://rpc-mumbai.maticvigil.com/",
@@ -21,6 +14,7 @@
         "signer_public_key": "0390084fdbf27d2b79d26a4f13f0ccd982cb755a661969143c37cbc49ef5b91f27",
         "authority_manager_contract_name" : "FERRUM_QUANTUM_PORTAL_AUTHORITY_MGR",
         "authority_manager_contract_version" : "000.010",
-        "authority_manager_contract_address" : "7cD4f4B67A2cB13f46E70b37F79da1942572029E"
+        "authority_manager_contract_address" : "7cD4f4B67A2cB13f46E70b37F79da1942572029E",
+        "role" : "QP_MINER"
     }
 }

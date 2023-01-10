@@ -25,21 +25,13 @@ use fc_mapping_sync::{MappingSyncWorker, SyncStrategy};
 use fc_rpc::{EthTask, OverrideHandle};
 use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
 // Runtime
-use crate::config::Config;
+use crate::config::{read_config_from_file, Config};
 use ferrum_primitives::{OFFCHAIN_SIGNER_CONFIG_KEY, OFFCHAIN_SIGNER_CONFIG_PREFIX};
 use ferrum_x_runtime::{opaque::Block, RuntimeApi};
 
 use crate::cli::Cli;
 #[cfg(feature = "manual-seal")]
 use crate::cli::Sealing;
-
-const DEFAULT_DEV_PATH_BUF: &str = "./default_dev_config.json";
-
-// read configuration file and return Config
-pub fn read_config_from_file(path: &str) -> Result<Config, String> {
-    let path_buf = PathBuf::from(path);
-    crate::config::read_config_from_file(path_buf)
-}
 
 // Our native executor instance.
 pub struct ExecutorDispatch;
@@ -173,35 +165,24 @@ pub fn new_partial(
 
     let keystore = keystore_container.sync_keystore();
 
-    let mut offchain_storage = backend.offchain_storage().unwrap();
-
     if config.offchain_worker.enabled {
-        // We will try to insert the keys for offchain signer to work
-        // Try to read the secret seed from the config file and then insert into keystore
-        // We have to do this here since we use the compressed AccountId20 as a PublicKey but require
-        // the full ecdsa::PublicKey to generate signatures, so this code will store the secret
-        // key mapped to the ecdsa::PublicKey so that the offchain worker can read the keys from
-        // storage at the time of signing.
+        // only load the config if the config file path is provided from cli
+        if let Some(local_path_buf) = cli.run.config_file_path.clone() {
+            let mut offchain_storage = backend.offchain_storage().unwrap();
 
-        // read the config file
-        let config = read_config_from_file(DEFAULT_DEV_PATH_BUF)
-            .expect("Failed to read chainspec config file");
-        let ecdsa_signer_seed = config.chain_spec.offchain_signer_secret_seed;
+            // read the config file
+            let config = read_config_from_file(local_path_buf)
+                .expect("Failed to read chainspec config file");
 
-        // insert the secret key into the keystore
-        // sp_keystore::SyncCryptoStore::ecdsa_generate_new(
-        //     &*keystore,
-        //     ferrum_primitives::OFFCHAIN_SIGNER_KEY_TYPE,
-        //     Some(&ecdsa_signer_seed),
-        // )
-        // .expect("Invalid offchain_signer_secret_seed, unable to generate keys!");
+            // Load the configs for the offchain worker to function properly, we read from the file and write to the offchain storage
+            offchain_storage.set(
+                OFFCHAIN_SIGNER_CONFIG_PREFIX,
+                OFFCHAIN_SIGNER_CONFIG_KEY,
+                &bincode::serialize(&config.networks).unwrap(),
+            );
 
-        // Load the configs for the offchain worker to function properly, we read from the file and write to the offchain storage
-        offchain_storage.set(
-            OFFCHAIN_SIGNER_CONFIG_PREFIX,
-            OFFCHAIN_SIGNER_CONFIG_KEY,
-            &bincode::serialize(&config.networks).unwrap(),
-        );
+            println!("QP Configs loaded to offchain storage");
+        }
 
         // just a sanity check to make sure the keystore is populated correctly
         let ecdsa_keys: Vec<sp_core::ecdsa::Public> =

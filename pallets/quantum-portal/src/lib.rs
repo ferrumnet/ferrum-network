@@ -175,7 +175,11 @@ pub mod pallet {
                 .pair_vec
                 .into_iter()
                 .map(|(remote_chain, local_chain)| {
-                    let proces_pair_res = svc.process_pair_with_lock(remote_chain, local_chain);
+                    let proces_pair_res = svc.process_pair_with_lock(
+                        remote_chain,
+                        local_chain,
+                        qp_config_item.role.clone(),
+                    );
                     if let Err(e) = proces_pair_res {
                         log::warn!("Error : {:?}", e,)
                     }

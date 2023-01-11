@@ -2,7 +2,7 @@ use std::{fs::File, io::BufReader, path::Path};
 
 use serde::Deserialize;
 
-use pallet_quantum_portal::qp_types::{QpConfig, QpNetworkItem};
+use pallet_quantum_portal::qp_types::{EIP712Config, QpConfig, QpNetworkItem};
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
@@ -32,20 +32,21 @@ pub struct NetworkItem {
     /// The ledger_manager contract address for this network
     #[serde(with = "serde_bytes")]
     pub ledger_manager: Vec<u8>,
-    /// The authority_mananger contract address for this network
-    #[serde(with = "serde_bytes")]
-    pub authority_manager: Vec<u8>,
-    // The public key for the signer account
-    #[serde(with = "serde_bytes")]
-    pub signer_public_key: Vec<u8>,
     /// The ChainId for this network
     pub id: u64,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct NetworkConfig {
+    // The NetworkItem data structure
     network_vec: Vec<NetworkItem>,
+    // The pair of ChainIds to mine
     pair_vec: Vec<(u64, u64)>,
+    // The public key for the signer account
+    #[serde(with = "serde_bytes")]
+    pub signer_public_key: Vec<u8>,
+    // EIP712 config
+    pub eip_712_config: EIP712Config,
 }
 
 pub fn convert(network_config: NetworkConfig) -> QpConfig {
@@ -56,12 +57,12 @@ pub fn convert(network_config: NetworkConfig) -> QpConfig {
             .map(|network_item| QpNetworkItem {
                 url: network_item.url,
                 ledger_manager: network_item.ledger_manager,
-                authority_manager: network_item.authority_manager,
-                signer_public_key: network_item.signer_public_key,
                 id: network_item.id,
             })
             .collect(),
         pair_vec: network_config.pair_vec,
+        signer_public_key: network_config.signer_public_key,
+        eip_712_config: network_config.eip_712_config,
     }
 }
 
@@ -71,8 +72,8 @@ pub fn read_config_from_file<P: AsRef<Path>>(path: P) -> Result<Config, String> 
             let reader = BufReader::new(file);
 
             match serde_json::from_reader(reader) {
-                Ok(config) => return Ok(config),
-                Err(err) => return Err(err.to_string()),
+                Ok(config) => Ok(config),
+                Err(err) => Err(err.to_string()),
             }
         }
         Err(err) => Err(err.to_string()),

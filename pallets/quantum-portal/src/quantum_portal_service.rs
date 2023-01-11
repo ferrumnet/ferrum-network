@@ -8,7 +8,7 @@ use frame_support::codec::{Decode, Encode};
 use parity_scale_codec::MaxEncodedLen;
 use sp_core::H256;
 use sp_runtime::offchain::storage::StorageValueRef;
-use sp_std::{prelude::*, str};
+use sp_std::{marker::PhantomData, prelude::*, str};
 
 const TIMEOUT: u64 = 3600 * 1000;
 
@@ -27,15 +27,15 @@ impl Default for PendingTransaction {
 }
 
 pub struct QuantumPortalService<T: Config> {
-    pub clients: Vec<QuantumPortalClient>,
-    _config: Option<T>, // To allow compilation. Not sued
+    pub clients: Vec<QuantumPortalClient<T>>,
+    _phantom: PhantomData<T>,
 }
 
 impl<T: Config> QuantumPortalService<T> {
-    pub fn new(clients: Vec<QuantumPortalClient>) -> Self {
+    pub fn new(clients: Vec<QuantumPortalClient<T>>) -> Self {
         QuantumPortalService {
             clients,
-            _config: None,
+            _phantom: Default::default(),
         }
     }
 
@@ -99,7 +99,7 @@ impl<T: Config> QuantumPortalService<T> {
         let recent_time = self.clients.get(0).unwrap().now - 10000;
         let old_time = recent_time - 30 * 3600 * 1000;
         let ip = self.is_tx_pending(&PendingTransaction::FinalizeTransaction(
-            4 as u64,
+            4_u64,
             recent_time,
             H256::from_slice(
                 ChainUtils::hex_to_bytes(
@@ -111,7 +111,7 @@ impl<T: Config> QuantumPortalService<T> {
         ))?;
         log::info!("Non existing recent tx is pending? {}", ip);
         let ip = self.is_tx_pending(&PendingTransaction::FinalizeTransaction(
-            4 as u64,
+            4_u64,
             old_time,
             H256::from_slice(
                 ChainUtils::hex_to_bytes(
@@ -123,7 +123,7 @@ impl<T: Config> QuantumPortalService<T> {
         ))?;
         log::info!("Non existing [TIEMD OUT] recent tx is pending? {}", ip);
         let ip = self.is_tx_pending(&PendingTransaction::FinalizeTransaction(
-            4 as u64,
+            4_u64,
             old_time,
             H256::from_slice(
                 ChainUtils::hex_to_bytes(
@@ -146,15 +146,17 @@ impl<T: Config> QuantumPortalService<T> {
 
         log::info!("process_pair: {} -> {}", remote_chain, local_chain);
         let live_txs = self.pending_transactions(local_chain)?; // TODO: Consider having separate config per pair
-        if live_txs.len() > 0 {
+        if !live_txs.is_empty() {
             log::info!(
                 "There are already {} pending transactions. Ignoring this round",
                 live_txs.len()
             );
             return Ok(());
         }
-        let local_client: &QuantumPortalClient = &self.clients[self.find_client_idx(local_chain)];
-        let remote_client: &QuantumPortalClient = &self.clients[self.find_client_idx(remote_chain)];
+        let local_client: &QuantumPortalClient<T> =
+            &self.clients[self.find_client_idx(local_chain)];
+        let remote_client: &QuantumPortalClient<T> =
+            &self.clients[self.find_client_idx(remote_chain)];
         log::info!(
             "Clients: {} <> {} :: {} <> {}",
             local_client.block_number,
@@ -251,11 +253,11 @@ impl<T: Config> QuantumPortalService<T> {
         let (chain_id1, _chain_id2, timestamp, tx_id) = match t {
             PendingTransaction::MineTransaction(c1, c2, timestamp, tid) => (c1, c2, timestamp, tid),
             PendingTransaction::FinalizeTransaction(c, timestamp, tid) => {
-                (c, &(0 as u64), timestamp, tid)
+                (c, &0_u64, timestamp, tid)
             }
             PendingTransaction::None => panic!("tx is none"),
         };
-        let client = &self.clients[self.find_client_idx(chain_id1.clone())];
+        let client = &self.clients[self.find_client_idx(*chain_id1)];
 
         log::info!(
             "is_tx_pending {}::{:?} ({}) [Current time {}]",
@@ -309,17 +311,16 @@ impl<T: Config> QuantumPortalService<T> {
 
     fn find_client_idx(&self, chain_id: u64) -> usize {
         let c = self.clients.as_slice();
-        c.into_iter()
+        c.iter()
             .position(|c| c.contract.chain_id == chain_id)
             .unwrap()
     }
 
     fn storage_key_for_tx(tx: &PendingTransaction) -> u64 {
-        match tx {
+        *match tx {
             PendingTransaction::MineTransaction(c, _, _, _) => c,
             PendingTransaction::FinalizeTransaction(c, _, _) => c,
             PendingTransaction::None => panic!("tx is none. Cannot save"),
         }
-        .clone()
     }
 }

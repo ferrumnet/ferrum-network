@@ -5,6 +5,7 @@ pub use pallet::*;
 mod chain_queries;
 mod chain_utils;
 mod contract_client;
+mod eip_712_utils;
 mod erc_20_client;
 pub mod qp_types;
 mod quantum_portal_client;
@@ -17,20 +18,20 @@ pub mod pallet {
         chain_utils::ChainUtils,
         contract_client::{ContractClient, ContractClientSignature},
         qp_types,
-        qp_types::QpNetworkItem,
+        qp_types::{EIP712Config, QpNetworkItem},
         quantum_portal_client::QuantumPortalClient,
         quantum_portal_service::{PendingTransaction, QuantumPortalService},
     };
     use core::convert::TryInto;
     use frame_support::pallet_prelude::*;
-    use frame_support::traits::OneSessionHandler;
+    use frame_support::traits::Randomness;
+    use frame_support::traits::UnixTime;
     use frame_system::{
-        offchain::{AppCrypto, SignedPayload, Signer, SigningTypes},
+        offchain::{SignedPayload, SigningTypes},
         pallet_prelude::*,
     };
     use serde::{Deserialize, Deserializer};
-    use sp_core::crypto::KeyTypeId;
-    use sp_runtime::{traits::BlockNumberProvider, RuntimeAppPublic, RuntimeDebug};
+    use sp_runtime::RuntimeDebug;
     use sp_std::{prelude::*, str};
 
     #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
@@ -75,6 +76,10 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// The overarching dispatch call type.
         type RuntimeCall: From<frame_system::Call<Self>>;
+        /// Randomeness generator for the runtime
+        type PalletRandomness: Randomness<Self::Hash, Self::BlockNumber>;
+        /// Onchain timestamp for the runtime
+        type Timestamp: UnixTime;
     }
 
     #[pallet::pallet]
@@ -129,19 +134,12 @@ pub mod pallet {
     }
 
     #[pallet::genesis_config]
+    #[derive(Default)]
     pub struct GenesisConfig {
         pub networks: qp_types::QpConfig,
     }
 
     #[cfg(feature = "std")]
-    impl Default for GenesisConfig {
-        fn default() -> Self {
-            Self {
-                networks: qp_types::QpConfig::default(),
-            }
-        }
-    }
-
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
@@ -153,11 +151,13 @@ pub mod pallet {
         pub fn configure_network(
             block_number: u64,
             network_item: QpNetworkItem,
-        ) -> QuantumPortalClient {
+            signer_public_key: Vec<u8>,
+            eip_712_config: EIP712Config,
+        ) -> QuantumPortalClient<T> {
             let rpc_endpoint = network_item.url;
             let id = network_item.id;
 
-            let signer = ChainUtils::hex_to_ecdsa_pub_key(&network_item.signer_public_key[..]);
+            let signer = ChainUtils::hex_to_ecdsa_pub_key(&signer_public_key[..]);
             let lgr_mgr = ChainUtils::hex_to_address(&network_item.ledger_manager[..]);
             let client = ContractClient::new(rpc_endpoint, &lgr_mgr, id);
             QuantumPortalClient::new(
@@ -165,6 +165,7 @@ pub mod pallet {
                 ContractClientSignature::from(signer),
                 sp_io::offchain::timestamp().unix_millis(),
                 block_number,
+                eip_712_config,
             )
         }
 
@@ -172,7 +173,14 @@ pub mod pallet {
             let client_vec: Vec<_> = qp_config_item
                 .network_vec
                 .into_iter()
-                .map(|item| Self::configure_network(block_number, item))
+                .map(|item| {
+                    Self::configure_network(
+                        block_number,
+                        item,
+                        qp_config_item.signer_public_key.clone(),
+                        qp_config_item.eip_712_config.clone(),
+                    )
+                })
                 .collect();
             let svc = QuantumPortalService::<T>::new(client_vec);
             let _res: Vec<_> = qp_config_item
@@ -191,7 +199,7 @@ pub mod pallet {
         fn offchain_worker(block_number: T::BlockNumber) {
             log::info!("Hello from pallet-ocw.");
             let qp_config_item = <QpConfigItem<T>>::get();
-            let bno = block_number.try_into().map_or(0 as u64, |f| f);
+            let bno = block_number.try_into().map_or(0_u64, |f| f);
             Self::test_qp(bno, qp_config_item);
         }
     }

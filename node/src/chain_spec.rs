@@ -6,19 +6,14 @@ use ferrum_x_runtime::{
     EthereumConfig,
     GenesisConfig,
     GrandpaConfig,
-    Signature,
     SudoConfig,
     SystemConfig,
     WASM_BINARY, //QuantumPortalConfig
 };
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::{sr25519, Pair, Public, H160, U256};
+use sp_core::{Pair, Public, H160, U256};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
-use sp_runtime::{
-    traits::{IdentifyAccount, Verify},
-    AccountId32,
-};
 use std::{collections::BTreeMap, path::PathBuf, str::FromStr};
 
 use crate::{
@@ -37,20 +32,18 @@ pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
 
 /// Generate a crypto pair from seed.
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
-    TPublic::Pair::from_string(&format!("//{}", seed), None)
+    TPublic::Pair::from_string(&format!("//{seed}"), None)
         .expect("static values are valid; qed")
         .public()
 }
 
-type AccountPublic = <Signature as Verify>::Signer;
-
-/// Generate an account ID from seed.
-pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
-where
-    AccountPublic: From<<TPublic::Pair as Pair>::Public>,
-{
-    AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
-}
+// /// Generate an account ID from seed.
+// pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
+// where
+//     AccountPublic: From<<TPublic::Pair as Pair>::Public>,
+// {
+//     AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
+// }
 
 /// Generate an Aura authority key.
 pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
@@ -95,7 +88,7 @@ pub fn chainspec_params(
     let endowed_accounts: Vec<AccountId> = chain_spec_config
         .endowed_accounts_seed_list
         .into_iter()
-        .map(|seed| AccountId::from_str(chain_spec_config.root_seed.as_str()).unwrap())
+        .map(|_seed| AccountId::from_str(chain_spec_config.root_seed.as_str()).unwrap())
         .collect();
 
     Ok((
@@ -128,7 +121,7 @@ pub fn development_config(cli: &Cli) -> Result<ChainSpec, String> {
                 // Initial PoA authorities
                 initial_authoutities.clone(),
                 // Sudo account
-                root_key.clone(),
+                root_key,
                 // Pre-funded accounts
                 endowed_accounts.clone(),
                 address_list.clone(),
@@ -172,7 +165,7 @@ pub fn local_testnet_config(cli: &Cli) -> Result<ChainSpec, String> {
                 // Initial PoA authorities
                 initial_authoutities.clone(),
                 // Sudo account
-                root_key.clone(),
+                root_key,
                 // Pre-funded accounts
                 endowed_accounts.clone(),
                 address_list.clone(),

@@ -1,16 +1,13 @@
 use crate::{
     chain_queries::{fetch_json_rpc, CallResponse, JsonRpcRequest},
     chain_utils::{ChainRequestError, ChainUtils, JsonSer},
-    Config,
 };
 use ethabi_nostd::{encoder, Address, Token};
 use ethereum::{LegacyTransaction, TransactionAction};
 use ferrum_primitives::OFFCHAIN_SIGNER_KEY_TYPE;
-use frame_system::offchain::{ForAny, SignMessage, Signer};
 use parity_scale_codec::Encode;
 use rlp::Encodable;
 use serde::Deserialize;
-use sp_core::offchain::KeyTypeId;
 use sp_core::{ecdsa, H160, H256, U256};
 use sp_io::crypto;
 use sp_std::{
@@ -63,7 +60,7 @@ impl From<ecdsa::Public> for ContractClientSignature {
     fn from(signer: ecdsa::Public) -> Self {
         log::info!("PUBLIC KEY {:?}", signer);
         let addr = ChainUtils::eth_address_from_public_key(&signer.0);
-        let from = Address::from(H160::from_slice(addr.as_slice()));
+        let from = H160::from_slice(addr.as_slice());
 
         ContractClientSignature {
             _signer: signer,
@@ -76,7 +73,7 @@ impl ContractClient {
     pub fn new(http_api: Vec<u8>, contract_address: &Address, chain_id: u64) -> Self {
         ContractClient {
             http_api,
-            contract_address: contract_address.clone(),
+            contract_address: *contract_address,
             chain_id,
         }
     }
@@ -139,7 +136,7 @@ impl ContractClient {
         signing: &ContractClientSignature,
     ) -> Result<H256, ChainRequestError> {
         let encoded_bytes = encoder::encode_function_u8(method_signature, inputs);
-        let encoded_bytes_0x = ChainUtils::bytes_to_hex(&encoded_bytes.as_slice());
+        let encoded_bytes_0x = ChainUtils::bytes_to_hex(encoded_bytes.as_slice());
         let encoded_bytes_slice = encoded_bytes_0x.as_slice();
         let encoded_bytes_slice = ChainUtils::hex_add_0x(encoded_bytes_slice);
 
@@ -154,8 +151,8 @@ impl ContractClient {
         let gas_price_val = match gas_price {
             None => self
                 .gas_price()?
-                .mul(U256::from(125 as u32))
-                .div(U256::from(100 as u32)),
+                .mul(U256::from(125_u32))
+                .div(U256::from(100_u32)),
             Some(v) => v,
         };
         let mut tx = LegacyTransaction {
@@ -214,7 +211,7 @@ impl ContractClient {
         let http_api = str::from_utf8(&self.http_api[..]).unwrap();
         let rv: Box<CallResponse> = fetch_json_rpc(http_api, &req)?;
         let gp = ChainUtils::hex_to_u256(rv.result.as_slice())?;
-        Ok(U256::from(gp))
+        Ok(gp)
     }
 
     pub fn estimate_gas(
@@ -253,6 +250,6 @@ impl ContractClient {
         let http_api = str::from_utf8(&self.http_api[..]).unwrap();
         let rv: Box<CallResponse> = fetch_json_rpc(http_api, &req)?;
         let gp = ChainUtils::hex_to_u256(rv.result.as_slice())?;
-        Ok(U256::from(gp))
+        Ok(gp)
     }
 }

@@ -15,7 +15,7 @@ pub mod quantum_portal_service;
 pub mod pallet {
     //! A demonstration of an offchain worker that sends onchain callbacks
     use crate::{
-        chain_utils::ChainUtils,
+        chain_utils::{ChainRequestError, ChainUtils},
         contract_client::{ContractClient, ContractClientSignature},
         qp_types,
         qp_types::{EIP712Config, QpNetworkItem},
@@ -112,32 +112,31 @@ pub mod pallet {
 
     // Errors inform users that something went wrong.
     #[pallet::error]
-    pub enum Error<T> {
-        // Error returned when not sure which ocw function to executed
-        UnknownOffchainMux,
-
-        // Error returned when making signed transactions in off-chain worker
-        NoLocalAcctForSigning,
-        OffchainSignedTxError,
-
-        // Error returned when making unsigned transactions in off-chain worker
-        OffchainUnsignedTxError,
-
-        // Error returned when making unsigned transactions with signed payloads in off-chain
-        // worker
-        OffchainUnsignedTxSignedPayloadError,
-
-        // Error returned when fetching github info
-        HttpFetchingError,
-        DeserializeToObjError,
-        DeserializeToStrError,
-    }
+    pub enum Error<T> {}
 
     #[pallet::genesis_config]
     #[derive(Default)]
     pub struct GenesisConfig {
         pub networks: qp_types::QpConfig,
     }
+
+    /// Error which may occur while executing the off-chain code.
+    #[cfg_attr(test, derive(PartialEq))]
+    pub enum OffchainErr {
+        RPCError(ChainRequestError),
+        FailedSigning,
+    }
+
+    impl sp_std::fmt::Debug for OffchainErr {
+        fn fmt(&self, fmt: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+            match *self {
+                OffchainErr::FailedSigning => write!(fmt, "Unable to sign transaction"),
+                OffchainErr::RPCError(ref error) => write!(fmt, "RPC error : {:?}", error),
+            }
+        }
+    }
+
+    pub type OffchainResult<A> = Result<A, OffchainErr>;
 
     #[cfg(feature = "std")]
     #[pallet::genesis_build]
@@ -169,7 +168,10 @@ pub mod pallet {
             )
         }
 
-        pub fn test_qp(block_number: u64, qp_config_item: qp_types::QpConfig) {
+        pub fn test_qp(
+            block_number: u64,
+            qp_config_item: qp_types::QpConfig,
+        ) -> OffchainResult<()> {
             let client_vec: Vec<_> = qp_config_item
                 .network_vec
                 .into_iter()
@@ -187,20 +189,31 @@ pub mod pallet {
                 .pair_vec
                 .into_iter()
                 .map(|(remote_chain, local_chain)| {
-                    svc.process_pair_with_lock(remote_chain, local_chain)
-                        .unwrap()
+                    let proces_pair_res = svc.process_pair_with_lock(remote_chain, local_chain);
+                    if let Err(e) = proces_pair_res {
+                        log::warn!("Error : {:?}", e,)
+                    }
                 })
                 .collect();
+            Ok(())
         }
     }
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn offchain_worker(block_number: T::BlockNumber) {
-            log::info!("Hello from pallet-ocw.");
+            log::info!("OffchainWorker : Start Execution");
             let qp_config_item = <QpConfigItem<T>>::get();
-            let bno = block_number.try_into().map_or(0_u64, |f| f);
-            Self::test_qp(bno, qp_config_item);
+            let now = block_number.try_into().map_or(0_u64, |f| f);
+            log::info!("Current block: {:?}", block_number);
+            if let Err(e) = Self::test_qp(now, qp_config_item) {
+                log::warn!(
+                    "Offchain worker failed to execute at block {:?} with error : {:?}",
+                    now,
+                    e,
+                )
+            }
+            log::info!("OffchainWorker : End Execution");
         }
     }
 

@@ -1,6 +1,6 @@
 use crate::{
     chain_queries::{fetch_json_rpc, CallResponse, JsonRpcRequest},
-    chain_utils::{ChainRequestError, ChainUtils, JsonSer},
+    chain_utils::{ChainRequestError, ChainUtils, JsonSer, TransactionCreationError},
 };
 use ethabi_nostd::{encoder, Address, Token};
 use ethereum::{LegacyTransaction, TransactionAction};
@@ -37,16 +37,21 @@ impl ContractClientSignature {
         }
     }
 
-    pub fn signer(&self, hash: &H256) -> ecdsa::Signature {
+    pub fn signer(&self, hash: &H256) -> Result<ecdsa::Signature, TransactionCreationError> {
         // TODO : We should handle this properly, if the signing is not possible maybe propogate the error upstream
-        let signed: ecdsa::Signature =
-            crypto::ecdsa_sign_prehashed(OFFCHAIN_SIGNER_KEY_TYPE, &self._signer, &hash.0).unwrap();
-        let sig_bytes = signed.encode();
-        log::info!(
-            "Got a signature of size {}: {}",
-            sig_bytes.len(),
-            str::from_utf8(ChainUtils::bytes_to_hex(sig_bytes.as_slice()).as_slice()).unwrap()
-        );
+        let signed: Result<ecdsa::Signature, TransactionCreationError> =
+            crypto::ecdsa_sign_prehashed(OFFCHAIN_SIGNER_KEY_TYPE, &self._signer, &hash.0)
+                .ok_or(TransactionCreationError::SigningFailed);
+
+        if signed.is_ok() {
+            let sig_bytes = signed.as_ref().unwrap().encode();
+            log::info!(
+                "Got a signature of size {}: {}",
+                sig_bytes.len(),
+                str::from_utf8(ChainUtils::bytes_to_hex(sig_bytes.as_slice()).as_slice()).unwrap()
+            );
+        }
+
         signed
     }
 
@@ -165,7 +170,7 @@ impl ContractClient {
             signature: ChainUtils::empty_signature(),
         };
         let hash = ChainUtils::tx_hash_to_sign(&tx, self.chain_id);
-        let sig_bytes: ecdsa::Signature = signing.signer(&hash);
+        let sig_bytes: ecdsa::Signature = signing.signer(&hash)?;
         let sig = ChainUtils::decode_transaction_signature(&sig_bytes.0, self.chain_id)?;
         tx.signature = sig;
 

@@ -199,7 +199,9 @@ pub mod pallet {
             {
                 if let Ok(_guard) = lock.try_lock() {
                     let network_config = StorageValueRef::persistent(OFFCHAIN_SIGNER_CONFIG_KEY);
+                    //log::info!("Netweork config is {:?}", network_config);
                     let decoded_config = network_config.get::<QpConfig>();
+                    log::info!("Decoded config is {:?}", decoded_config);
 
                     if let Err(e) = decoded_config {
                         log::info!("Error reading configuration, exiting offchain worker");

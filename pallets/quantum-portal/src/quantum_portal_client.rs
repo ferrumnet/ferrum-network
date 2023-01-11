@@ -8,8 +8,6 @@ use crate::{
     Config,
 };
 use ethabi_nostd::{decoder::decode, ParamKind, Token};
-use frame_support::traits::Randomness;
-use frame_support::traits::UnixTime;
 use sp_core::{H256, U256};
 use sp_std::marker::PhantomData;
 use sp_std::prelude::*;
@@ -279,16 +277,17 @@ impl<T: Config> QuantumPortalClient<T> {
 
         let (block_details, _) = self.mined_block_by_nonce(remote_chain_id, block_nonce)?;
 
-        let method_signature = b"finalizeSingleSigner(uint256,uint256,bytes32,address[],bytes32,uint64,bytes)";
+        let method_signature =
+            b"finalizeSingleSigner(uint256,uint256,bytes32,address[],bytes32,uint64,bytes)";
 
         // generate randomness for salt
-        let (random_hash, _) = T::PalletRandomness::random_seed();
+        // let (random_hash, _) = T::PalletRandomness::random_seed();
 
         // let random_hash = ChainUtils::keccack(b"test1");
         // log::info!("random_hash {:?}", random_hash);
 
         let salt = Token::FixedBytes(block_details.block_hash.as_ref().to_vec());
-        let finalizer_hash = Token::FixedBytes(Vec::from(block_details.block_hash.as_ref().to_vec()));
+        let finalizer_hash = Token::FixedBytes(block_details.block_hash.as_ref().to_vec());
 
         let current_timestamp = block_details.block_metadata.timestamp;
         // expirt 1hr from now

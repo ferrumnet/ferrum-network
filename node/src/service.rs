@@ -19,15 +19,15 @@ use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_application_crypto::sp_core::offchain::{OffchainStorage, STORAGE_PREFIX};
 use sp_core::U256;
 // Frontier
+use codec::Encode;
 use fc_consensus::FrontierBlockImport;
 use fc_db::Backend as FrontierBackend;
 use fc_mapping_sync::{MappingSyncWorker, SyncStrategy};
 use fc_rpc::{EthTask, OverrideHandle};
 use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
-use codec::Encode;
 // Runtime
-use crate::config::{read_config_from_file, Config};
-use ferrum_primitives::{OFFCHAIN_SIGNER_CONFIG_KEY, OFFCHAIN_SIGNER_CONFIG_PREFIX};
+use crate::config::read_config_from_file;
+use ferrum_primitives::OFFCHAIN_SIGNER_CONFIG_KEY;
 use ferrum_x_runtime::{opaque::Block, RuntimeApi};
 
 use crate::cli::Cli;

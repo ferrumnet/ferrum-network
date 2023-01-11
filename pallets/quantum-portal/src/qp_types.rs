@@ -81,6 +81,7 @@ pub struct EIP712Config {
     pub verifying_address: Vec<u8>,
 }
 
+#[allow(non_camel_case_types)]
 #[derive(
     Clone,
     Eq,

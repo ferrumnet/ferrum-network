@@ -125,7 +125,7 @@ pub mod pallet {
         fn fmt(&self, fmt: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
             match *self {
                 OffchainErr::FailedSigning => write!(fmt, "Unable to sign transaction"),
-                OffchainErr::RPCError(ref error) => write!(fmt, "RPC error : {:?}", error),
+                OffchainErr::RPCError(ref error) => write!(fmt, "RPC error : {error:?}"),
             }
         }
     }
@@ -203,7 +203,7 @@ pub mod pallet {
                     let decoded_config = network_config.get::<QpConfig>();
                     log::info!("Decoded config is {:?}", decoded_config);
 
-                    if let Err(e) = decoded_config {
+                    if let Err(_e) = decoded_config {
                         log::info!("Error reading configuration, exiting offchain worker");
                         return;
                     }

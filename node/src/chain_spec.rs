@@ -14,12 +14,9 @@ use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{Pair, Public, H160, U256};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
-use std::{collections::BTreeMap, path::PathBuf, str::FromStr};
+use std::{collections::BTreeMap, str::FromStr};
 
-use crate::{
-    cli::Cli,
-    config::{convert, Config, NetworkConfig},
-};
+use crate::cli::Cli;
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -47,7 +44,7 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
     (get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
 }
 
-pub fn development_config(cli: &Cli) -> Result<ChainSpec, String> {
+pub fn development_config(_cli: &Cli) -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
     Ok(ChainSpec::from_genesis(
@@ -86,7 +83,7 @@ pub fn development_config(cli: &Cli) -> Result<ChainSpec, String> {
     ))
 }
 
-pub fn local_testnet_config(cli: &Cli) -> Result<ChainSpec, String> {
+pub fn local_testnet_config(_cli: &Cli) -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
     Ok(ChainSpec::from_genesis(
         // Name

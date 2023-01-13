@@ -6,6 +6,12 @@ FROM docker.io/paritytech/ci-linux:production as builder
 
 WORKDIR /ferrum-x-network
 COPY . .
+RUN apt-get update -y && \
+        apt-get install -y cmake curl llvm libudev-dev libgmp3-dev protobuf-compiler pkg-config libssl-dev git gcc build-essential clang libclang-dev
+
+# Install rust wasm. Needed for substrate wasm engine
+RUN rustup target add wasm32-unknown-unknown
+
 RUN cargo build --locked --release
 
 # This is the 2nd stage: a very small image where we copy the binary."

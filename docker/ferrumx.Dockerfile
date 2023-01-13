@@ -24,7 +24,7 @@ RUN useradd -m -u 1000 -U -s /bin/sh -d /node-dev node-dev && \
   # unclutter and minimize the attack surface
   rm -rf /usr/bin /usr/sbin && \
   # check if executable works in this container
-  /usr/local/bin/ferrum-x-network --version
+  /usr/local/bin/ferrum-x-network --help
 
 USER node-dev
 

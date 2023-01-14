@@ -1,286 +1,116 @@
-[build-dependencies.substrate-build-script-utils]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '3.0.0'
-
-[dependencies]
-sp-keyring = { version = "6.0.0", git = "https://github.com/paritytech/substrate", branch = "master" }
-frame-system = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "master" }
-pallet-transaction-payment = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "master" }
-codec = { package = "parity-scale-codec", version = "3.1.2", features = ["derive"] }
-async-trait = '0.1'
-futures = '0.3'
-jsonrpc-core = '18.0.0'
-jsonrpc-pubsub = '18.0.0'
-log = '0.4.8'
-libsecp256k1 = { version = "0.7.0", default-features = false, features = ['static-context'] }
-serde_json = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-serde_bytes = "0.11"
-pallet-quantum-portal = { path = "../pallets/quamtum-portal"}
-jsonrpsee = { version = "0.13.0", features = ["server", "macros"] }
-
-[dependencies.clap]
-features = ['derive']
-version = '3.0'
-
-[dependencies.fc-consensus]
-version = '2.0.0-dev'
-git = 'https://github.com/paritytech/frontier.git'
-# git = 'https://github.com/ferrumnet/frontier.git'
-# rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
-
-[dependencies.fc-db]
-version = "2.0.0-dev"
-git = 'https://github.com/paritytech/frontier.git'
-# git = 'https://github.com/ferrumnet/frontier.git'
-# rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
-
-[dependencies.fc-mapping-sync]
-version = "2.0.0-dev"
-git = 'https://github.com/paritytech/frontier.git'
-# git = 'https://github.com/ferrumnet/frontier.git'
-# rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
-
-[dependencies.fc-rpc]
-version = "2.0.0-dev"
-git = 'https://github.com/paritytech/frontier.git'
-# git = 'https://github.com/ferrumnet/frontier.git'
-# rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
-
-[dependencies.fc-rpc-core]
-version = '1.1.0-dev'
-git = 'https://github.com/paritytech/frontier.git'
-# git = 'https://github.com/ferrumnet/frontier.git'
-# rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
-
-[dependencies.fp-consensus]
-version = "2.0.0-dev"
-git = 'https://github.com/paritytech/frontier.git'
-# git = 'https://github.com/ferrumnet/frontier.git'
-# rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
-
-[dependencies.fp-rpc]
-version = "3.0.0-dev"
-git = 'https://github.com/paritytech/frontier.git'
-# git = 'https://github.com/ferrumnet/frontier.git'
-# rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
-
-[dependencies.fp-storage]
-version = "2.0.0"
-git = 'https://github.com/paritytech/frontier.git'
-# features = ["std"]
-# git = 'https://github.com/ferrumnet/frontier.git'
-# rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
-
-[dependencies.frame-benchmarking]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '4.0.0-dev'
-
-[dependencies.frame-benchmarking-cli]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '4.0.0-dev'
-
-[dependencies.ferrum-x-runtime]
-default-features = false
-features = ['std']
-path = '../runtime'
-
-[dependencies.pallet-base-fee]
-git = "https://github.com/paritytech/frontier/"
-version = "1.0.0"
-# git = 'https://github.com/ferrumnet/frontier.git'
-# rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
-
-[dependencies.pallet-dynamic-fee]
-version = "4.0.0-dev"
-git = 'https://github.com/paritytech/frontier.git'
-# git = 'https://github.com/ferrumnet/frontier.git'
-# rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
-
-[dependencies.pallet-ethereum]
-version = '4.0.0-dev'
-git = 'https://github.com/paritytech/frontier.git'
-# git = 'https://github.com/ferrumnet/frontier.git'
-# rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
-
-[dependencies.pallet-evm]
-version = "6.0.0-dev"
-git = 'https://github.com/paritytech/frontier.git'
-# git = 'https://github.com/ferrumnet/frontier.git'
-# rev = '55029298e158ed4b046464c8951b4c5d79d6ea17'
-
-[dependencies.pallet-transaction-payment-rpc]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '4.0.0-dev'
-
-[dependencies.sc-basic-authorship]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '0.10.0-dev'
-
-[dependencies.sc-cli]
-branch = 'master'
-features = ['wasmtime']
-git = 'https://github.com/paritytech/substrate'
-version = '0.10.0-dev'
-
-[dependencies.sc-client-api]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '4.0.0-dev'
-
-[dependencies.sc-consensus]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '0.10.0-dev'
-
-[dependencies.sc-consensus-aura]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '0.10.0-dev'
-
-[dependencies.sc-consensus-manual-seal]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '0.10.0-dev'
-
-[dependencies.sc-executor]
-branch = 'master'
-features = ['wasmtime']
-git = 'https://github.com/paritytech/substrate'
-version = '0.10.0-dev'
-
-[dependencies.sc-finality-grandpa]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '0.10.0-dev'
-
-[dependencies.sc-keystore]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '4.0.0-dev'
-
-[dependencies.sc-network]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '0.10.0-dev'
-
-[dependencies.sc-rpc]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '4.0.0-dev'
-
-[dependencies.sc-rpc-api]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '0.10.0-dev'
-
-[dependencies.sc-service]
-branch = 'master'
-features = ['wasmtime']
-git = 'https://github.com/paritytech/substrate'
-version = '0.10.0-dev'
-
-[dependencies.sc-telemetry]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '4.0.0-dev'
-
-[dependencies.sc-transaction-pool]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '4.0.0-dev'
-
-[dependencies.sc-transaction-pool-api]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '4.0.0-dev'
-
-[dependencies.sp-api]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '4.0.0-dev'
-
-[dependencies.sp-block-builder]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '4.0.0-dev'
-
-[dependencies.sp-blockchain]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '4.0.0-dev'
-
-[dependencies.sp-consensus]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '0.10.0-dev'
-
-[dependencies.sp-consensus-aura]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '0.10.0-dev'
-
-[dependencies.sp-core]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '6.0.0'
-# features = ['scale-info']
-
-[dependencies.sp-finality-grandpa]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '4.0.0-dev'
-
-[dependencies.sp-inherents]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '4.0.0-dev'
-
-[dependencies.sp-runtime]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '6.0.0'
-
-[dependencies.sp-timestamp]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '4.0.0-dev'
-
-[dependencies.fp-evm]
-git = 'https://github.com/paritytech/frontier'
-version = '3.0.0-dev'
-
-[dependencies.sp-keystore]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-
-[dependencies.substrate-frame-rpc-system]
-branch = 'master'
-git = 'https://github.com/paritytech/substrate'
-version = '4.0.0-dev'
-
 [package]
+name = 'ferrum-x-network'
+version = '0.0.1'
 authors = ['Ferrum Network <https://github.com/ferrumnet>']
 build = 'build.rs'
-description = 'Ferrum Network Poc Testnet'
 edition = '2021'
 homepage = 'https://ferrum.network'
 license = 'Unlicense'
-name = 'ferrum-x-network'
 publish = false
 repository = 'https://github.com/ferrumnet/ferrum-x-network/'
-version = '0.0.1'
+description = 'Ferrum Network Poc Testnet'
+
 [package.metadata.docs.rs]
-targets = ['x86_64-unknown-linux-gnu']
+targets = ["x86_64-unknown-linux-gnu"]
+
+[[bin]]
+name = "ferrum-x-network"
+
+[dependencies]
+async-trait = "0.1"
+clap = { version = "3.2", features = ["derive"] }
+futures = "0.3.24"
+log = "0.4.17"
+serde = { version = "1.0", features = ["derive"] }
+serde_bytes = "0.11"
+serde_json = "1.0"
+libsecp256k1 = { version = "0.7.0", default-features = false, features = ['static-context'] }
+
+# Parity
+codec = { package = "parity-scale-codec", version = "3.2.1", features = ["derive"] }
+jsonrpsee = { version = "0.15.1", features = ["server", "macros"] }
+
+# Substrate
+frame-system = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+pallet-transaction-payment = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sc-cli = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate.git", features = ["wasmtime"], branch = "polkadot-v0.9.30" }
+sc-client-api = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sc-consensus = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
+sc-consensus-aura = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30", optional = true }
+sc-consensus-manual-seal = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30", optional = true }
+sc-executor = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate.git", features = ["wasmtime"], branch = "polkadot-v0.9.30" }
+sc-finality-grandpa = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sc-keystore = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sc-network = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
+sc-network-common = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
+sc-service = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate.git", features = ["wasmtime"], branch = "polkadot-v0.9.30" }
+sc-telemetry = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sc-transaction-pool = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sc-transaction-pool-api = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sp-consensus = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sp-consensus-aura = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sp-finality-grandpa = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sp-inherents = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sp-keyring = { version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sp-runtime = { version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sp-timestamp = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+
+# Frontier
+fc-cli = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.30" }
+fc-consensus = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.30" }
+fc-db = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.30" }
+fc-mapping-sync = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.30" }
+fc-rpc = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.30" }
+fc-rpc-core = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.30" }
+fp-consensus = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.30" }
+fp-dynamic-fee = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.30" }
+fp-evm = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.30" }
+fp-rpc = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.30" }
+fp-storage = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.30" }
+
+# These dependencies are used for the node template's RPCs
+pallet-transaction-payment-rpc = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sc-basic-authorship = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sc-rpc = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sc-rpc-api = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sp-api = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sp-block-builder = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sp-blockchain = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+sp-keystore = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+substrate-frame-rpc-system = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+
+# These dependencies are used for runtime benchmarking
+frame-benchmarking = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30", optional = true }
+frame-benchmarking-cli = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30", optional = true }
+
+# Local Dependencies
+ferrum-x-runtime = { path = "../runtime" }
+pallet-quantum-portal = { path = "../pallets/quantum-portal" }
+ferrum-primitives = { path = "../primitives" }
+
+# CLI-specific dependencies
+try-runtime-cli = { version = "0.10.0-dev", optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+
+[build-dependencies]
+substrate-build-script-utils = { version = "3.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
 
 [features]
-aura = ['ferrum-x-runtime/aura']
-default = ['aura']
-manual-seal = ['ferrum-x-runtime/manual-seal']
-rpc_binary_search_estimate = ['fc-rpc/rpc_binary_search_estimate']
-runtime-benchmarks = ['ferrum-x-runtime/runtime-benchmarks']
+default = ["aura", "with-rocksdb-weights"]
+aura = [
+	"sc-consensus-aura",
+	"ferrum-x-runtime/aura",
+]
+manual-seal = [
+	"sc-consensus-manual-seal",
+	"ferrum-x-runtime/manual-seal",
+]
+with-rocksdb-weights = ["ferrum-x-runtime/with-rocksdb-weights"]
+with-paritydb-weights = ["ferrum-x-runtime/with-paritydb-weights"]
+rpc_binary_search_estimate = ["fc-rpc/rpc_binary_search_estimate"]
+runtime-benchmarks = [
+	"frame-benchmarking",
+	"frame-benchmarking-cli",
+	"sc-service/runtime-benchmarks",
+	"ferrum-x-runtime/runtime-benchmarks",
+]

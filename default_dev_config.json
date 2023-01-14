@@ -1,21 +1,26 @@
 {
     "chain_spec": {
         "initial_authourity_seed_list": ["Alice"],
-        "root_seed": "Alice",
-        "endowed_accounts_seed_list": ["Alice", "Bob", "Alice//stash", "Bob//stash"],
-        "address_list": ["d43593c715fdd31c61141abd04a99fd6822c8558", "6be02d1d3665660d22ff9624b7be0551ee1ac91b", "0bdb79846e8331a19a65430363f240ec8acc2a52","467502ef1c444f98349dacdf0223ccb5e2019f36"] 
+        "root_seed": "e04cc55ebee1cbce552f250e85c57b70b2e2625b",
+        "endowed_accounts_seed_list": ["e04cc55ebee1cbce552f250e85c57b70b2e2625b"],
+        "address_list": ["d43593c715fdd31c61141abd04a99fd6822c8558", "6be02d1d3665660d22ff9624b7be0551ee1ac91b", "0bdb79846e8331a19a65430363f240ec8acc2a52","467502ef1c444f98349dacdf0223ccb5e2019f36"], 
+        "offchain_signer_secret_seed" : "//Alice"
     },
     "networks": {
         "network_vec": [{
-            "url": "https://api.avax-test.network/ext/bc/C/rpc",
-            "ledger_manager": "32566a474accf5b6dbea30f60f559d490dbcb314",
-            "id": 43113
+            "url": "https://rpc-mumbai.maticvigil.com/",
+            "ledger_manager": "1dC011A64112fc8a2928E2EFe60007ef0F705ED9",
+            "id": 80001
         },
         {
             "url": "https://data-seed-prebsc-1-s1.binance.org:8545",
-            "ledger_manager": "32566a474accf5b6dbea30f60f559d490dbcb314",
+            "ledger_manager": "1dC011A64112fc8a2928E2EFe60007ef0F705ED9",
             "id": 97
         }],
-	    "pair_vec": [[43113, 97], [97, 43113]]
+	    "pair_vec": [[80001, 97], [97, 80001]],
+        "signer_public_key": "020a1091341fe5664bfa1782d5e04779689068c916b04cb365ec3153755684d9a1",
+        "authority_manager_contract_name" : "FERRUM_QUANTUM_PORTAL_AUTHORITY_MGR",
+        "authority_manager_contract_version" : "000.010",
+        "authority_manager_contract_address" : "948d09CbC3E260Ed408C70027310d1ca4a42153B"
     }
 }

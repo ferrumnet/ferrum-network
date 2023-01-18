@@ -11,7 +11,7 @@
             "id": 97
         }],
 	    "pair_vec": [[80001, 97], [97, 80001]],
-        "signer_public_key": "0390084fdbf27d2b79d26a4f13f0ccd982cb755a661969143c37cbc49ef5b91f27",
+        "signer_public_key": "020a1091341fe5664bfa1782d5e04779689068c916b04cb365ec3153755684d9a1",
         "authority_manager_contract_name" : "FERRUM_QUANTUM_PORTAL_AUTHORITY_MGR",
         "authority_manager_contract_version" : "000.010",
         "authority_manager_contract_address" : "7cD4f4B67A2cB13f46E70b37F79da1942572029E",

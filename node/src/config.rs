@@ -1,30 +1,15 @@
 use std::{fs::File, io::BufReader, path::Path};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-use pallet_quantum_portal::qp_types::{EIP712Config, QpConfig, QpNetworkItem};
+use pallet_quantum_portal::qp_types::{EIP712Config, QpConfig, QpNetworkItem, Role};
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
-    pub chain_spec: ChinSpecConfig,
     pub networks: NetworkConfig,
 }
 
-#[derive(Deserialize, Debug, Clone)]
-pub struct ChinSpecConfig {
-    /// Secret seed for initial authorities [aura, grandpa]
-    pub initial_authourity_seed_list: Vec<String>,
-    /// AccountId of the Sudo authority
-    pub root_seed: String,
-    /// List of AccountId to populate balances in genesis block
-    pub endowed_accounts_seed_list: Vec<String>,
-    /// List of AccountIds for EVM configuration
-    pub address_list: Vec<String>,
-    /// Secret seed for offchain signer key
-    pub offchain_signer_secret_seed: String,
-}
-
-#[derive(Clone, Eq, PartialEq, Debug, Deserialize)]
+#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub struct NetworkItem {
     /// The rpc url for this network
     #[serde(with = "serde_bytes")]
@@ -36,7 +21,7 @@ pub struct NetworkItem {
     pub id: u64,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NetworkConfig {
     // The NetworkItem data structure
     network_vec: Vec<NetworkItem>,
@@ -52,9 +37,13 @@ pub struct NetworkConfig {
     pub authority_manager_contract_version: Vec<u8>,
     #[serde(with = "serde_bytes")]
     pub authority_manager_contract_address: Vec<u8>,
+    /// The role of this node
+    #[serde(with = "serde_bytes")]
+    pub role: Vec<u8>,
 }
 
 pub fn convert(network_config: NetworkConfig) -> QpConfig {
+    let role_as_bytes: &[u8] = &network_config.role;
     QpConfig {
         network_vec: network_config
             .network_vec
@@ -72,6 +61,7 @@ pub fn convert(network_config: NetworkConfig) -> QpConfig {
             contract_version: network_config.authority_manager_contract_version,
             verifying_address: network_config.authority_manager_contract_address,
         },
+        role: role_as_bytes.into(),
     }
 }
 

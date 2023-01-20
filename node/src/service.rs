@@ -16,17 +16,18 @@ use sc_executor::NativeElseWasmExecutor;
 use sc_keystore::LocalKeystore;
 use sc_service::{error::Error as ServiceError, BasePath, Configuration, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
-use sp_core::offchain::OffchainStorage;
+use sp_application_crypto::sp_core::offchain::{OffchainStorage, STORAGE_PREFIX};
 use sp_core::U256;
 // Frontier
+use codec::Encode;
 use fc_consensus::FrontierBlockImport;
 use fc_db::Backend as FrontierBackend;
 use fc_mapping_sync::{MappingSyncWorker, SyncStrategy};
 use fc_rpc::{EthTask, OverrideHandle};
 use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
 // Runtime
-use crate::config::{read_config_from_file, Config};
-use ferrum_primitives::{OFFCHAIN_SIGNER_CONFIG_KEY, OFFCHAIN_SIGNER_CONFIG_PREFIX};
+use crate::config::read_config_from_file;
+use ferrum_primitives::OFFCHAIN_SIGNER_CONFIG_KEY;
 use ferrum_x_runtime::{opaque::Block, RuntimeApi};
 
 use crate::cli::Cli;
@@ -176,9 +177,9 @@ pub fn new_partial(
 
             // Load the configs for the offchain worker to function properly, we read from the file and write to the offchain storage
             offchain_storage.set(
-                OFFCHAIN_SIGNER_CONFIG_PREFIX,
+                STORAGE_PREFIX,
                 OFFCHAIN_SIGNER_CONFIG_KEY,
-                &bincode::serialize(&config.networks).unwrap(),
+                &crate::config::convert(config.networks).encode(),
             );
 
             println!("QP Configs loaded to offchain storage");

@@ -9,7 +9,7 @@ use numtoa::NumToA;
 use sp_std::{prelude::*, str};
 use tiny_keccak::{Hasher, Keccak};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ChainRequestError {
     ErrorGettingJsonRpcResponse,
     BadRemoteData,
@@ -20,7 +20,7 @@ pub enum ChainRequestError {
     InvalidHexCharacter,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum TransactionCreationError {
     NoSignerFound,
     SigningFailed,

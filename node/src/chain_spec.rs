@@ -1,3 +1,4 @@
+use crate::cli::Cli;
 use ferrum_x_runtime::{
     AccountId,
     AuraConfig,
@@ -10,19 +11,37 @@ use ferrum_x_runtime::{
     SystemConfig,
     WASM_BINARY, //QuantumPortalConfig
 };
+use hex_literal::hex;
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+use sp_core::crypto::UncheckedInto;
 use sp_core::{Pair, Public, H160, U256};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use std::{collections::BTreeMap, str::FromStr};
-
-use crate::cli::Cli;
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
 
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
+
+// Generate testnet validators using predetermined keys
+fn generate_testnet_validators() -> Vec<(AuraId, GrandpaId)> {
+    vec![
+        (
+            hex!["e4c7041b801911eb544eb16df4f6ccabc2167b5100bcce0c68824f53242f8a73"]
+                .unchecked_into(),
+            hex!["e9b8bcde50960a9aa6cfec3382d520176a5f90db53d0551579e569048fc81c66"]
+                .unchecked_into(),
+        ),
+        (
+            hex!["9a0c54b2d0f3b9ffd83b392faa5a5cedab9f6478015c01e8d1485722204e3068"]
+                .unchecked_into(),
+            hex!["42afdd9402e6b6d82db0ad7e188f72c6937dcb49a7840ae08563b25ab24e0c6a"]
+                .unchecked_into(),
+        ),
+    ]
+}
 
 /// Generate a crypto pair from seed.
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
@@ -116,6 +135,46 @@ pub fn local_testnet_config(_cli: &Cli) -> Result<ChainSpec, String> {
         None,
         // Properties
         None,
+        // Extensions
+        None,
+    ))
+}
+
+pub fn alpha_testnet_config(_cli: &Cli) -> Result<ChainSpec, String> {
+    let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
+    // Give your base currency a unit name and decimal places
+    let mut properties = sc_chain_spec::Properties::new();
+    properties.insert("tokenSymbol".into(), "tFRM".into());
+    properties.insert("tokenDecimals".into(), 18.into());
+    properties.insert("ss58Format".into(), 42.into());
+    Ok(ChainSpec::from_genesis(
+        // Name
+        "Ferrum X Testnet",
+        // ID
+        "ferrum_testnet",
+        ChainType::Local,
+        move || {
+            testnet_genesis(
+                wasm_binary,
+                // Initial PoA authorities
+                generate_testnet_validators(),
+                // Sudo account
+                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
+                // Pre-funded accounts
+                vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
+                vec![],
+                true,
+            )
+        },
+        // Bootnodes
+        vec![],
+        // Telemetry
+        None,
+        // Protocol ID
+        None,
+        None,
+        // Properties
+        Some(properties),
         // Extensions
         None,
     ))

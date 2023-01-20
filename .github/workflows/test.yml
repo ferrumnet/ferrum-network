@@ -30,6 +30,18 @@ jobs:
     - name: Ensure runtime-benchmarks and try-runtime features compiles
       run: cargo check --release --features=runtime-benchmarks,try-runtime
 
+  build-docker-image:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build Docker Image
+      run: docker build . -f docker/ferrumx.Dockerfile -t ferrum/ferrumx:latest
+
+    - name: Upload image
+      uses: ishworkh/docker-image-artifact-upload@v1
+      with:
+        image: "ferrum/ferrumx:latest"
+
   lint:
     name: 'Run lints'
     runs-on: ubuntu-latest

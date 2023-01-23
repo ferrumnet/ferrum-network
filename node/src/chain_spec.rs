@@ -1,3 +1,4 @@
+use crate::cli::Cli;
 use ferrum_x_runtime::{
     AccountId,
     AuraConfig,
@@ -10,25 +11,37 @@ use ferrum_x_runtime::{
     SystemConfig,
     WASM_BINARY, //QuantumPortalConfig
 };
+use hex_literal::hex;
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+use sp_core::crypto::UncheckedInto;
 use sp_core::{Pair, Public, H160, U256};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
-use std::{collections::BTreeMap, path::PathBuf, str::FromStr};
-
-use crate::{
-    cli::Cli,
-    config::{convert, Config, NetworkConfig},
-};
-
-const DEFAULT_DEV_PATH_BUF: &str = "./default_dev_config.json";
-const DEFAULT_LOCAL_TESTNET_PATH_BUF: &str = "./default_dev_config.json";
+use std::{collections::BTreeMap, str::FromStr};
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
 
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
+
+// Generate testnet validators using predetermined keys
+fn generate_testnet_validators() -> Vec<(AuraId, GrandpaId)> {
+    vec![
+        (
+            hex!["e4c7041b801911eb544eb16df4f6ccabc2167b5100bcce0c68824f53242f8a73"]
+                .unchecked_into(),
+            hex!["e9b8bcde50960a9aa6cfec3382d520176a5f90db53d0551579e569048fc81c66"]
+                .unchecked_into(),
+        ),
+        (
+            hex!["9a0c54b2d0f3b9ffd83b392faa5a5cedab9f6478015c01e8d1485722204e3068"]
+                .unchecked_into(),
+            hex!["42afdd9402e6b6d82db0ad7e188f72c6937dcb49a7840ae08563b25ab24e0c6a"]
+                .unchecked_into(),
+        ),
+    ]
+}
 
 /// Generate a crypto pair from seed.
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
@@ -50,64 +63,8 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
     (get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
 }
 
-pub fn config_path_buf(cli: &Cli, dev: bool) -> PathBuf {
-    if let Some(local_path_buf) = cli.run.config_file_path.clone() {
-        local_path_buf
-    } else if dev {
-        PathBuf::from(DEFAULT_DEV_PATH_BUF)
-    } else {
-        PathBuf::from(DEFAULT_LOCAL_TESTNET_PATH_BUF)
-    }
-}
-
-pub fn config_elem(cli: &Cli, dev: bool) -> Result<Config, String> {
-    let path_buf = config_path_buf(cli, dev);
-
-    crate::config::read_config_from_file(path_buf)
-}
-
-pub fn chainspec_params(
-    config_elem: Config,
-) -> Result<
-    (
-        Vec<(AuraId, GrandpaId)>,
-        AccountId,
-        Vec<AccountId>,
-        Vec<String>,
-    ),
-    String,
-> {
-    let chain_spec_config = config_elem.chain_spec;
-    let address_list = chain_spec_config.address_list.clone();
-    let initial_authoutities: Vec<_> = chain_spec_config
-        .initial_authourity_seed_list
-        .into_iter()
-        .map(|seed| authority_keys_from_seed(&seed))
-        .collect();
-    let root_key = AccountId::from_str(chain_spec_config.root_seed.as_str()).unwrap();
-    let endowed_accounts: Vec<AccountId> = chain_spec_config
-        .endowed_accounts_seed_list
-        .into_iter()
-        .map(|_seed| AccountId::from_str(chain_spec_config.root_seed.as_str()).unwrap())
-        .collect();
-
-    Ok((
-        initial_authoutities,
-        root_key,
-        endowed_accounts,
-        address_list,
-    ))
-}
-
-pub fn development_config(cli: &Cli) -> Result<ChainSpec, String> {
+pub fn development_config(_cli: &Cli) -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
-
-    let config_elem = config_elem(cli, true)?;
-
-    let networks = config_elem.networks.clone();
-
-    let (initial_authoutities, root_key, endowed_accounts, address_list) =
-        chainspec_params(config_elem)?;
 
     Ok(ChainSpec::from_genesis(
         // Name
@@ -119,13 +76,15 @@ pub fn development_config(cli: &Cli) -> Result<ChainSpec, String> {
             testnet_genesis(
                 wasm_binary,
                 // Initial PoA authorities
-                initial_authoutities.clone(),
+                vec![
+                    authority_keys_from_seed("Alice"),
+                    authority_keys_from_seed("Bob"),
+                ],
                 // Sudo account
-                root_key,
+                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
                 // Pre-funded accounts
-                endowed_accounts.clone(),
-                address_list.clone(),
-                networks.clone(),
+                vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
+                vec![],
                 true,
             )
         },
@@ -143,16 +102,8 @@ pub fn development_config(cli: &Cli) -> Result<ChainSpec, String> {
     ))
 }
 
-pub fn local_testnet_config(cli: &Cli) -> Result<ChainSpec, String> {
+pub fn local_testnet_config(_cli: &Cli) -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
-
-    let config_elem = config_elem(cli, false)?;
-
-    let networks = config_elem.networks.clone();
-
-    let (initial_authoutities, root_key, endowed_accounts, address_list) =
-        chainspec_params(config_elem)?;
-
     Ok(ChainSpec::from_genesis(
         // Name
         "Ferrum X Local Testnet",
@@ -163,13 +114,15 @@ pub fn local_testnet_config(cli: &Cli) -> Result<ChainSpec, String> {
             testnet_genesis(
                 wasm_binary,
                 // Initial PoA authorities
-                initial_authoutities.clone(),
+                vec![
+                    authority_keys_from_seed("Alice"),
+                    authority_keys_from_seed("Bob"),
+                ],
                 // Sudo account
-                root_key,
+                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
                 // Pre-funded accounts
-                endowed_accounts.clone(),
-                address_list.clone(),
-                networks.clone(),
+                vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
+                vec![],
                 true,
             )
         },
@@ -182,6 +135,46 @@ pub fn local_testnet_config(cli: &Cli) -> Result<ChainSpec, String> {
         None,
         // Properties
         None,
+        // Extensions
+        None,
+    ))
+}
+
+pub fn alpha_testnet_config(_cli: &Cli) -> Result<ChainSpec, String> {
+    let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
+    // Give your base currency a unit name and decimal places
+    let mut properties = sc_chain_spec::Properties::new();
+    properties.insert("tokenSymbol".into(), "tFRM".into());
+    properties.insert("tokenDecimals".into(), 18.into());
+    properties.insert("ss58Format".into(), 42.into());
+    Ok(ChainSpec::from_genesis(
+        // Name
+        "Ferrum X Testnet",
+        // ID
+        "ferrum_testnet",
+        ChainType::Local,
+        move || {
+            testnet_genesis(
+                wasm_binary,
+                // Initial PoA authorities
+                generate_testnet_validators(),
+                // Sudo account
+                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
+                // Pre-funded accounts
+                vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
+                vec![],
+                true,
+            )
+        },
+        // Bootnodes
+        vec![],
+        // Telemetry
+        None,
+        // Protocol ID
+        None,
+        None,
+        // Properties
+        Some(properties),
         // Extensions
         None,
     ))
@@ -194,7 +187,6 @@ fn testnet_genesis(
     root_key: AccountId,
     endowed_accounts: Vec<AccountId>,
     address_list: Vec<String>,
-    networks: NetworkConfig,
     _enable_println: bool,
 ) -> GenesisConfig {
     GenesisConfig {
@@ -246,8 +238,5 @@ fn testnet_genesis(
         ethereum: EthereumConfig {},
         dynamic_fee: Default::default(),
         base_fee: Default::default(),
-        quantum_portal: ferrum_x_runtime::QuantumPortalConfig {
-            networks: convert(networks),
-        },
     }
 }

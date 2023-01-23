@@ -49,6 +49,7 @@ pub struct QpConfig {
     pub pair_vec: Vec<(u64, u64)>,
     pub signer_public_key: Vec<u8>,
     pub eip_712_config: EIP712Config,
+    pub role: Role,
 }
 
 #[derive(
@@ -78,4 +79,34 @@ pub struct EIP712Config {
     pub contract_name: Vec<u8>,
     pub contract_version: Vec<u8>,
     pub verifying_address: Vec<u8>,
+}
+
+#[allow(non_camel_case_types)]
+#[derive(
+    Clone,
+    Eq,
+    PartialEq,
+    Decode,
+    Encode,
+    Debug,
+    Serialize,
+    Deserialize,
+    scale_info::TypeInfo,
+    Default,
+)]
+pub enum Role {
+    #[default]
+    None,
+    QP_MINER,
+    QP_FINALIZER,
+}
+
+impl From<&[u8]> for Role {
+    fn from(v: &[u8]) -> Self {
+        match v {
+            b"QP_MINER" => Self::QP_MINER,
+            b"QP_FINALIZER" => Self::QP_FINALIZER,
+            _ => Self::None,
+        }
+    }
 }

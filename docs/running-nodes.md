@@ -154,7 +154,7 @@ sudo chown -R $(id -u):$(id -g) /var/lib/ferrum-data
 
     ```bash
     docker run --network="host" -v "/var/lib/ferrum-data:/data" \
-    ferrum/ferrumx:latest \
+    ferrum/ferrum_node:latest \
     key insert --key-type aura --scheme Sr25519 --base-path=/data
     ```
 
@@ -164,7 +164,7 @@ sudo chown -R $(id -u):$(id -g) /var/lib/ferrum-data
 
     ```bash
     docker run --network="host" -v "/var/lib/ferrum-data:/data" \
-    ferrum/ferrumx:latest \
+    ferrum/ferrum_node:latest \
     key insert --key-type ofsg --scheme Ecdsa --base-path=/data
     ```
 
@@ -175,7 +175,7 @@ sudo chown -R $(id -u):$(id -g) /var/lib/ferrum-data
 ```bash
 docker run --network="host" -v "/var/lib/ferrum-data:/data" \
 -u $(id -u ${USER}):$(id -g ${USER}) \
-ferrum/ferrumx:latest \
+ferrum/ferrum_node:latest \
 --base-path=/data \
 --chain alpha-testnet \
 --name="YOUR-NODE-NAME" \
@@ -188,7 +188,7 @@ ferrum/ferrumx:latest \
 ```bash
 docker run --network="host" -v "/var/lib/ferrum-data:/data" \
 -u $(id -u ${USER}):$(id -g ${USER}) \
-ferrum/ferrumx:latest \
+ferrum/ferrum_node:latest \
 --base-path=/data \
 --chain alpha-testnet \
 --name="YOUR-NODE-NAME" \
@@ -202,7 +202,7 @@ ferrum/ferrumx:latest \
 ```bash
 docker run --network="host" -v "/var/lib/ferrum-data:/data" \
 -u $(id -u ${USER}):$(id -g ${USER}) \
-ferrum/ferrumx:latest \
+ferrum/ferrum_node:latest \
 --base-path=/data \
 --chain alpha-testnet \
 --name="YOUR-NODE-NAME" \
@@ -214,16 +214,16 @@ ferrum/ferrumx:latest \
 
 1. Install the required dependencies to compile rust and substrate, refer the documentation here : https://docs.substrate.io/install/
 
-2. Clone the ferrum-x-network repo
+2. Clone the ferrum-network repo
 
 ```bash
-https://github.com/ferrumnet/ferrum-x-network.git
+https://github.com/ferrumnet/ferrum-network.git
 ```
 
 3. Checkout the latest release
 
 ```bash
-cd ferrum-x-network
+cd ferrum-network
 git checkout tags/<release_version> -b <release_version>
 ```
 
@@ -234,7 +234,7 @@ git checkout tags/0.0.3 -b v0.0.3
 ```
 
 
-You can checkout releases here : https://github.com/ferrumnet/ferrum-x-network/releases
+You can checkout releases here : https://github.com/ferrumnet/ferrum-network/releases
 
 4. Build the binary
 
@@ -247,13 +247,13 @@ cargo build --release
 - **For validators**
 
 ```bash
-./target/release/ferrum-x-network key insert --key-type aura --scheme Sr25519 --base-path /var/lib/ferrum-data
+./target/release/ferrum-network key insert --key-type aura --scheme Sr25519 --base-path /var/lib/ferrum-data
 ```
 
 - **For miners/finalisers**
 
 ```bash
-./target/release/ferrum-x-network key insert --key-type ofsg --scheme Ecdsa --base-path /var/lib/ferrum-data
+./target/release/ferrum-network key insert --key-type ofsg --scheme Ecdsa --base-path /var/lib/ferrum-data
 ```
 
 6. Once the keys are inserted, you can run it using the following command
@@ -262,7 +262,7 @@ cargo build --release
 - To run a validator node
 
 ```bash
-./target/release/ferrum-x-network \
+./target/release/ferrum-network \
 --base-path=/var/lib/ferrum-data \
 --chain alpha-testnet \
 --name="YOUR-NODE-NAME" \
@@ -272,7 +272,7 @@ cargo build --release
 - To run a miner node
 
 ```bash
-./target/release/ferrum-x-network \
+./target/release/ferrum-network \
 --base-path=/var/lib/ferrum-data \
 --chain alpha-testnet \
 --name="YOUR-NODE-NAME" \
@@ -282,7 +282,7 @@ cargo build --release
 - To run a finaliser node
 
 ```bash
-./target/release/ferrum-x-network \
+./target/release/ferrum-network \
 --base-path=/var/lib/ferrum-data \
 --chain alpha-testnet \
 --name="YOUR-NODE-NAME" \

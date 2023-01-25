@@ -6,7 +6,7 @@ edition = "2021"
 homepage = "https://ferrum.network/"
 license = "Unlicense"
 publish = false
-repository = "https://github.com/ferrum-x-network"
+repository = "https://github.com/ferrum-network"
 description = "Quantum Portal Offline worker."
 
 [package.metadata.docs.rs]

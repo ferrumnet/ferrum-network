@@ -15,6 +15,6 @@
         "authority_manager_contract_name" : "FERRUM_QUANTUM_PORTAL_AUTHORITY_MGR",
         "authority_manager_contract_version" : "000.010",
         "authority_manager_contract_address" : "6036F77264bbbe1Fd601C773F21a9486313a70ec",
-        "role" : "QP_FINALIZER"
+        "role" : "QP_MINER"
     }
 }

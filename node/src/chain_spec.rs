@@ -68,7 +68,7 @@ pub fn development_config(_cli: &Cli) -> Result<ChainSpec, String> {
 
     Ok(ChainSpec::from_genesis(
         // Name
-        "Ferrum X Development",
+        "Ferrum Development",
         // ID
         "dev",
         ChainType::Development,
@@ -106,7 +106,7 @@ pub fn local_testnet_config(_cli: &Cli) -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
     Ok(ChainSpec::from_genesis(
         // Name
-        "Ferrum X Local Testnet",
+        "Ferrum Local Testnet",
         // ID
         "local_testnet",
         ChainType::Local,
@@ -149,15 +149,18 @@ pub fn alpha_testnet_config(_cli: &Cli) -> Result<ChainSpec, String> {
     properties.insert("ss58Format".into(), 42.into());
     Ok(ChainSpec::from_genesis(
         // Name
-        "Ferrum X Testnet",
+        "Ferrum Testnet",
         // ID
         "ferrum_testnet",
-        ChainType::Local,
+        ChainType::Live,
         move || {
             testnet_genesis(
                 wasm_binary,
                 // Initial PoA authorities
-                generate_testnet_validators(),
+                vec![
+                    authority_keys_from_seed("Alice"),
+                    authority_keys_from_seed("Bob"),
+                ],
                 // Sudo account
                 AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
                 // Pre-funded accounts
@@ -199,7 +202,7 @@ fn testnet_genesis(
             balances: endowed_accounts
                 .iter()
                 .cloned()
-                .map(|k| (k, 1 << 60))
+                .map(|k| (k, 1 << 100))
                 .collect(),
         },
         aura: AuraConfig {

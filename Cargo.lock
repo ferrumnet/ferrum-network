@@ -1823,28 +1823,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ferrum-primitives"
-version = "0.1.1"
-dependencies = [
- "blake2-rfc",
- "frame-system",
- "hex",
- "impl-serde",
- "libsecp256k1",
- "log",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sha3",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-runtime-interface",
- "sp-std",
-]
-
-[[package]]
-name = "ferrum-x-network"
+name = "ferrum-network"
 version = "0.0.1"
 dependencies = [
  "async-trait",
@@ -1912,6 +1891,27 @@ dependencies = [
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
  "try-runtime-cli",
+]
+
+[[package]]
+name = "ferrum-primitives"
+version = "0.1.1"
+dependencies = [
+ "blake2-rfc",
+ "frame-system",
+ "hex",
+ "impl-serde",
+ "libsecp256k1",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sha3",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-runtime-interface",
+ "sp-std",
 ]
 
 [[package]]

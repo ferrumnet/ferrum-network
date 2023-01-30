@@ -54,8 +54,12 @@ pallet-dynamic-fee = { git = 'https://github.com/paritytech/frontier.git', defau
 pallet-ethereum = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.30" }
 pallet-evm = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.30" }
 pallet-evm-precompile-modexp = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.30" }
+pallet-evm-precompile-blake2 = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.30" }
 pallet-evm-precompile-sha3fips = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.30" }
+pallet-evm-precompile-bn128 = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.30" }
 pallet-evm-precompile-simple = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.30" }
+precompile-utils = { path = "../precompiles/utils", default-features = false }
+pallet-evm-precompile-balances-erc20 = { path = "../precompiles/balances-erc20", default-features = false }
 
 # Local Dependencies
 ferrum-primitives = { default-features = false, path = "../primitives" }

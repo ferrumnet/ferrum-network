@@ -14,11 +14,10 @@ impl-trait-for-tuples = "0.2.2"
 log = "0.4"
 num_enum = { version = "0.5.3", default-features = false }
 paste = "1.0.8"
-scale-info = { version = "2.0", optional = true, default-features = false, features = [ "derive" ] }
+scale-info = { version = "2.0", optional = true, default-features = false, features = ["derive"] }
 serde = { version = "1.0.100", optional = true }
 sha3 = { version = "0.10", default-features = false }
 similar-asserts = { version = "1.1.0", optional = true }
-
 
 # Moonbeam
 precompile-utils-macro = { path = "macro" }
@@ -32,9 +31,9 @@ sp-io = { git = "https://github.com/paritytech/substrate.git", branch = "polkado
 sp-std = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30", default-features = false }
 
 # Frontier
-evm = { version = "0.37.0", default-features = false, features = [ "with-codec" ] }
+evm = { version = "0.37.0", default-features = false, features = ["with-codec"] }
 fp-evm = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.30", default-features = false }
-pallet-evm = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.30", default-features = false, features = [ "forbid-evm-reentrancy" ] }
+pallet-evm = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.30", default-features = false, features = ["forbid-evm-reentrancy"] }
 
 # Polkadot / XCM
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.30", default-features = false }
@@ -43,7 +42,7 @@ xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.3
 hex-literal = "0.3.1"
 
 [features]
-default = [ "std" ]
+default = ["std"]
 std = [
 	"codec/std",
 	"fp-evm/std",
@@ -54,4 +53,4 @@ std = [
 	"sp-io/std",
 	"sp-std/std",
 ]
-testing = [ "derive_more", "hex-literal", "scale-info", "serde", "similar-asserts", "std" ]
+testing = ["derive_more", "hex-literal", "scale-info", "serde", "similar-asserts", "std"]

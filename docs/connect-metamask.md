@@ -16,7 +16,7 @@ Network Name : Ferrum Testnet
 
 RPC URL : http://testnet.dev.svcs.ferrumnetwork.io:9933
 
-ChainId : 26000
+ChainId : 26026
 
 Currency : tFRM
 

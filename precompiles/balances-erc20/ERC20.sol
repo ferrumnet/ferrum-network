@@ -2,7 +2,7 @@
 pragma solidity >=0.8.3;
 
 /// @dev The IERC20 contract's address.
-address constant IERC20_ADDRESS = 0x0000000000000000000000000000000000026000;
+address constant IERC20_ADDRESS = 0x0000000000000000000000000000000000026026;
 
 /// @dev The IERC20 contract's instance.
 IERC20 constant IERC20_CONTRACT = IERC20(IERC20_ADDRESS);
@@ -10,7 +10,7 @@ IERC20 constant IERC20_CONTRACT = IERC20(IERC20_ADDRESS);
 /// @title ERC20 interface
 /// @dev see https://github.com/ethereum/EIPs/issues/20
 /// @dev copied from https://github.com/OpenZeppelin/openzeppelin-contracts
-/// @custom:address 0x0000000000000000000000000000000000026000
+/// @custom:address 0x0000000000000000000000000000000000026026
 interface IERC20 {
     /// @dev Returns the name of the token.
     /// @custom:selector 06fdde03

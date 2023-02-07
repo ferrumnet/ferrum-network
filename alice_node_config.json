@@ -14,7 +14,10 @@
         "signer_public_key": "020a1091341fe5664bfa1782d5e04779689068c916b04cb365ec3153755684d9a1",
         "authority_manager_contract_name" : "FERRUM_QUANTUM_PORTAL_AUTHORITY_MGR",
         "authority_manager_contract_version" : "000.010",
-        "authority_manager_contract_address" : "6036F77264bbbe1Fd601C773F21a9486313a70ec",
-        "role" : "QP_FINALIZER"
+        "authority_manager_contract_address" : "56a191D2B56202beBB1e1294e9f02D72F0d133ad",
+        "miner_manager_contract_name" : "FERRUM_QUANTUM_PORTAL_MINER_MGR",
+        "miner_manager_contract_version" : "000.010",
+        "miner_manager_contract_address" : "9458910F2b1f8B8c409200AC0A9C30B74DB66821",
+        "role" : "QP_MINER"
     }
 }

@@ -37,6 +37,12 @@ pub struct NetworkConfig {
     pub authority_manager_contract_version: Vec<u8>,
     #[serde(with = "serde_bytes")]
     pub authority_manager_contract_address: Vec<u8>,
+    #[serde(with = "serde_bytes")]
+    pub miner_manager_contract_name: Vec<u8>,
+    #[serde(with = "serde_bytes")]
+    pub miner_manager_contract_version: Vec<u8>,
+    #[serde(with = "serde_bytes")]
+    pub miner_manager_contract_address: Vec<u8>,
     /// The role of this node
     #[serde(with = "serde_bytes")]
     pub role: Vec<u8>,
@@ -57,9 +63,13 @@ pub fn convert(network_config: NetworkConfig) -> QpConfig {
         pair_vec: network_config.pair_vec,
         signer_public_key: network_config.signer_public_key,
         eip_712_config: EIP712Config {
-            contract_name: network_config.authority_manager_contract_name,
-            contract_version: network_config.authority_manager_contract_version,
-            verifying_address: network_config.authority_manager_contract_address,
+            finalizer_contract_name: network_config.authority_manager_contract_name,
+            finalizer_contract_version: network_config.authority_manager_contract_version,
+            finalizer_verifying_address: network_config.authority_manager_contract_address,
+
+            miner_contract_name: network_config.miner_manager_contract_name,
+            miner_contract_version: network_config.miner_manager_contract_version,
+            miner_verifying_address: network_config.miner_manager_contract_address,
         },
         role: role_as_bytes.into(),
     }

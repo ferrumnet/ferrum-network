@@ -38,6 +38,7 @@ impl ContractClientSignature {
     }
 
     pub fn signer(&self, hash: &H256) -> Result<ecdsa::Signature, TransactionCreationError> {
+        log::info!("Signer address is : {:?}", self.from);
         // TODO : We should handle this properly, if the signing is not possible maybe propogate the error upstream
         let signed: Result<ecdsa::Signature, TransactionCreationError> =
             crypto::ecdsa_sign_prehashed(OFFCHAIN_SIGNER_KEY_TYPE, &self._signer, &hash.0)

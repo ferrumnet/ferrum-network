@@ -2,22 +2,22 @@
     "networks": {
         "network_vec": [{
             "url": "https://rpc-mumbai.maticvigil.com/",
-            "ledger_manager": "1AC9Fb66D542FEe49728e0da6af230dbECD6d547",
+            "ledger_manager": "465AAF9F6B8edb16D62344d4C100Bc69bC0e4AC7",
             "id": 80001
         },
         {
             "url": "https://data-seed-prebsc-2-s3.binance.org:8545",
-            "ledger_manager": "1AC9Fb66D542FEe49728e0da6af230dbECD6d547",
+            "ledger_manager": "465AAF9F6B8edb16D62344d4C100Bc69bC0e4AC7",
             "id": 97
         }],
 	    "pair_vec": [[80001, 97], [97, 80001]],
         "signer_public_key": "0390084fdbf27d2b79d26a4f13f0ccd982cb755a661969143c37cbc49ef5b91f27",
         "authority_manager_contract_name" : "FERRUM_QUANTUM_PORTAL_AUTHORITY_MGR",
         "authority_manager_contract_version" : "000.010",
-        "authority_manager_contract_address" : "56a191D2B56202beBB1e1294e9f02D72F0d133ad",
+        "authority_manager_contract_address" : "9367A0b0e80475EfADe4d4EdAd5bF64c5043C9D7",
         "miner_manager_contract_name" : "FERRUM_QUANTUM_PORTAL_MINER_MGR",
         "miner_manager_contract_version" : "000.010",
-        "miner_manager_contract_address" : "9458910F2b1f8B8c409200AC0A9C30B74DB66821",
-        "role" : "QP_FINALIZER"
+        "miner_manager_contract_address" : "98a5282993A5d8404A29327FADfB6CD9F3Fe8ABd",
+        "role" : "QP_MINER"
     }
 }

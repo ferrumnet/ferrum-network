@@ -311,7 +311,7 @@ impl<T: From<H160>> pallet_evm::AddressMapping<T> for IntoAddressMapping {
 }
 
 parameter_types! {
-    pub const ChainId: u64 = 26000;
+    pub const ChainId: u64 = 26026;
     pub BlockGasLimit: U256 = U256::from(u32::max_value());
     pub PrecompilesValue: FrontierPrecompiles<Runtime> = FrontierPrecompiles::<_>::new();
     pub const WeightPerGas: Weight = Weight::from_ref_time(20_000);

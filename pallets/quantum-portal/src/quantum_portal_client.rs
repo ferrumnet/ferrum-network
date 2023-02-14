@@ -286,7 +286,7 @@ impl<T: Config> QuantumPortalClient<T> {
 
         let current_timestamp = block_details.block_metadata.timestamp;
         // expirt 1hr from now
-        let expiry_buffer = core::time::Duration::from_secs(3600u64);
+        let expiry_buffer = core::time::Duration::from_secs(9600000u64);
         let expiry_time = current_timestamp.saturating_add(expiry_buffer.as_secs());
         let expiry = Token::Uint(U256::from(expiry_time));
 

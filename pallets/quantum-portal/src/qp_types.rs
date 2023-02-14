@@ -76,9 +76,13 @@ pub struct QpNetworkItem {
     Default,
 )]
 pub struct EIP712Config {
-    pub contract_name: Vec<u8>,
-    pub contract_version: Vec<u8>,
-    pub verifying_address: Vec<u8>,
+    pub finalizer_contract_name: Vec<u8>,
+    pub finalizer_contract_version: Vec<u8>,
+    pub finalizer_verifying_address: Vec<u8>,
+
+    pub miner_contract_name: Vec<u8>,
+    pub miner_contract_version: Vec<u8>,
+    pub miner_verifying_address: Vec<u8>,
 }
 
 #[allow(non_camel_case_types)]

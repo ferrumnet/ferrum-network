@@ -26,6 +26,7 @@ pub enum TransactionCreationError {
     SigningFailed,
     SignatureError,
     MultisigError,
+    CannotFindContractAddress
 }
 
 impl From<&[u8]> for ChainRequestError {
@@ -141,6 +142,14 @@ impl ChainUtils {
     pub fn hex_to_address(hex: &[u8]) -> Address {
         let mut addr_bytes: [u8; 20] = [0; 20];
         hex::decode_to_slice(hex, &mut addr_bytes).unwrap();
+        Address::from_slice(&addr_bytes)
+    }
+
+    pub fn decode_address_response(hex: &[u8]) -> Address {
+        let truncated_hex = &hex[hex.len() - 40..];
+        log::info!("length looking for {:?}", truncated_hex.len());
+        let mut addr_bytes: [u8; 20] = [0; 20];
+        hex::decode_to_slice(truncated_hex, &mut addr_bytes).unwrap();
         Address::from_slice(&addr_bytes)
     }
 

@@ -2818,6 +2818,7 @@ dependencies = [
  "fp-storage",
  "frame-benchmarking",
  "frame-benchmarking-cli",
+ "hex-literal",
  "jsonrpsee",
  "log",
  "pallet-quantum-portal",

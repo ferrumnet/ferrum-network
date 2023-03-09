@@ -203,9 +203,9 @@ fn testnet_genesis(
             // Assign network admin rights.
             key: Some(root_key),
         },
-        // polkadot_xcm: ferrum_runtime::PolkadotXcmConfig {
-        // 	safe_xcm_version: Some(SAFE_XCM_VERSION),
-        // },
+        polkadot_xcm: ferrum_runtime::PolkadotXcmConfig {
+            safe_xcm_version: Some(SAFE_XCM_VERSION),
+        },
         evm: Default::default(),
         ethereum: ferrum_runtime::EthereumConfig {},
         dynamic_fee: Default::default(),

@@ -13,6 +13,9 @@ use sc_cli::{
 use sc_service::config::{BasePath, PrometheusConfig};
 use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
+// Frontier
+use fc_db::frontier_database_dir;
+use sc_service::PartialComponents;
 
 use crate::{
     chain_spec,
@@ -233,6 +236,14 @@ pub fn run() -> Result<()> {
                 #[allow(unreachable_patterns)]
                 _ => Err("Benchmarking sub-command unsupported".into()),
             }
+        }
+        Some(Subcommand::FrontierDb(cmd)) => {
+            let runner = cli.create_runner(cmd)?;
+            runner.sync_run(|config| {
+                let PartialComponents { client, other, .. } = crate::service::new_partial(&config)?;
+                let frontier_backend = other.2;
+                cmd.run::<_, ferrum_runtime::opaque::Block>(client, frontier_backend)
+            })
         }
         #[cfg(feature = "try-runtime")]
         Some(Subcommand::TryRuntime(cmd)) => {

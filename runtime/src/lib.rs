@@ -8,7 +8,6 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 mod weights;
 pub mod xcm_config;
-
 use crate::generic::SignedPayload;
 use codec::Encode;
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
@@ -52,6 +51,7 @@ use sp_std::{marker::PhantomData, prelude::*};
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
+use xcm_config::*;
 // use xcm_config::{XcmConfig, XcmOriginToTransactDispatchOrigin};
 
 mod precompiles;
@@ -403,22 +403,22 @@ impl parachain_info::Config for Runtime {}
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
 
-// impl cumulus_pallet_xcmp_queue::Config for Runtime {
-// 	type RuntimeEvent = RuntimeEvent;
-// 	type XcmExecutor = XcmExecutor<XcmConfig>;
-// 	type ChannelInfo = ParachainSystem;
-// 	type VersionWrapper = ();
-// 	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
-// 	type ControllerOrigin = EnsureRoot<AccountId>;
-// 	type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
-// 	type WeightInfo = ();
-// }
+impl cumulus_pallet_xcmp_queue::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+    type ChannelInfo = ParachainSystem;
+    type VersionWrapper = ();
+    type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
+    type ControllerOrigin = EnsureRoot<AccountId>;
+    type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
+    type WeightInfo = ();
+}
 
-// impl cumulus_pallet_dmp_queue::Config for Runtime {
-// 	type RuntimeEvent = RuntimeEvent;
-// 	type XcmExecutor = XcmExecutor<XcmConfig>;
-// 	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
-// }
+impl cumulus_pallet_dmp_queue::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+    type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
+}
 
 parameter_types! {
     pub const Period: u32 = 6 * HOURS;
@@ -653,10 +653,10 @@ construct_runtime!(
         Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 25,
 
         // XCM helpers.
-        // XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>} = 30,
-        // PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin, Config} = 31,
-        // CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin} = 32,
-        // DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
+        XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>} = 30,
+        PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin, Config} = 31,
+        CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin} = 32,
+        DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
 
         // Frontier pallets
         Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Config, Origin} = 40,

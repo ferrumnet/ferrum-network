@@ -266,7 +266,7 @@ where
                 Some(origin).into(),
                 pallet_balances::Call::<Runtime, Instance>::transfer {
                     dest: Runtime::Lookup::unlookup(to),
-                    value: value,
+                    value,
                 },
             )?;
         }
@@ -329,7 +329,7 @@ where
                 Some(from).into(),
                 pallet_balances::Call::<Runtime, Instance>::transfer {
                     dest: Runtime::Lookup::unlookup(to),
-                    value: value,
+                    value,
                 },
             )?;
         }

@@ -99,6 +99,7 @@ impl pallet_evm::Config for Runtime {
     type PrecompilesType = Precompiles<Self>;
     type PrecompilesValue = PrecompilesValue;
     type ChainId = ();
+    type OnCreate = ();
     type OnChargeTransaction = ();
     type BlockGasLimit = BlockGasLimit;
     type BlockHashMapping = pallet_evm::SubstrateBlockHashMapping<Self>;

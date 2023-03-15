@@ -30,17 +30,17 @@ jobs:
           cargo install cargo-expand &&
           TRYBUILD=overwrite cargo test --locked --verbose --all
 
-  build-docker-image:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Build Docker Image
-      run: docker build . -f docker/ferrum.Dockerfile -t ferrum/ferrum:latest
+  # build-docker-image:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - uses: actions/checkout@v3
+  #   - name: Build Docker Image
+  #     run: docker build . -f docker/ferrum.Dockerfile -t ferrum/ferrum:latest
 
-    - name: Upload image
-      uses: ishworkh/docker-image-artifact-upload@v1
-      with:
-        image: "ferrum/ferrum:latest"
+  #   - name: Upload image
+  #     uses: ishworkh/docker-image-artifact-upload@v1
+  #     with:
+  #       image: "ferrum/ferrum:latest"
 
   lint:
     name: 'Run lints'

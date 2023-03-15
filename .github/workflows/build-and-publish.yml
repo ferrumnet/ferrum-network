@@ -7,7 +7,7 @@ on:
 
 env:
   AWS_REGION: us-east-2                # set this to your preferred AWS region, e.g. us-west-1
-  ECR_REPOSITORY: ferrum_node       # set this to your Amazon ECR repository name
+  ECR_REPOSITORY: ferrum_node        # set this to your Amazon ECR repository name
 
 permissions:
   contents: read

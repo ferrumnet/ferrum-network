@@ -43,8 +43,8 @@ pub enum Subcommand {
     #[cfg(not(feature = "try-runtime"))]
     TryRuntime,
 
-    /// Db meta columns information.
-    FrontierDb(fc_cli::FrontierDbCmd),
+    // /// Db meta columns information.
+    // FrontierDb(fc_cli::FrontierDbCmd),
 }
 
 #[derive(Debug, clap::Parser)]

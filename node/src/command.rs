@@ -237,14 +237,14 @@ pub fn run() -> Result<()> {
                 _ => Err("Benchmarking sub-command unsupported".into()),
             }
         }
-        Some(Subcommand::FrontierDb(cmd)) => {
-            let runner = cli.create_runner(cmd)?;
-            runner.sync_run(|config| {
-                let PartialComponents { client, other, .. } = crate::service::new_partial(&config)?;
-                let frontier_backend = other.2;
-                cmd.run::<_, ferrum_runtime::opaque::Block>(client, frontier_backend)
-            })
-        }
+        // Some(Subcommand::FrontierDb(cmd)) => {
+        //     let runner = cli.create_runner(cmd)?;
+        //     runner.sync_run(|config| {
+        //         let PartialComponents { client, other, .. } = crate::service::new_partial(&config)?;
+        //         let frontier_backend = other.2;
+        //         cmd.run::<_, ferrum_runtime::opaque::Block>(client, frontier_backend)
+        //     })
+        // }
         #[cfg(feature = "try-runtime")]
         Some(Subcommand::TryRuntime(cmd)) => {
             let runner = cli.create_runner(cmd)?;

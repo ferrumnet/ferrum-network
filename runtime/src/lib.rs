@@ -6,6 +6,8 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+pub mod impls;
+
 mod weights;
 pub mod xcm_config;
 use crate::generic::SignedPayload;
@@ -52,6 +54,7 @@ use sp_std::{marker::PhantomData, prelude::*};
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use xcm_config::*;
+use pallet_balances::NegativeImbalance;
 // use xcm_config::{XcmConfig, XcmOriginToTransactDispatchOrigin};
 
 mod precompiles;
@@ -375,7 +378,7 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, ()>;
+    type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, crate::impls::DealWithFees<Runtime>>;
     type WeightToFee = WeightToFee;
     type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
     type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;

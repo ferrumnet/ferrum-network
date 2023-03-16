@@ -34,7 +34,7 @@ jobs:
   
   build:
     name: 'Build docker image and push to ECR'
-    if: success() || failure()
+    if: success()
     # if: steps.run_test.outcome == 'success'
     runs-on: ubuntu-latest
     steps:
@@ -69,7 +69,7 @@ jobs:
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
   deploy:
     name: 'EC2 Deployment'
-    if: success() || failure()
+    if: success()
     # if: steps.build.outcome == 'success'
     runs-on: ubuntu-latest
     steps:
@@ -85,7 +85,7 @@ jobs:
 
   lint:
     name: 'Run lints'
-    if: success() || failure()
+    if: success()
     # if: steps.run_test.outcome == 'success'
     runs-on: ubuntu-latest
     steps:

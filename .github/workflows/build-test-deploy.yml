@@ -4,19 +4,19 @@ on:
   push:
     branches:
       - develop
-  pull_request:
-    branches:
-      - develop
+  # pull_request:
+  #   branches:
+  #     - develop
 
 env:
   AWS_REGION: us-east-2                # set this to your preferred AWS region, e.g. us-west-1
   ECR_REPOSITORY: ferrum_node   
 
 jobs:
-  build:
-    name: 'Run Rust tests'
-    runs-on: ubuntu-latest
-    steps:
+  # run_test:
+  #   name: 'Run Rust tests'
+  #   runs-on: ubuntu-latest
+  #   steps:
     # - uses: actions/checkout@v3
     # - name: Rust Setup
     #   uses: actions-rs/toolchain@v1
@@ -31,6 +31,11 @@ jobs:
     #   run: |
     #       cargo install cargo-expand &&
     #       TRYBUILD=overwrite cargo test --locked --verbose --all
+  
+  # build:
+  #   name: 'Build docker image and push to ECR'
+  #   runs-on: ubuntu-latest
+  #   steps:
 
     # - name: Checkout
     #   uses: actions/checkout@v3
@@ -60,7 +65,10 @@ jobs:
     #     docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
     #     docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
     #     echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
-
+  deploy:
+    name: 'EC2 Deployment'
+    runs-on: ubuntu-latest
+    steps:
 
     - name: Deploy to ec2 server
       uses: appleboy/ssh-action@v0.1.8

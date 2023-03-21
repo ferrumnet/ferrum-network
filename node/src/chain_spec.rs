@@ -3,7 +3,7 @@ use ferrum_runtime::{AccountId, AuraId, Signature, EXISTENTIAL_DEPOSIT};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
-use sp_core::{sr25519, Pair, Public};
+use sp_core::{Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 use std::str::FromStr;
 
@@ -115,9 +115,9 @@ pub fn local_testnet_config() -> ChainSpec {
 
     ChainSpec::from_genesis(
         // Name
-        "Local Testnet",
+        "Ferrum Testnet",
         // ID
-        "local_testnet",
+        "ferrum_testnet",
         ChainType::Local,
         move || {
             testnet_genesis(
@@ -208,7 +208,6 @@ pub fn rococo_config() -> ChainSpec {
     )
 }
 
-
 fn testnet_genesis(
     invulnerables: Vec<(AccountId, AuraId)>,
     endowed_accounts: Vec<AccountId>,
@@ -225,7 +224,7 @@ fn testnet_genesis(
             balances: endowed_accounts
                 .iter()
                 .cloned()
-                .map(|k| (k, 1 << 60))
+                .map(|k| (k, 1 << 100))
                 .collect(),
         },
         parachain_info: ferrum_runtime::ParachainInfoConfig { parachain_id: id },
@@ -239,7 +238,7 @@ fn testnet_genesis(
                 .into_iter()
                 .map(|(acc, aura)| {
                     (
-                        acc.clone(),               // account id
+                        acc,                       // account id
                         acc,                       // validator id
                         ferrum_session_keys(aura), // session keys
                     )

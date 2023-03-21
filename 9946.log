@@ -1,0 +1,188 @@
+2023-03-21 11:39:17 Parachain Collator Template    
+2023-03-21 11:39:17 ✌️  version 0.0.1-ad23803f427    
+2023-03-21 11:39:17 ❤️  by Ferrum Network <https://github.com/ferrumnet>, 2020-2023    
+2023-03-21 11:39:17 📋 Chain specification: Local Testnet    
+2023-03-21 11:39:17 🏷  Node name: Alice    
+2023-03-21 11:39:17 👤 Role: AUTHORITY    
+2023-03-21 11:39:17 💾 Database: RocksDb at /var/folders/wq/tw9w2j41007djctg628t4vd40000gn/T/substrateyfUKZ9/chains/local_testnet/db/full    
+2023-03-21 11:39:17 ⛓  Native runtime: ferrum-parachain-1 (ferrum-parachain-0.tx1.au1)    
+2023-03-21 11:39:18 assembling new collators for new session 0 at #0    
+2023-03-21 11:39:18 assembling new collators for new session 1 at #0    
+2023-03-21 11:39:19 Parachain id: Id(1000)    
+2023-03-21 11:39:19 Parachain Account: 5Ec4AhPZk8STuex8Wsi9TwDtJQxKqzPJRCH7348Xtcs9vZLJ    
+2023-03-21 11:39:19 Parachain genesis state: 0x00000000000000000000000000000000000000000000000000000000000000000090a1c0e9f5f6d55f860febfc36103e2798ae76d4cf64fe96fe4cfeecb28c358503170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c11131400    
+2023-03-21 11:39:19 Is collating: yes    
+2023-03-21 11:39:19 [Parachain] assembling new collators for new session 0 at #0    
+2023-03-21 11:39:19 [Parachain] assembling new collators for new session 1 at #0    
+2023-03-21 11:39:19 [Parachain] 🔨 Initializing Genesis block/state (state: 0x90a1…3585, header-hash: 0x7c19…24fb)    
+2023-03-21 11:39:21 [Relaychain] 🔨 Initializing Genesis block/state (state: 0x4079…3066, header-hash: 0x0838…38f5)    
+2023-03-21 11:39:21 [Relaychain] 👴 Loading GRANDPA authority set from genesis on what appears to be first startup.    
+2023-03-21 11:39:22 [Relaychain] 👶 Creating empty BABE epoch changes on what appears to be first startup.    
+2023-03-21 11:39:22 [Relaychain] 🏷  Local node identity is: 12D3KooWMGXRkNTrCR6D4kukKrRNLZtPTNLfXVqeBxHr499ccnpJ    
+2023-03-21 11:39:22 [Relaychain] 💻 Operating system: macos    
+2023-03-21 11:39:22 [Relaychain] 💻 CPU architecture: aarch64    
+2023-03-21 11:39:22 [Relaychain] 📦 Highest known block at #0    
+2023-03-21 11:39:22 [Relaychain] 〽️ Prometheus exporter started at 127.0.0.1:9616    
+2023-03-21 11:39:22 [Relaychain] Running JSON-RPC HTTP server: addr=127.0.0.1:58987, allowed origins=["http://localhost:*", "http://127.0.0.1:*", "https://localhost:*", "https://127.0.0.1:*", "https://polkadot.js.org"]    
+2023-03-21 11:39:22 [Relaychain] Running JSON-RPC WS server: addr=127.0.0.1:9945, allowed origins=["http://localhost:*", "http://127.0.0.1:*", "https://localhost:*", "https://127.0.0.1:*", "https://polkadot.js.org"]    
+2023-03-21 11:39:22 [Relaychain] Starting with an empty approval vote DB.
+2023-03-21 11:39:22 [Parachain] 🏷  Local node identity is: 12D3KooWRSRnFTiRoYzLe6P9dQgZquAitM1yxL2x5TbveR86fRg8    
+2023-03-21 11:39:22 [Relaychain] discovered: 12D3KooWJdzuCfnG2SugYxVaSLuRSuMCfiY3172TP7q6GR7pLwzH /ip4/192.168.0.125/tcp/30444    
+2023-03-21 11:39:22 [Relaychain] discovered: 12D3KooWNcEfjGo9NmFsK8epM6hrDB38W4ySUwDgwmnRD7WDvccs /ip4/192.168.0.125/tcp/30555    
+2023-03-21 11:39:22 [Parachain] 💻 Operating system: macos    
+2023-03-21 11:39:22 [Parachain] 💻 CPU architecture: aarch64    
+2023-03-21 11:39:22 [Parachain] 📦 Highest known block at #0    
+2023-03-21 11:39:22 [Parachain] Running JSON-RPC HTTP server: addr=127.0.0.1:9936, allowed origins=["http://localhost:*", "http://127.0.0.1:*", "https://localhost:*", "https://127.0.0.1:*", "https://polkadot.js.org"]    
+2023-03-21 11:39:22 [Parachain] Running JSON-RPC WS server: addr=127.0.0.1:9946, allowed origins=["http://localhost:*", "http://127.0.0.1:*", "https://localhost:*", "https://127.0.0.1:*", "https://polkadot.js.org"]    
+2023-03-21 11:39:22 [Relaychain] 👶 New epoch 0 launching at block 0x65b2…4999 (block slot 279897393 >= start slot 279897393).    
+2023-03-21 11:39:22 [Relaychain] 👶 Next epoch starts at slot 279897403    
+2023-03-21 11:39:22 [Relaychain] ParentBlockRandomness did not provide entropy    
+2023-03-21 11:39:22 [Parachain] discovered: 12D3KooWMGXRkNTrCR6D4kukKrRNLZtPTNLfXVqeBxHr499ccnpJ /ip4/192.168.0.125/tcp/30334/ws    
+2023-03-21 11:39:22 [Relaychain] discovered: 12D3KooWRSRnFTiRoYzLe6P9dQgZquAitM1yxL2x5TbveR86fRg8 /ip4/192.168.0.125/tcp/31200    
+2023-03-21 11:39:22 [Parachain] discovered: 12D3KooWJdzuCfnG2SugYxVaSLuRSuMCfiY3172TP7q6GR7pLwzH /ip4/192.168.0.125/tcp/30444    
+2023-03-21 11:39:22 [Parachain] discovered: 12D3KooWNcEfjGo9NmFsK8epM6hrDB38W4ySUwDgwmnRD7WDvccs /ip4/192.168.0.125/tcp/30555    
+2023-03-21 11:39:22 [Relaychain] ✨ Imported #1 (0x65b2…4999)    
+2023-03-21 11:39:22 Accepting new connection 1/100
+2023-03-21 11:39:23 Accepting new connection 1/100
+2023-03-21 11:39:24 [Relaychain] ✨ Imported #2 (0x30a7…d3e4)    
+2023-03-21 11:39:27 [Relaychain] 💤 Idle (2 peers), best: #2 (0x30a7…d3e4), finalized #0 (0x0838…38f5), ⬇ 5.8kiB/s ⬆ 5.3kiB/s    
+2023-03-21 11:39:27 [Parachain] 💤 Idle (0 peers), best: #0 (0x7c19…24fb), finalized #0 (0x7c19…24fb), ⬇ 3.3kiB/s ⬆ 2.2kiB/s    
+2023-03-21 11:39:30 [Relaychain] ✨ Imported #3 (0x407a…7556)    
+2023-03-21 11:39:32 [Relaychain] 💤 Idle (2 peers), best: #3 (0x407a…7556), finalized #0 (0x0838…38f5), ⬇ 1.8kiB/s ⬆ 1.2kiB/s    
+2023-03-21 11:39:32 [Parachain] 💤 Idle (0 peers), best: #0 (0x7c19…24fb), finalized #0 (0x7c19…24fb), ⬇ 0.2kiB/s ⬆ 0.2kiB/s    
+2023-03-21 11:39:36 [Relaychain] ✨ Imported #4 (0xaef4…dbec)    
+2023-03-21 11:39:37 [Relaychain] 💤 Idle (2 peers), best: #4 (0xaef4…dbec), finalized #1 (0x65b2…4999), ⬇ 1.0kiB/s ⬆ 0.7kiB/s    
+2023-03-21 11:39:37 [Parachain] 💤 Idle (0 peers), best: #0 (0x7c19…24fb), finalized #0 (0x7c19…24fb), ⬇ 0 ⬆ 0    
+2023-03-21 11:39:42 [Relaychain] ✨ Imported #5 (0x9501…7b9e)    
+2023-03-21 11:39:42 [Relaychain] 💤 Idle (2 peers), best: #5 (0x9501…7b9e), finalized #2 (0x30a7…d3e4), ⬇ 1.0kiB/s ⬆ 0.7kiB/s    
+2023-03-21 11:39:42 [Parachain] 💤 Idle (0 peers), best: #0 (0x7c19…24fb), finalized #0 (0x7c19…24fb), ⬇ 0.1kiB/s ⬆ 0.1kiB/s    
+2023-03-21 11:39:47 [Relaychain] 💤 Idle (2 peers), best: #5 (0x9501…7b9e), finalized #3 (0x407a…7556), ⬇ 0.9kiB/s ⬆ 1.0kiB/s    
+2023-03-21 11:39:47 [Parachain] 💤 Idle (0 peers), best: #0 (0x7c19…24fb), finalized #0 (0x7c19…24fb), ⬇ 0 ⬆ 0    
+2023-03-21 11:39:48 [Relaychain] ✨ Imported #6 (0x35f6…636c)    
+2023-03-21 11:39:52 [Parachain] 💤 Idle (0 peers), best: #0 (0x7c19…24fb), finalized #0 (0x7c19…24fb), ⬇ 0.1kiB/s ⬆ 0.1kiB/s    
+2023-03-21 11:39:52 [Relaychain] 💤 Idle (2 peers), best: #6 (0x35f6…636c), finalized #4 (0xaef4…dbec), ⬇ 1.1kiB/s ⬆ 0.7kiB/s    
+2023-03-21 11:39:54 [Relaychain] ✨ Imported #7 (0xae2f…855f)    
+2023-03-21 11:39:57 [Parachain] 💤 Idle (0 peers), best: #0 (0x7c19…24fb), finalized #0 (0x7c19…24fb), ⬇ 0 ⬆ 0    
+2023-03-21 11:39:57 [Relaychain] 💤 Idle (2 peers), best: #7 (0xae2f…855f), finalized #4 (0xaef4…dbec), ⬇ 0.9kiB/s ⬆ 0.6kiB/s    
+2023-03-21 11:40:00 [Relaychain] ✨ Imported #8 (0x86fa…8429)    
+2023-03-21 11:40:02 [Parachain] 💤 Idle (0 peers), best: #0 (0x7c19…24fb), finalized #0 (0x7c19…24fb), ⬇ 0 ⬆ 0    
+2023-03-21 11:40:02 [Relaychain] 💤 Idle (2 peers), best: #8 (0x86fa…8429), finalized #5 (0x9501…7b9e), ⬇ 0.8kiB/s ⬆ 0.5kiB/s    
+2023-03-21 11:40:06 [Relaychain] ✨ Imported #9 (0xa267…d515)    
+2023-03-21 11:40:07 [Relaychain] 💤 Idle (2 peers), best: #9 (0xa267…d515), finalized #6 (0x35f6…636c), ⬇ 1.1kiB/s ⬆ 0.8kiB/s    
+2023-03-21 11:40:07 [Parachain] 💤 Idle (0 peers), best: #0 (0x7c19…24fb), finalized #0 (0x7c19…24fb), ⬇ 0.1kiB/s ⬆ 0.1kiB/s    
+2023-03-21 11:40:12 [Relaychain] ✨ Imported #10 (0x4b77…ced5)    
+2023-03-21 11:40:12 [Parachain] 💤 Idle (0 peers), best: #0 (0x7c19…24fb), finalized #0 (0x7c19…24fb), ⬇ 0 ⬆ 0    
+2023-03-21 11:40:12 [Relaychain] 💤 Idle (2 peers), best: #10 (0x4b77…ced5), finalized #7 (0xae2f…855f), ⬇ 0.8kiB/s ⬆ 0.5kiB/s    
+2023-03-21 11:40:15 Accepting new connection 1/100
+2023-03-21 11:40:17 Accepting new connection 1/100
+2023-03-21 11:40:17 [Parachain] 💤 Idle (0 peers), best: #0 (0x7c19…24fb), finalized #0 (0x7c19…24fb), ⬇ 0 ⬆ 0    
+2023-03-21 11:40:17 [Relaychain] 💤 Idle (2 peers), best: #10 (0x4b77…ced5), finalized #8 (0x86fa…8429), ⬇ 0.9kiB/s ⬆ 0.9kiB/s    
+2023-03-21 11:40:18 [Relaychain] 👶 New epoch 1 launching at block 0xf13e…5fab (block slot 279897403 >= start slot 279897403).    
+2023-03-21 11:40:18 [Relaychain] 👶 Next epoch starts at slot 279897413    
+2023-03-21 11:40:18 [Relaychain] ✨ Imported #11 (0xf13e…5fab)    
+2023-03-21 11:40:18 [Relaychain] Advanced session window for approvals update=Advanced { prev_window_start: 0, prev_window_end: 0, new_window_start: 0, new_window_end: 1 }
+2023-03-21 11:40:18 [Parachain] Starting collation. relay_parent=0xf13e7acc30f97c123d330b3b79bcbd418af3db570a14933db19d3dd9332e5fab at=0x7c19ba606799db83d95e684a250c8dcb7c9db6cc9ed3dc5a183a9e98fb9624fb
+2023-03-21 11:40:22 [Parachain] 💤 Idle (0 peers), best: #0 (0x7c19…24fb), finalized #0 (0x7c19…24fb), ⬇ 49 B/s ⬆ 49 B/s    
+2023-03-21 11:40:22 [Relaychain] 💤 Idle (2 peers), best: #11 (0xf13e…5fab), finalized #8 (0x86fa…8429), ⬇ 1.0kiB/s ⬆ 0.8kiB/s    
+2023-03-21 11:40:24 [Relaychain] ✨ Imported #12 (0x966c…4ad7)    
+2023-03-21 11:40:24 [Parachain] Starting collation. relay_parent=0x966cec70398405de7ddf63f7f84ca0782d5bee8db48e9b6cb7f26caaed2e4ad7 at=0x7c19ba606799db83d95e684a250c8dcb7c9db6cc9ed3dc5a183a9e98fb9624fb
+2023-03-21 11:40:24 [Parachain] 🙌 Starting consensus session on top of parent 0x7c19ba606799db83d95e684a250c8dcb7c9db6cc9ed3dc5a183a9e98fb9624fb    
+2023-03-21 11:40:24 [Parachain] 🎁 Prepared block for proposing at 1 (1 ms) [hash: 0xe7ab91677b2328844301cdcff875ff85c3c78562e3e6f8f3254bdf3e39c175ae; parent_hash: 0x7c19…24fb; extrinsics (2): [0x64dc…7d78, 0x9a9b…9997]]    
+2023-03-21 11:40:24 [Parachain] 🔖 Pre-sealed block for proposal at 1. Hash now 0x7dda4b85e5346d5be65996305cf30d3a3bef9b936036c402ca0c6253cf47219f, previously 0xe7ab91677b2328844301cdcff875ff85c3c78562e3e6f8f3254bdf3e39c175ae.    
+2023-03-21 11:40:24 [Parachain] ✨ Imported #1 (0x7dda…219f)    
+2023-03-21 11:40:24 [Parachain] PoV size { header: 0.2177734375kb, extrinsics: 2.7587890625kb, storage_proof: 2.0302734375kb }
+2023-03-21 11:40:24 [Parachain] Compressed PoV size: 4.298828125kb
+2023-03-21 11:40:24 [Parachain] Produced proof-of-validity candidate. block_hash=0x7dda4b85e5346d5be65996305cf30d3a3bef9b936036c402ca0c6253cf47219f
+2023-03-21 11:40:27 [Parachain] 💤 Idle (0 peers), best: #0 (0x7c19…24fb), finalized #0 (0x7c19…24fb), ⬇ 0 ⬆ 0    
+2023-03-21 11:40:27 [Relaychain] 💤 Idle (2 peers), best: #12 (0x966c…4ad7), finalized #10 (0x4b77…ced5), ⬇ 1.4kiB/s ⬆ 1.9kiB/s    
+2023-03-21 11:40:29 Accepting new connection 2/100
+2023-03-21 11:40:29 Accepting new connection 3/100
+2023-03-21 11:40:29 Accepting new connection 4/100
+2023-03-21 11:40:29 Accepting new connection 5/100
+2023-03-21 11:40:29 Accepting new connection 6/100
+2023-03-21 11:40:30 [Relaychain] ✨ Imported #13 (0xe5eb…f6bb)    
+2023-03-21 11:40:32 [Relaychain] 💤 Idle (2 peers), best: #13 (0xe5eb…f6bb), finalized #10 (0x4b77…ced5), ⬇ 1.1kiB/s ⬆ 0.5kiB/s    
+2023-03-21 11:40:32 [Parachain] 💤 Idle (0 peers), best: #0 (0x7c19…24fb), finalized #0 (0x7c19…24fb), ⬇ 0 ⬆ 0    
+2023-03-21 11:40:36 [Relaychain] ✨ Imported #14 (0x18a3…0f0b)    
+2023-03-21 11:40:36 [Parachain] Starting collation. relay_parent=0x18a3ebbe183a109b7968d5baee94336ae3ff779922cdff75194b775c86200f0b at=0x7dda4b85e5346d5be65996305cf30d3a3bef9b936036c402ca0c6253cf47219f
+2023-03-21 11:40:37 [Parachain] 💤 Idle (0 peers), best: #1 (0x7dda…219f), finalized #0 (0x7c19…24fb), ⬇ 49 B/s ⬆ 49 B/s    
+2023-03-21 11:40:37 [Relaychain] 💤 Idle (2 peers), best: #14 (0x18a3…0f0b), finalized #11 (0xf13e…5fab), ⬇ 1.1kiB/s ⬆ 0.8kiB/s    
+2023-03-21 11:40:42 [Relaychain] ✨ Imported #15 (0x7ba5…d8dd)    
+2023-03-21 11:40:42 [Relaychain] ✨ Imported #15 (0x404e…e2c2)    
+2023-03-21 11:40:42 [Parachain] Starting collation. relay_parent=0x7ba5598e9d5b6a2da6f57cdd4968cabb890f1d93b26a517ce08aa1e5f538d8dd at=0x7dda4b85e5346d5be65996305cf30d3a3bef9b936036c402ca0c6253cf47219f
+2023-03-21 11:40:42 [Parachain] Starting collation. relay_parent=0x404e9e93fa0c150c86bd3f1b336f50cab6cbaf17cb9a77defae1795292fde2c2 at=0x7dda4b85e5346d5be65996305cf30d3a3bef9b936036c402ca0c6253cf47219f
+2023-03-21 11:40:42 [Parachain] 💤 Idle (0 peers), best: #1 (0x7dda…219f), finalized #0 (0x7c19…24fb), ⬇ 0 ⬆ 0    
+2023-03-21 11:40:42 [Relaychain] 💤 Idle (2 peers), best: #15 (0x7ba5…d8dd), finalized #12 (0x966c…4ad7), ⬇ 1.1kiB/s ⬆ 0.5kiB/s    
+2023-03-21 11:40:47 [Parachain] 💤 Idle (0 peers), best: #1 (0x7dda…219f), finalized #0 (0x7c19…24fb), ⬇ 0 ⬆ 0    
+2023-03-21 11:40:47 [Relaychain] 💤 Idle (2 peers), best: #15 (0x7ba5…d8dd), finalized #13 (0xe5eb…f6bb), ⬇ 0.6kiB/s ⬆ 0.5kiB/s    
+2023-03-21 11:40:48 [Relaychain] ✨ Imported #16 (0x6bc0…d84f)    
+2023-03-21 11:40:48 [Parachain] Starting collation. relay_parent=0x6bc03b61c8808dd1edcaf7383e9c06a5004bfb5260c97f3955a1de7b9b39d84f at=0x7dda4b85e5346d5be65996305cf30d3a3bef9b936036c402ca0c6253cf47219f
+2023-03-21 11:40:48 [Parachain] 🙌 Starting consensus session on top of parent 0x7dda4b85e5346d5be65996305cf30d3a3bef9b936036c402ca0c6253cf47219f    
+2023-03-21 11:40:48 [Parachain] 🎁 Prepared block for proposing at 2 (1 ms) [hash: 0x1b01eb987c6e65286b61d27dd3edeff79e689c602aacbeabcf5b1e2d8309ad99; parent_hash: 0x7dda…219f; extrinsics (2): [0xdb2f…f814, 0x877e…d24b]]    
+2023-03-21 11:40:48 [Parachain] 🔖 Pre-sealed block for proposal at 2. Hash now 0x662d1931c0c9074f826ba65bf81d8193560224a440de999332123ed01cef1905, previously 0x1b01eb987c6e65286b61d27dd3edeff79e689c602aacbeabcf5b1e2d8309ad99.    
+2023-03-21 11:40:48 [Parachain] ✨ Imported #2 (0x662d…1905)    
+2023-03-21 11:40:48 [Parachain] PoV size { header: 0.2177734375kb, extrinsics: 2.9814453125kb, storage_proof: 2.91796875kb }
+2023-03-21 11:40:48 [Parachain] Compressed PoV size: 5.2587890625kb
+2023-03-21 11:40:48 [Parachain] Produced proof-of-validity candidate. block_hash=0x662d1931c0c9074f826ba65bf81d8193560224a440de999332123ed01cef1905
+2023-03-21 11:40:52 [Relaychain] 💤 Idle (2 peers), best: #16 (0x6bc0…d84f), finalized #14 (0x18a3…0f0b), ⬇ 1.2kiB/s ⬆ 1.9kiB/s    
+2023-03-21 11:40:52 [Parachain] 💤 Idle (0 peers), best: #1 (0x7dda…219f), finalized #1 (0x7dda…219f), ⬇ 49 B/s ⬆ 49 B/s    
+2023-03-21 11:40:54 [Relaychain] ✨ Imported #17 (0xa91c…820d)    
+2023-03-21 11:40:57 [Parachain] 💤 Idle (0 peers), best: #1 (0x7dda…219f), finalized #1 (0x7dda…219f), ⬇ 0 ⬆ 0    
+2023-03-21 11:40:57 [Relaychain] 💤 Idle (2 peers), best: #17 (0xa91c…820d), finalized #14 (0x18a3…0f0b), ⬇ 0.9kiB/s ⬆ 0.5kiB/s    
+2023-03-21 11:41:00 [Relaychain] ✨ Imported #18 (0x95b4…d5ea)    
+2023-03-21 11:41:00 [Parachain] Starting collation. relay_parent=0x95b4b3655bfb3cbfcf9311d1bba866096ab6c59e25e7d1c2dbd6b215898ed5ea at=0x662d1931c0c9074f826ba65bf81d8193560224a440de999332123ed01cef1905
+2023-03-21 11:41:02 [Parachain] 💤 Idle (0 peers), best: #2 (0x662d…1905), finalized #1 (0x7dda…219f), ⬇ 0 ⬆ 0    
+2023-03-21 11:41:02 [Relaychain] 💤 Idle (2 peers), best: #18 (0x95b4…d5ea), finalized #15 (0x7ba5…d8dd), ⬇ 0.8kiB/s ⬆ 0.5kiB/s    
+2023-03-21 11:41:06 [Relaychain] ✨ Imported #19 (0x3cec…f895)    
+2023-03-21 11:41:06 [Relaychain] ✨ Imported #19 (0xde1a…f06e)    
+2023-03-21 11:41:06 [Parachain] Starting collation. relay_parent=0x3cec58782ed7b8aa4c1c31d60f6dc08f96ebb6c5a1917b6c264f4ba61fabf895 at=0x662d1931c0c9074f826ba65bf81d8193560224a440de999332123ed01cef1905
+2023-03-21 11:41:06 [Parachain] Starting collation. relay_parent=0xde1a564ad0ce45d8109e1ba611a1f7ea915ed391668756830c8aee0dcd32f06e at=0x662d1931c0c9074f826ba65bf81d8193560224a440de999332123ed01cef1905
+2023-03-21 11:41:07 [Parachain] 💤 Idle (0 peers), best: #2 (0x662d…1905), finalized #1 (0x7dda…219f), ⬇ 49 B/s ⬆ 49 B/s    
+2023-03-21 11:41:07 [Relaychain] 💤 Idle (2 peers), best: #19 (0x3cec…f895), finalized #16 (0x6bc0…d84f), ⬇ 1.4kiB/s ⬆ 0.9kiB/s    
+2023-03-21 11:41:12 [Relaychain] ✨ Imported #20 (0xa97f…38ba)    
+2023-03-21 11:41:12 [Parachain] Starting collation. relay_parent=0xa97fd424ebc1d0cc1b75dfed9fddd2fee29ca9d9a869557df6360b9be81038ba at=0x662d1931c0c9074f826ba65bf81d8193560224a440de999332123ed01cef1905
+2023-03-21 11:41:12 [Parachain] 🙌 Starting consensus session on top of parent 0x662d1931c0c9074f826ba65bf81d8193560224a440de999332123ed01cef1905    
+2023-03-21 11:41:12 [Parachain] 🎁 Prepared block for proposing at 3 (1 ms) [hash: 0xc757a92b79eb7a75ffc578da81b41972dc69f30b291ba53d7aa59b5e6f52b47a; parent_hash: 0x662d…1905; extrinsics (2): [0xd451…a326, 0x424d…1a75]]    
+2023-03-21 11:41:12 [Parachain] 🔖 Pre-sealed block for proposal at 3. Hash now 0x47b42b1b4b6ca7fdc797a52517a10975633a7b528f110c117ceb5178f912eeba, previously 0xc757a92b79eb7a75ffc578da81b41972dc69f30b291ba53d7aa59b5e6f52b47a.    
+2023-03-21 11:41:12 [Parachain] ✨ Imported #3 (0x47b4…eeba)    
+2023-03-21 11:41:12 [Parachain] PoV size { header: 0.2177734375kb, extrinsics: 2.9814453125kb, storage_proof: 3.0068359375kb }
+2023-03-21 11:41:12 [Parachain] Compressed PoV size: 5.373046875kb
+2023-03-21 11:41:12 [Parachain] Produced proof-of-validity candidate. block_hash=0x47b42b1b4b6ca7fdc797a52517a10975633a7b528f110c117ceb5178f912eeba
+2023-03-21 11:41:12 [Parachain] 💤 Idle (0 peers), best: #2 (0x662d…1905), finalized #1 (0x7dda…219f), ⬇ 0 ⬆ 0    
+2023-03-21 11:41:12 [Relaychain] 💤 Idle (2 peers), best: #20 (0xa97f…38ba), finalized #17 (0xa91c…820d), ⬇ 1.1kiB/s ⬆ 1.7kiB/s    
+2023-03-21 11:41:17 [Relaychain] 💤 Idle (2 peers), best: #20 (0xa97f…38ba), finalized #18 (0x95b4…d5ea), ⬇ 0.6kiB/s ⬆ 0.5kiB/s    
+2023-03-21 11:41:17 [Parachain] 💤 Idle (0 peers), best: #2 (0x662d…1905), finalized #2 (0x662d…1905), ⬇ 0 ⬆ 0    
+2023-03-21 11:41:18 [Relaychain] 👶 New epoch 2 launching at block 0xd664…ed32 (block slot 279897413 >= start slot 279897413).    
+2023-03-21 11:41:18 [Relaychain] 👶 Next epoch starts at slot 279897423    
+2023-03-21 11:41:18 [Relaychain] ✨ Imported #21 (0xd664…ed32)    
+2023-03-21 11:41:18 [Relaychain] Advanced session window for approvals update=Advanced { prev_window_start: 0, prev_window_end: 1, new_window_start: 0, new_window_end: 2 }
+2023-03-21 11:41:18 [Parachain] Starting collation. relay_parent=0xd66469ee901b87e49cdff0bedc08e7596e59ce84df96d940f4f6fb10a016ed32 at=0x662d1931c0c9074f826ba65bf81d8193560224a440de999332123ed01cef1905
+2023-03-21 11:41:18 [Parachain] 🙌 Starting consensus session on top of parent 0x662d1931c0c9074f826ba65bf81d8193560224a440de999332123ed01cef1905    
+2023-03-21 11:41:18 [Parachain] 🎁 Prepared block for proposing at 3 (1 ms) [hash: 0x912d1d7194dc7831d1530378a6ef51b8026915671d0515bb19e61237b0afb267; parent_hash: 0x662d…1905; extrinsics (2): [0x4666…1840, 0xcf84…42d8]]    
+2023-03-21 11:41:18 [Parachain] 🔖 Pre-sealed block for proposal at 3. Hash now 0x79aa7e90f2064e72049ea8dd87bfb6fdaf277d2700f95d55e2b3248289006699, previously 0x912d1d7194dc7831d1530378a6ef51b8026915671d0515bb19e61237b0afb267.    
+2023-03-21 11:41:18 [Parachain] ✨ Imported #3 (0x79aa…6699)    
+2023-03-21 11:41:18 [Parachain] PoV size { header: 0.2177734375kb, extrinsics: 2.9814453125kb, storage_proof: 3.0068359375kb }
+2023-03-21 11:41:18 [Parachain] Compressed PoV size: 5.4208984375kb
+2023-03-21 11:41:18 [Parachain] Produced proof-of-validity candidate. block_hash=0x79aa7e90f2064e72049ea8dd87bfb6fdaf277d2700f95d55e2b3248289006699
+2023-03-21 11:41:22 [Relaychain] 💤 Idle (2 peers), best: #21 (0xd664…ed32), finalized #18 (0x95b4…d5ea), ⬇ 1.8kiB/s ⬆ 2.4kiB/s    
+2023-03-21 11:41:22 [Parachain] 💤 Idle (0 peers), best: #2 (0x662d…1905), finalized #2 (0x662d…1905), ⬇ 49 B/s ⬆ 49 B/s    
+2023-03-21 11:41:24 [Relaychain] ✨ Imported #22 (0x732f…6301)    
+2023-03-21 11:41:27 [Parachain] 💤 Idle (0 peers), best: #2 (0x662d…1905), finalized #2 (0x662d…1905), ⬇ 0 ⬆ 0    
+2023-03-21 11:41:27 [Relaychain] 💤 Idle (2 peers), best: #22 (0x732f…6301), finalized #19 (0x3cec…f895), ⬇ 1.1kiB/s ⬆ 0.5kiB/s    
+2023-03-21 11:41:30 [Relaychain] ✨ Imported #23 (0x8f23…7eec)    
+2023-03-21 11:41:30 [Parachain] Starting collation. relay_parent=0x8f2356837274fe6c9ba6d7196bcdba55f3249112698e8203ccb6ab79e2c37eec at=0x79aa7e90f2064e72049ea8dd87bfb6fdaf277d2700f95d55e2b3248289006699
+2023-03-21 11:41:32 [Parachain] 💤 Idle (0 peers), best: #3 (0x79aa…6699), finalized #2 (0x662d…1905), ⬇ 0 ⬆ 0    
+2023-03-21 11:41:32 [Relaychain] 💤 Idle (2 peers), best: #23 (0x8f23…7eec), finalized #20 (0xa97f…38ba), ⬇ 1.1kiB/s ⬆ 0.8kiB/s    
+2023-03-21 11:41:35 [Relaychain] 👴 Applying authority set change scheduled at block #21    
+2023-03-21 11:41:35 [Relaychain] 👴 Applying GRANDPA set change to new set [(Public(88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee (5FA9nQDV...)), 1), (Public(d17c2d7823ebf260fd138f2d7e27d114c0145d968b5ff5006125f2414fadae69 (5GoNkf6W...)), 1)]    
+2023-03-21 11:41:36 [Relaychain] ✨ Imported #24 (0x81e9…4ac8)    
+2023-03-21 11:41:36 [Parachain] Starting collation. relay_parent=0x81e954d58a5f5034954db544c1ca475babd138b22c7fd737c3a18bc6313e4ac8 at=0x79aa7e90f2064e72049ea8dd87bfb6fdaf277d2700f95d55e2b3248289006699
+2023-03-21 11:41:36 [Parachain] 🙌 Starting consensus session on top of parent 0x79aa7e90f2064e72049ea8dd87bfb6fdaf277d2700f95d55e2b3248289006699    
+2023-03-21 11:41:36 [Parachain] 🎁 Prepared block for proposing at 4 (2 ms) [hash: 0x54a3bc70634de0a9f07965e807b22221df44a7d67cec91cad90046bcf9fffb2a; parent_hash: 0x79aa…6699; extrinsics (3): [0x5788…bb4c, 0x4e52…c8af, 0xbdef…fa85]]    
+2023-03-21 11:41:36 [Parachain] 🔖 Pre-sealed block for proposal at 4. Hash now 0x4fc554fe3cc1c5f5660aa530f0a25913c0769c195728303ba8f851d67cee51f4, previously 0x54a3bc70634de0a9f07965e807b22221df44a7d67cec91cad90046bcf9fffb2a.    
+2023-03-21 11:41:36 [Parachain] ✨ Imported #4 (0x4fc5…51f4)    
+2023-03-21 11:41:36 [Parachain] PoV size { header: 0.25kb, extrinsics: 3.2373046875kb, storage_proof: 3.2841796875kb }
+2023-03-21 11:41:36 [Parachain] Compressed PoV size: 5.7119140625kb
+2023-03-21 11:41:36 [Parachain] Produced proof-of-validity candidate. block_hash=0x4fc554fe3cc1c5f5660aa530f0a25913c0769c195728303ba8f851d67cee51f4
+2023-03-21 11:41:37 [Parachain] 💤 Idle (0 peers), best: #3 (0x79aa…6699), finalized #2 (0x662d…1905), ⬇ 49 B/s ⬆ 49 B/s    
+2023-03-21 11:41:37 [Relaychain] 💤 Idle (2 peers), best: #24 (0x81e9…4ac8), finalized #21 (0xd664…ed32), ⬇ 1.0kiB/s ⬆ 1.9kiB/s    

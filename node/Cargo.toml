@@ -19,6 +19,7 @@ name = "ferrum-network"
 [dependencies]
 clap = { version = "4.0.32", features = ["derive"] }
 log = "0.4.17"
+futures = { version = "0.3.21" }
 codec = { package = "parity-scale-codec", version = "3.0.0" }
 serde = { version = "1.0.152", features = ["derive"] }
 jsonrpsee = { version = "0.16.2", features = ["server"] }
@@ -74,6 +75,9 @@ cumulus-client-service = { git = "https://github.com/paritytech/cumulus.git", br
 cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.37" }
 cumulus-primitives-parachain-inherent = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.37" }
 cumulus-relay-chain-interface = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.37" }
+cumulus-client-consensus-relay-chain = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.37" }
+cumulus-relay-chain-inprocess-interface = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.37" }
+cumulus-relay-chain-minimal-node = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.37" }
 
 # Frontier
 fc-cli = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.37" }

@@ -6,11 +6,13 @@
 			{
 				"name": "alice",
 				"wsPort": 9944,
+				"rpcPort": 9933,
 				"port": 30444
 			},
 			{
 				"name": "bob",
 				"wsPort": 9955,
+				"rpcPort": 9934,
 				"port": 30555
 			}
 		]
@@ -21,6 +23,7 @@
 			"nodes": [
 				{
 					"wsPort": 9946,
+					"rpcPort": 9936,
 					"name": "alice",
 					"port": 31200,
 					"flags": [

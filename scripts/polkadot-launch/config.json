@@ -23,10 +23,15 @@
 			"nodes": [
 				{
 					"wsPort": 9946,
-					"rpcPort": 9936,
+					"rpcPort": 8545,
 					"name": "alice",
 					"port": 31200,
 					"flags": [
+						"--rpc-cors=all",
+						"--rpc-external",
+						"--ws-external",
+						"--rpc-methods=unsafe",
+						"--ws-max-connections=1000",
 						"--",
 						"--execution=wasm"
 					]

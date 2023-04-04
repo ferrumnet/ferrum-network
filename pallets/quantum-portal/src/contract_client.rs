@@ -93,9 +93,10 @@ impl ContractClient {
     pub fn get_ledger_manager_address(&self) -> Result<H160, ChainRequestError> {
         // no cache, we fetch from the gateway contract
         let signature = b"quantumPortalLedgerMgr()";
-        let res: Box<CallResponse> = self.call(signature, &[], Some(self.gateway_contract_address))?;
+        let res: Box<CallResponse> =
+            self.call(signature, &[], Some(self.gateway_contract_address))?;
         log::info!("Ledger manager response is : {:?}", res);
-        let address = ChainUtils::decode_address_response(&res.result.as_slice());
+        let address = ChainUtils::decode_address_response(res.result.as_slice());
         log::info!("Ledger manager address is : {:?}", address);
 
         Ok(address)
@@ -108,7 +109,7 @@ impl ContractClient {
         let signature = b"minerMgr()";
         let res: Box<CallResponse> = self.call(signature, &[], Some(ledger_manager_address))?;
         log::info!("Miner manager response is : {:?}", res);
-        let address = ChainUtils::decode_address_response(&res.result.as_slice());
+        let address = ChainUtils::decode_address_response(res.result.as_slice());
         log::info!("Miner manager address is : {:?}", address);
 
         let signature = b"VERSION";
@@ -129,12 +130,15 @@ impl ContractClient {
         let signature = b"authorityMgr()";
         let res: Box<CallResponse> = self.call(signature, &[], Some(ledger_manager_address))?;
         log::info!("Authority manager response is : {:?}", res);
-        let address = ChainUtils::decode_address_response(&res.result.as_slice());
+        let address = ChainUtils::decode_address_response(res.result.as_slice());
         log::info!("Authority manager address is : {:?}", address);
 
         let signature = b"VERSION";
         let res: Box<CallResponse> = self.call(signature, &[], Some(address))?;
-        log::info!("Authority manager version is : {:?}", &res.result.as_slice());
+        log::info!(
+            "Authority manager version is : {:?}",
+            &res.result.as_slice()
+        );
 
         let signature = b"NAME";
         let res: Box<CallResponse> = self.call(signature, &[], Some(address))?;
@@ -195,6 +199,7 @@ impl ContractClient {
         fetch_json_rpc(http_api, &req)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn send(
         &self,
         method_signature: &[u8],
@@ -301,8 +306,10 @@ impl ContractClient {
             )
             .string(
                 "to",
-                str::from_utf8(ChainUtils::address_to_hex(self.gateway_contract_address).as_slice())
-                    .unwrap(),
+                str::from_utf8(
+                    ChainUtils::address_to_hex(self.gateway_contract_address).as_slice(),
+                )
+                .unwrap(),
             )
             .string(
                 "value",

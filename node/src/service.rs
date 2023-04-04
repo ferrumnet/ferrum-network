@@ -1,4 +1,5 @@
 //! Parachain Service and ServiceFactory implementation.
+#![allow(clippy::type_complexity)]
 use cumulus_client_cli::CollatorOptions;
 use cumulus_client_consensus_aura::{AuraConsensus, BuildAuraConsensusParams, SlotProportion};
 use cumulus_client_consensus_common::{ParachainBlockImport, ParachainConsensus};

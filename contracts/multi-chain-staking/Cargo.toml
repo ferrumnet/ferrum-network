@@ -1,0 +1,27 @@
+[package]
+name = "ink_multi_chain_staking"
+version = "0.1.0"
+authors = ["Your Name <name@email.com>"]
+edition = "2021"
+
+[dependencies]
+ink = { version = "4.0.0", default-features = false}
+ink_metadata = { version = "4.0.0", features = ["derive"], optional = true }
+ethereum-types = { version = "0.14", default-features = false }
+ethabi-nostd = { path = "../../libraries/ethabi-nostd", default-features = false }
+scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
+scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
+hex = { version = "0.4.3", default-features = false }
+hex-literal = "0.3.4"
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+default = ["std"]
+std = [
+    "ink/std",
+    "scale/std",
+    "scale-info/std"
+]
+ink-as-dependency = []

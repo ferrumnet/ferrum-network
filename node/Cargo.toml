@@ -18,12 +18,12 @@ name = "ferrum-network"
 
 [dependencies]
 clap = { version = "4.0.32", features = ["derive"] }
-log = "0.4.17"
-futures = { version = "0.3.21" }
 codec = { package = "parity-scale-codec", version = "3.0.0" }
-serde = { version = "1.0.152", features = ["derive"] }
-jsonrpsee = { version = "0.16.2", features = ["server"] }
+futures = { version = "0.3.21" }
 hex-literal = "0.3.4"
+jsonrpsee = { version = "0.16.2", features = ["server"] }
+log = "0.4.17"
+serde = { version = "1.0.152", features = ["derive"] }
 
 # Substrate
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", "branch" = "polkadot-v0.9.37" }
@@ -49,16 +49,16 @@ sp-block-builder = { git = "https://github.com/paritytech/substrate", "branch" =
 sp-blockchain = { git = "https://github.com/paritytech/substrate", "branch" = "polkadot-v0.9.37" }
 sp-consensus-aura = { git = "https://github.com/paritytech/substrate", "branch" = "polkadot-v0.9.37" }
 sp-core = { git = "https://github.com/paritytech/substrate", "branch" = "polkadot-v0.9.37" }
+sp-io = { git = "https://github.com/paritytech/substrate", "branch" = "polkadot-v0.9.37" }
 sp-keystore = { git = "https://github.com/paritytech/substrate", "branch" = "polkadot-v0.9.37" }
 sp-offchain = { git = "https://github.com/paritytech/substrate", "branch" = "polkadot-v0.9.37" }
-sp-io = { git = "https://github.com/paritytech/substrate", "branch" = "polkadot-v0.9.37" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", "branch" = "polkadot-v0.9.37" }
 sp-session = { git = "https://github.com/paritytech/substrate", "branch" = "polkadot-v0.9.37" }
 sp-timestamp = { git = "https://github.com/paritytech/substrate", "branch" = "polkadot-v0.9.37" }
 sp-transaction-pool = { git = "https://github.com/paritytech/substrate", "branch" = "polkadot-v0.9.37" }
 substrate-frame-rpc-system = { git = "https://github.com/paritytech/substrate", "branch" = "polkadot-v0.9.37" }
 substrate-prometheus-endpoint = { git = "https://github.com/paritytech/substrate", "branch" = "polkadot-v0.9.37" }
-try-runtime-cli = { git = "https://github.com/paritytech/substrate", optional = true , "branch" = "polkadot-v0.9.37" }
+try-runtime-cli = { git = "https://github.com/paritytech/substrate", optional = true, "branch" = "polkadot-v0.9.37" }
 
 # Polkadot
 polkadot-cli = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.37" }
@@ -70,13 +70,13 @@ xcm = { git = "https://github.com/paritytech/polkadot", default-features = false
 cumulus-client-cli = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.37" }
 cumulus-client-consensus-aura = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.37" }
 cumulus-client-consensus-common = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.37" }
+cumulus-client-consensus-relay-chain = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.37" }
 cumulus-client-network = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.37" }
 cumulus-client-service = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.37" }
 cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.37" }
 cumulus-primitives-parachain-inherent = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.37" }
-cumulus-relay-chain-interface = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.37" }
-cumulus-client-consensus-relay-chain = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.37" }
 cumulus-relay-chain-inprocess-interface = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.37" }
+cumulus-relay-chain-interface = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.37" }
 cumulus-relay-chain-minimal-node = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.37" }
 
 # Frontier
@@ -109,5 +109,5 @@ runtime-benchmarks = [
 ]
 try-runtime = [
 	"try-runtime-cli/try-runtime",
-	"ferrum-runtime/try-runtime"
+	"ferrum-runtime/try-runtime",
 ]

@@ -25,9 +25,9 @@ impl Erc20Client {
         Erc20Client { contract: client }
     }
 
-    pub fn total_supply(&self) -> Result<U256, ChainRequestError> {
+    pub fn total_supply(&mut self) -> Result<U256, ChainRequestError> {
         let signature = b"totalSupply()";
-        let mut res: Box<TotalSupplyResponse> = self.contract.call(signature, &[])?;
+        let mut res: Box<TotalSupplyResponse> = self.contract.call(signature, &[], None)?;
         res.result.remove(0);
         res.result.remove(0);
         let res_str = str::from_utf8(res.result.as_slice()).unwrap();

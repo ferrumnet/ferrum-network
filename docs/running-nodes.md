@@ -73,12 +73,12 @@ These are the values to be included in the file :
     "networks": {
         "network_vec": [{
             "url": "<CHAIN_1_RPC_URL>",
-            "ledger_manager": "<CHAIN_1_LEDGER_MGR_ADDRESS>",
+            "gateway_contract_address": "<CHAIN_1_LEDGER_MGR_ADDRESS>",
             "id": "CHAIN_1_ID"
         },
         {
             "url": "<CHAIN_2_RPC_URL>",
-            "ledger_manager": "<CHAIN_2_LEDGER_MGR_ADDRESS>",
+            "gateway_contract_address": "<CHAIN_2_LEDGER_MGR_ADDRESS>",
             "id": "CHAIN_2_ID"
         }],
 	    "pair_vec": [[CHAIN_1_ID, CHAIN_2_ID], [CHAIN_1_ID, CHAIN_2_ID]],
@@ -105,12 +105,12 @@ An example config for mining between Mumbai testnet and BSC testnet would be as 
     "networks": {
         "network_vec": [{
             "url": "https://rpc-mumbai.maticvigil.com/",
-            "ledger_manager": "1AC9Fb66D542FEe49728e0da6af230dbECD6d547",
+            "gateway_contract_address": "1AC9Fb66D542FEe49728e0da6af230dbECD6d547",
             "id": 80001
         },
         {
             "url": "https://data-seed-prebsc-2-s3.binance.org:8545",
-            "ledger_manager": "1AC9Fb66D542FEe49728e0da6af230dbECD6d547",
+            "gateway_contract_address": "1AC9Fb66D542FEe49728e0da6af230dbECD6d547",
             "id": 97
         }],
 	    "pair_vec": [[80001, 97], [97, 80001]],

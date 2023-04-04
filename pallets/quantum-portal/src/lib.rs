@@ -18,7 +18,7 @@ pub mod pallet {
         chain_utils::{ChainRequestError, ChainUtils},
         contract_client::{ContractClient, ContractClientSignature},
         qp_types,
-        qp_types::{EIP712Config, QpConfig, QpNetworkItem, Role},
+        qp_types::{QpConfig, QpNetworkItem, Role},
         quantum_portal_client::QuantumPortalClient,
         quantum_portal_service::{PendingTransaction, QuantumPortalService},
     };
@@ -137,20 +137,19 @@ pub mod pallet {
             block_number: u64,
             network_item: QpNetworkItem,
             signer_public_key: Vec<u8>,
-            eip_712_config: EIP712Config,
         ) -> QuantumPortalClient<T> {
             let rpc_endpoint = network_item.url;
             let id = network_item.id;
 
             let signer = ChainUtils::hex_to_ecdsa_pub_key(&signer_public_key[..]);
-            let lgr_mgr = ChainUtils::hex_to_address(&network_item.ledger_manager[..]);
-            let client = ContractClient::new(rpc_endpoint, &lgr_mgr, id);
+            let gateway_contract =
+                ChainUtils::hex_to_address(&network_item.gateway_contract_address[..]);
+            let client = ContractClient::new(rpc_endpoint, &gateway_contract, id);
             QuantumPortalClient::new(
                 client,
                 ContractClientSignature::from(signer),
                 sp_io::offchain::timestamp().unix_millis(),
                 block_number,
-                eip_712_config,
             )
         }
 
@@ -166,7 +165,6 @@ pub mod pallet {
                         block_number,
                         item,
                         qp_config_item.signer_public_key.clone(),
-                        qp_config_item.eip_712_config.clone(),
                     )
                 })
                 .collect();

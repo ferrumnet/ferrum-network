@@ -4,7 +4,7 @@ use crate::{
     chain_utils::{ChainRequestError, ChainRequestResult, ChainUtils, TransactionCreationError},
     contract_client::{ContractClient, ContractClientSignature},
     eip_712_utils::EIP712Utils,
-    qp_types::{EIP712Config, QpLocalBlock, QpRemoteBlock, QpTransaction},
+    qp_types::{QpLocalBlock, QpRemoteBlock, QpTransaction},
     Config,
 };
 use ethabi_nostd::{decoder::decode, ParamKind, Token};
@@ -22,7 +22,6 @@ pub struct QuantumPortalClient<T: Config> {
     pub signer: ContractClientSignature,
     pub now: u64,
     pub block_number: u64,
-    pub eip_712_config: EIP712Config,
     _phantom: PhantomData<T>,
 }
 
@@ -156,14 +155,12 @@ impl<T: Config> QuantumPortalClient<T> {
         signer: ContractClientSignature,
         now: u64,
         block_number: u64,
-        eip_712_config: EIP712Config,
     ) -> Self {
         QuantumPortalClient {
             contract,
             signer,
             now,
             block_number,
-            eip_712_config,
             _phantom: Default::default(),
         }
     }
@@ -172,7 +169,7 @@ impl<T: Config> QuantumPortalClient<T> {
         let signature = b"isLocalBlockReady(uint64)";
         let res: Box<CallResponse> = self
             .contract
-            .call(signature, &[Token::Uint(U256::from(chain_id))])?;
+            .call(signature, &[Token::Uint(U256::from(chain_id))], None)?;
         let val = ChainUtils::hex_to_u256(&res.result)?;
         Ok(!val.is_zero())
     }
@@ -181,7 +178,7 @@ impl<T: Config> QuantumPortalClient<T> {
         let signature = b"lastRemoteMinedBlock(uint64)";
         let res: Box<CallResponse> = self
             .contract
-            .call(signature, &[Token::Uint(U256::from(chain_id))])?;
+            .call(signature, &[Token::Uint(U256::from(chain_id))], None)?;
         self.decode_local_block(res.result.as_slice())
     }
 
@@ -189,7 +186,7 @@ impl<T: Config> QuantumPortalClient<T> {
         let signature = b"lastFinalizedBlock(uint256)";
         let res: Box<CallResponse> = self
             .contract
-            .call(signature, &[Token::Uint(U256::from(chain_id))])?;
+            .call(signature, &[Token::Uint(U256::from(chain_id))], None)?;
         self.decode_local_block(res.result.as_slice())
     }
 
@@ -197,7 +194,7 @@ impl<T: Config> QuantumPortalClient<T> {
         let signature = b"lastLocalBlock(uint256)";
         let res: Box<CallResponse> = self
             .contract
-            .call(signature, &[Token::Uint(U256::from(chain_id))])?;
+            .call(signature, &[Token::Uint(U256::from(chain_id))], None)?;
         self.decode_local_block(res.result.as_slice())
     }
 
@@ -213,6 +210,7 @@ impl<T: Config> QuantumPortalClient<T> {
                 Token::Uint(U256::from(chain_id)),
                 Token::Uint(U256::from(last_block_nonce)),
             ],
+            None
         )?;
         decode_remote_block_and_txs(res.result.as_slice(), local_block_tuple(), |block| {
             log::info!("1-DECODING BLOCK {:?}", block);
@@ -235,6 +233,7 @@ impl<T: Config> QuantumPortalClient<T> {
                 Token::Uint(U256::from(chain_id)),
                 Token::Uint(U256::from(last_block_nonce)),
             ],
+            None
         )?;
         let mined_block_tuple = ParamKind::Tuple(vec![
             // MinedBlock
@@ -342,12 +341,13 @@ impl<T: Config> QuantumPortalClient<T> {
         salt: Token,
         expiry: Token,
     ) -> Result<Vec<u8>, TransactionCreationError> {
+        let verifying_contract_address = &self.contract.get_authority_manager_address().map_err(|_| TransactionCreationError::CannotFindContractAddress)?;
         // Generate the domain seperator hash, the hash is generated from the given arguments
         let domain_seperator_hash = EIP712Utils::generate_eip_712_domain_seperator_hash(
-            &self.eip_712_config.finalizer_contract_name, // ContractName
-            &self.eip_712_config.finalizer_contract_version, // ContractVersion
+            &ChainUtils::address_to_hex(*verifying_contract_address), // ContractName
+            &ChainUtils::address_to_hex(*verifying_contract_address), // ContractVersion
             self.contract.chain_id,                       // ChainId
-            &self.eip_712_config.finalizer_verifying_address, // VerifyingAddress
+            &ChainUtils::address_to_hex(*verifying_contract_address), // VerifyingAddress
         );
         log::info!("domain_seperator_hash {:?}", domain_seperator_hash);
 
@@ -502,12 +502,14 @@ impl<T: Config> QuantumPortalClient<T> {
         salt: Token,
         expiry: Token,
     ) -> Result<Vec<u8>, TransactionCreationError> {
+        let verifying_contract_address = &self.contract.get_miner_manager_address().map_err(|_| TransactionCreationError::CannotFindContractAddress)?;
+
         // Generate the domain seperator hash, the hash is generated from the given arguments
         let domain_seperator_hash = EIP712Utils::generate_eip_712_domain_seperator_hash(
-            &self.eip_712_config.miner_contract_name,     // ContractName
-            &self.eip_712_config.miner_contract_version,  // ContractVersion
+            &ChainUtils::address_to_hex(*verifying_contract_address),     // ContractName
+            &ChainUtils::address_to_hex(*verifying_contract_address),  // ContractVersion
             self.contract.chain_id,                       // ChainId
-            &self.eip_712_config.miner_verifying_address, // VerifyingAddress
+            &ChainUtils::address_to_hex(*verifying_contract_address), // VerifyingAddress
         );
         log::info!("domain_seperator_hash {:?}", domain_seperator_hash);
 

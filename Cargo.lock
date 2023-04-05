@@ -2894,6 +2894,9 @@ name = "ferrum-primitives"
 version = "0.1.1"
 dependencies = [
  "blake2-rfc",
+ "ethereum",
+ "ethereum-types",
+ "frame-support",
  "frame-system",
  "hex",
  "impl-serde 0.3.2",
@@ -6312,6 +6315,37 @@ dependencies = [
  "parity-scale-codec",
  "rlp",
  "scale-info",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-ethereum-xcm"
+version = "1.0.0-dev"
+dependencies = [
+ "ethereum",
+ "ethereum-types",
+ "ferrum-primitives",
+ "fp-ethereum",
+ "fp-evm",
+ "fp-rpc",
+ "fp-self-contained",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "hex",
+ "libsecp256k1",
+ "pallet-balances",
+ "pallet-ethereum",
+ "pallet-evm",
+ "pallet-proxy",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "rlp",
+ "scale-info",
+ "serde",
+ "sp-core",
  "sp-io",
  "sp-runtime",
  "sp-std",

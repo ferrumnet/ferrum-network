@@ -1,67 +1,9 @@
-/// Available Sealing methods.
-#[cfg(feature = "manual-seal")]
-#[derive(Debug, Copy, Clone, clap::ArgEnum)]
-pub enum Sealing {
-    // Seal using rpc method.
-    Manual,
-    // Seal when transaction is executed.
-    Instant,
-}
+#![allow(clippy::all)]
+use std::path::PathBuf;
 
-#[cfg(feature = "manual-seal")]
-impl Default for Sealing {
-    fn default() -> Sealing {
-        Sealing::Manual
-    }
-}
-
-#[allow(missing_docs)]
-#[derive(Debug, clap::Parser)]
-pub struct RunCmd {
-    #[allow(missing_docs)]
-    #[clap(flatten)]
-    pub base: sc_cli::RunCmd,
-
-    /// Choose sealing method.
-    #[cfg(feature = "manual-seal")]
-    #[clap(long, arg_enum, ignore_case = true)]
-    pub sealing: Sealing,
-
-    #[clap(long)]
-    pub enable_dev_signer: bool,
-
-    /// Maximum number of logs in a query.
-    #[clap(long, default_value = "10000")]
-    pub max_past_logs: u32,
-
-    /// Maximum fee history cache size.
-    #[clap(long, default_value = "2048")]
-    pub fee_history_limit: u64,
-
-    /// The dynamic-fee pallet target gas price set by block author
-    #[clap(long, default_value = "1")]
-    pub target_gas_price: u64,
-
-    // #[clap(long, parse(from_os_str))]
-    #[clap(long, value_parser)]
-    pub config_file_path: Option<std::path::PathBuf>,
-}
-
-#[derive(Debug, clap::Parser)]
-pub struct Cli {
-    #[clap(subcommand)]
-    pub subcommand: Option<Subcommand>,
-
-    #[clap(flatten)]
-    pub run: RunCmd,
-}
-
+/// Sub-commands supported by the collator.
 #[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
-    /// Key management cli utilities
-    #[clap(subcommand)]
-    Key(sc_cli::KeySubcommand),
-
     /// Build a chain specification.
     BuildSpec(sc_cli::BuildSpecCmd),
 
@@ -77,21 +19,90 @@ pub enum Subcommand {
     /// Import blocks.
     ImportBlocks(sc_cli::ImportBlocksCmd),
 
-    /// Remove the whole chain.
-    PurgeChain(sc_cli::PurgeChainCmd),
-
     /// Revert the chain to a previous state.
     Revert(sc_cli::RevertCmd),
 
+    /// Remove the whole chain.
+    PurgeChain(cumulus_client_cli::PurgeChainCmd),
+
+    /// Export the genesis state of the parachain.
+    ExportGenesisState(cumulus_client_cli::ExportGenesisStateCommand),
+
+    /// Export the genesis wasm of the parachain.
+    ExportGenesisWasm(cumulus_client_cli::ExportGenesisWasmCommand),
+
     /// Sub-commands concerned with benchmarking.
-    #[cfg(feature = "runtime-benchmarks")]
-    #[clap(subcommand)]
+    /// The pallet benchmarking moved to the `pallet` sub-command.
+    #[command(subcommand)]
     Benchmark(frame_benchmarking_cli::BenchmarkCmd),
 
-    /// Sub-commands concerned with benchmarking.
-    #[cfg(not(feature = "runtime-benchmarks"))]
-    Benchmark,
+    /// Try some testing command against a specified runtime state.
+    #[cfg(feature = "try-runtime")]
+    TryRuntime(try_runtime_cli::TryRuntimeCmd),
 
-    /// Db meta columns information.
-    FrontierDb(fc_cli::FrontierDbCmd),
+    /// Errors since the binary was not build with `--features try-runtime`.
+    #[cfg(not(feature = "try-runtime"))]
+    TryRuntime,
+    // /// Db meta columns information.
+    // FrontierDb(fc_cli::FrontierDbCmd),
+}
+
+#[derive(Debug, clap::Parser)]
+#[command(
+    propagate_version = true,
+    args_conflicts_with_subcommands = true,
+    subcommand_negates_reqs = true
+)]
+pub struct Cli {
+    #[command(subcommand)]
+    pub subcommand: Option<Subcommand>,
+
+    #[command(flatten)]
+    pub run: cumulus_client_cli::RunCmd,
+
+    /// Disable automatic hardware benchmarks.
+    ///
+    /// By default these benchmarks are automatically ran at startup and measure
+    /// the CPU speed, the memory bandwidth and the disk speed.
+    ///
+    /// The results are then printed out in the logs, and also sent as part of
+    /// telemetry, if telemetry is enabled.
+    #[arg(long)]
+    pub no_hardware_benchmarks: bool,
+
+    /// Relay chain arguments
+    #[arg(raw = true)]
+    pub relay_chain_args: Vec<String>,
+}
+
+#[derive(Debug)]
+pub struct RelayChainCli {
+    /// The actual relay chain cli object.
+    pub base: polkadot_cli::RunCmd,
+
+    /// Optional chain id that should be passed to the relay chain.
+    pub chain_id: Option<String>,
+
+    /// The base path that should be used by the relay chain.
+    pub base_path: Option<PathBuf>,
+}
+
+impl RelayChainCli {
+    /// Parse the relay chain CLI parameters using the para chain `Configuration`.
+    pub fn new<'a>(
+        para_config: &sc_service::Configuration,
+        relay_chain_args: impl Iterator<Item = &'a String>,
+    ) -> Self {
+        let extension = crate::chain_spec::Extensions::try_get(&*para_config.chain_spec);
+        let chain_id = extension.map(|e| e.relay_chain.clone());
+        let base_path = para_config
+            .base_path
+            .as_ref()
+            .map(|x| x.path().join("polkadot"));
+        Self {
+            base_path,
+            chain_id,
+            base: clap::Parser::parse_from(relay_chain_args),
+        }
+    }
 }

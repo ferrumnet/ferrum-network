@@ -1,46 +1,32 @@
-use crate::cli::Cli;
-use ferrum_x_runtime::{
-    AccountId,
-    AuraConfig,
-    BalancesConfig,
-    EVMConfig,
-    EthereumConfig,
-    GenesisConfig,
-    GrandpaConfig,
-    SudoConfig,
-    SystemConfig,
-    WASM_BINARY, //QuantumPortalConfig
-};
-use hex_literal::hex;
+use cumulus_primitives_core::ParaId;
+use ferrum_runtime::{AccountId, AuraId, EXISTENTIAL_DEPOSIT};
+use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
-use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::crypto::UncheckedInto;
-use sp_core::{Pair, Public, H160, U256};
-use sp_finality_grandpa::AuthorityId as GrandpaId;
-use std::{collections::BTreeMap, str::FromStr};
+use serde::{Deserialize, Serialize};
+use sp_core::{Pair, Public};
+use std::str::FromStr;
 
-// The URL for the telemetry server.
-// const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
+/// Specialized `ChainSpec` for the normal parachain runtime.
+pub type ChainSpec = sc_service::GenericChainSpec<ferrum_runtime::GenesisConfig, Extensions>;
 
-/// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
-pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
+/// The default XCM version to set in genesis config.
+const SAFE_XCM_VERSION: u32 = xcm::prelude::XCM_VERSION;
 
-// Generate testnet validators using predetermined keys
-fn generate_testnet_validators() -> Vec<(AuraId, GrandpaId)> {
-    vec![
-        (
-            hex!["e4c7041b801911eb544eb16df4f6ccabc2167b5100bcce0c68824f53242f8a73"]
-                .unchecked_into(),
-            hex!["e9b8bcde50960a9aa6cfec3382d520176a5f90db53d0551579e569048fc81c66"]
-                .unchecked_into(),
-        ),
-        (
-            hex!["9a0c54b2d0f3b9ffd83b392faa5a5cedab9f6478015c01e8d1485722204e3068"]
-                .unchecked_into(),
-            hex!["42afdd9402e6b6d82db0ad7e188f72c6937dcb49a7840ae08563b25ab24e0c6a"]
-                .unchecked_into(),
-        ),
-    ]
+/// The extensions for the [`ChainSpec`].
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ChainSpecGroup, ChainSpecExtension)]
+#[serde(deny_unknown_fields)]
+pub struct Extensions {
+    /// The relay chain of the Parachain.
+    pub relay_chain: String,
+    /// The id of the Parachain.
+    pub para_id: u32,
+}
+
+impl Extensions {
+    /// Try to get the extension from the given `ChainSpec`.
+    pub fn try_get(chain_spec: &dyn sc_service::ChainSpec) -> Option<&Self> {
+        sc_chain_spec::get_extension(chain_spec.extensions())
+    }
 }
 
 /// Generate a crypto pair from seed.
@@ -50,7 +36,14 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
         .public()
 }
 
-// /// Generate an account ID from seed.
+/// Generate collator keys from seed.
+///
+/// This function's return type must always match the session keys of the chain in tuple format.
+pub fn get_collator_keys_from_seed(s: &str) -> AuraId {
+    get_from_seed::<AuraId>(s)
+}
+
+// /// Helper function to generate an account ID from seed
 // pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
 // where
 //     AccountPublic: From<<TPublic::Pair as Pair>::Public>,
@@ -58,15 +51,21 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
 //     AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 // }
 
-/// Generate an Aura authority key.
-pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
-    (get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
+/// Generate the session keys from individual elements.
+///
+/// The input must be a tuple of individual keys (a single arg for now since we have just one key).
+pub fn ferrum_session_keys(keys: AuraId) -> ferrum_runtime::SessionKeys {
+    ferrum_runtime::SessionKeys { aura: keys }
 }
 
-pub fn development_config(_cli: &Cli) -> Result<ChainSpec, String> {
-    let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
+pub fn development_config() -> ChainSpec {
+    // Give your base currency a tFRM name and decimal places
+    let mut properties = sc_chain_spec::Properties::new();
+    properties.insert("tokenSymbol".into(), "tFRM".into());
+    properties.insert("tokenDecimals".into(), 18.into());
+    properties.insert("ss58Format".into(), 42.into());
 
-    Ok(ChainSpec::from_genesis(
+    ChainSpec::from_genesis(
         // Name
         "Ferrum Development",
         // ID
@@ -74,171 +73,189 @@ pub fn development_config(_cli: &Cli) -> Result<ChainSpec, String> {
         ChainType::Development,
         move || {
             testnet_genesis(
-                wasm_binary,
-                // Initial PoA authorities
+                // initial collators.
                 vec![
-                    authority_keys_from_seed("Alice"),
-                    authority_keys_from_seed("Bob"),
+                    (
+                        AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
+                        get_collator_keys_from_seed("Alice"),
+                    ),
+                    (
+                        AccountId::from_str("0x25451A4de12dcCc2D166922fA938E900fCc4ED24").unwrap(),
+                        get_collator_keys_from_seed("Bob"),
+                    ),
                 ],
-                // Sudo account
-                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
-                // Pre-funded accounts
+                // Endowed Accounts
                 vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
-                vec![],
-                true,
+                // Sudo Key
+                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
+                1000.into(),
             )
         },
-        // Bootnodes
-        vec![],
-        // Telemetry
-        None,
-        // Protocol ID
+        Vec::new(),
         None,
         None,
-        // Properties
         None,
-        // Extensions
         None,
-    ))
-}
-
-pub fn local_testnet_config(_cli: &Cli) -> Result<ChainSpec, String> {
-    let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
-    Ok(ChainSpec::from_genesis(
-        // Name
-        "Ferrum Local Testnet",
-        // ID
-        "local_testnet",
-        ChainType::Local,
-        move || {
-            testnet_genesis(
-                wasm_binary,
-                // Initial PoA authorities
-                vec![
-                    authority_keys_from_seed("Alice"),
-                    authority_keys_from_seed("Bob"),
-                ],
-                // Sudo account
-                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
-                // Pre-funded accounts
-                vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
-                vec![],
-                true,
-            )
+        Extensions {
+            relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
+            para_id: 1000,
         },
-        // Bootnodes
-        vec![],
-        // Telemetry
-        None,
-        // Protocol ID
-        None,
-        None,
-        // Properties
-        None,
-        // Extensions
-        None,
-    ))
+    )
 }
 
-pub fn alpha_testnet_config(_cli: &Cli) -> Result<ChainSpec, String> {
-    let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
-    // Give your base currency a unit name and decimal places
+pub fn local_testnet_config() -> ChainSpec {
+    // Give your base currency a tFRM name and decimal places
     let mut properties = sc_chain_spec::Properties::new();
     properties.insert("tokenSymbol".into(), "tFRM".into());
     properties.insert("tokenDecimals".into(), 18.into());
     properties.insert("ss58Format".into(), 42.into());
-    Ok(ChainSpec::from_genesis(
+
+    ChainSpec::from_genesis(
         // Name
         "Ferrum Testnet",
         // ID
         "ferrum_testnet",
-        ChainType::Live,
+        ChainType::Local,
         move || {
             testnet_genesis(
-                wasm_binary,
-                // Initial PoA authorities
+                // initial collators.
                 vec![
-                    authority_keys_from_seed("Alice"),
-                    authority_keys_from_seed("Bob"),
+                    (
+                        AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
+                        get_collator_keys_from_seed("Alice"),
+                    ),
+                    (
+                        AccountId::from_str("0x25451A4de12dcCc2D166922fA938E900fCc4ED24").unwrap(),
+                        get_collator_keys_from_seed("Bob"),
+                    ),
                 ],
-                // Sudo account
-                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
-                // Pre-funded accounts
+                // Endowed Accounts
                 vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
-                vec![],
-                true,
+                // Sudo Key
+                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
+                1000.into(),
             )
         },
         // Bootnodes
-        vec![],
+        Vec::new(),
         // Telemetry
         None,
         // Protocol ID
-        None,
+        Some("template-local"),
+        // Fork ID
         None,
         // Properties
         Some(properties),
         // Extensions
-        None,
-    ))
+        Extensions {
+            relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
+            para_id: 1000,
+        },
+    )
 }
 
-/// Configure initial storage state for FRAME modules.
-fn testnet_genesis(
-    wasm_binary: &[u8],
-    initial_authorities: Vec<(AuraId, GrandpaId)>,
-    root_key: AccountId,
-    endowed_accounts: Vec<AccountId>,
-    address_list: Vec<String>,
-    _enable_println: bool,
-) -> GenesisConfig {
-    GenesisConfig {
-        system: SystemConfig {
-            // Add Wasm runtime to storage.
-            code: wasm_binary.to_vec(),
+pub fn rococo_config() -> ChainSpec {
+    // Give your base currency a tFRM name and decimal places
+    let mut properties = sc_chain_spec::Properties::new();
+    properties.insert("tokenSymbol".into(), "tFRM".into());
+    properties.insert("tokenDecimals".into(), 18.into());
+    properties.insert("ss58Format".into(), 42.into());
+
+    ChainSpec::from_genesis(
+        // Name
+        "Ferrum Rococo",
+        // ID
+        "ferrum_rococo",
+        ChainType::Local,
+        move || {
+            testnet_genesis(
+                // initial collators.
+                vec![
+                    (
+                        AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
+                        get_collator_keys_from_seed("Alice"),
+                    ),
+                    (
+                        AccountId::from_str("0x25451A4de12dcCc2D166922fA938E900fCc4ED24").unwrap(),
+                        get_collator_keys_from_seed("Bob"),
+                    ),
+                ],
+                // Endowed Accounts
+                vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
+                // Sudo Key
+                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
+                4238.into(),
+            )
         },
-        balances: BalancesConfig {
-            // Configure endowed accounts with initial balance of 1 << 60.
+        // Bootnodes
+        Vec::new(),
+        // Telemetry
+        None,
+        // Protocol ID
+        Some("ferrum-rococo"),
+        // Fork ID
+        None,
+        // Properties
+        Some(properties),
+        // Extensions
+        Extensions {
+            relay_chain: "rococo".into(), // You MUST set this to the correct network!
+            para_id: 4238,
+        },
+    )
+}
+
+fn testnet_genesis(
+    invulnerables: Vec<(AccountId, AuraId)>,
+    endowed_accounts: Vec<AccountId>,
+    root_key: AccountId,
+    id: ParaId,
+) -> ferrum_runtime::GenesisConfig {
+    ferrum_runtime::GenesisConfig {
+        system: ferrum_runtime::SystemConfig {
+            code: ferrum_runtime::WASM_BINARY
+                .expect("WASM binary was not build, please build it!")
+                .to_vec(),
+        },
+        balances: ferrum_runtime::BalancesConfig {
             balances: endowed_accounts
                 .iter()
                 .cloned()
                 .map(|k| (k, 1 << 100))
                 .collect(),
         },
-        aura: AuraConfig {
-            authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
+        parachain_info: ferrum_runtime::ParachainInfoConfig { parachain_id: id },
+        collator_selection: ferrum_runtime::CollatorSelectionConfig {
+            invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
+            candidacy_bond: EXISTENTIAL_DEPOSIT * 16,
+            ..Default::default()
         },
-        grandpa: GrandpaConfig {
-            authorities: initial_authorities
-                .iter()
-                .map(|x| (x.1.clone(), 1))
+        session: ferrum_runtime::SessionConfig {
+            keys: invulnerables
+                .into_iter()
+                .map(|(acc, aura)| {
+                    (
+                        acc,                       // account id
+                        acc,                       // validator id
+                        ferrum_session_keys(aura), // session keys
+                    )
+                })
                 .collect(),
         },
-        sudo: SudoConfig {
+        // no need to pass anything to aura, in fact it will panic if we do. Session will take care
+        // of this.
+        aura: Default::default(),
+        aura_ext: Default::default(),
+        parachain_system: Default::default(),
+        sudo: ferrum_runtime::SudoConfig {
             // Assign network admin rights.
             key: Some(root_key),
         },
-        evm: EVMConfig {
-            accounts: {
-                let map: BTreeMap<_, fp_evm::GenesisAccount> = address_list
-                    .into_iter()
-                    .map(|address| {
-                        (
-                            H160::from_str(address.as_str()).expect("internal H160 is valid; qed"),
-                            fp_evm::GenesisAccount {
-                                balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
-                                    .expect("internal U256 is valid; qed"),
-                                code: Default::default(),
-                                nonce: Default::default(),
-                                storage: Default::default(),
-                            },
-                        )
-                    })
-                    .collect();
-                map
-            },
+        polkadot_xcm: ferrum_runtime::PolkadotXcmConfig {
+            safe_xcm_version: Some(SAFE_XCM_VERSION),
         },
-        ethereum: EthereumConfig {},
+        evm: Default::default(),
+        ethereum: ferrum_runtime::EthereumConfig {},
         dynamic_fee: Default::default(),
         base_fee: Default::default(),
     }

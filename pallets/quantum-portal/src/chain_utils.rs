@@ -26,7 +26,7 @@ pub enum TransactionCreationError {
     SigningFailed,
     SignatureError,
     MultisigError,
-    CannotFindContractAddress
+    CannotFindContractAddress,
 }
 
 impl From<&[u8]> for ChainRequestError {
@@ -159,6 +159,7 @@ impl ChainUtils {
         sp_core::ecdsa::Public::from_raw(addr_bytes)
     }
 
+    #[allow(clippy::clone_double_ref)]
     pub fn hex_add_0x(s: &[u8]) -> Vec<u8> {
         if s.len() >= 2 && s[0] == b'0' && s[1] == b'x' {
             return Vec::from(s.clone());
@@ -168,7 +169,7 @@ impl ChainUtils {
         zx
     }
 
-    pub fn hex_remove_0x<'a>(s: &'a [u8]) -> Result<&'a [u8], ChainRequestError> {
+    pub fn hex_remove_0x(s: &[u8]) -> Result<&[u8], ChainRequestError> {
         if s.len() < 2 {
             return Err(ChainRequestError::ConversionError);
         }
@@ -436,7 +437,7 @@ mod tests {
     fn eth_addr_from_public_key2() {
         let d = hex::decode("84885a1311fe34c65565247d25a09cee8c25168c7febd3e3ff8253bfd3496f74")
             .unwrap();
-        let p0: &[u8] = &[02];
+        let p0: &[u8] = &[0o2];
         let addr = ChainUtils::eth_address_from_public_key([p0, d.as_slice()].concat().as_slice());
         let addrh = hex::encode(addr.as_slice());
         assert_eq!("1458e7bde6e509e4f8c122642bd61629aa46fa7c", addrh);

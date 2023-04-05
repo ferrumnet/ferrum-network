@@ -59,6 +59,22 @@ Running (takes 1 min to rebuild binaries):
 docker run -t frontier-node-dev
 ```
 
+### Using polkadot-launch
+
+You can use polkadot-launch to launch ferrum parachain for local development
+
+1. Install polkadot-launch
+
+```bash
+npm i polkadot-launch -g
+```
+
+2. Run polkadot-launch with ferrum testnet
+
+```bash
+polkadot-launch ./scripts/polkadot-launch/config.json
+```
+
 ## Genesis Configuration
 
 The development [chain spec](node/src/chain_spec.rs) included with this project defines a genesis

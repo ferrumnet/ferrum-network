@@ -90,11 +90,6 @@ mod MultiChainStaking {
             let to_balance = self.balance_of_impl(self.reserveAccount);
             self.balances
                 .insert(self.reserveAccount, &(to_balance + value));
-            self.env().emit_event(Transfer {
-                from: Some(*from),
-                to: Some(*self.reserveAccount),
-                value,
-            });
 
             // trigger xcm message to the remote stake contract
             let encoded_input = Self::transfer_encode(to.into(), value.into());

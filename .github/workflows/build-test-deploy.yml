@@ -1,0 +1,114 @@
+name: Rust
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+env:
+  AWS_REGION: us-east-2                # set this to your preferred AWS region, e.g. us-west-1
+  ECR_REPOSITORY: ferrum_node   
+
+jobs:
+  run_test:
+    name: 'Run Rust tests'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Rust Setup
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: nightly-2022-10-10
+        target: wasm32-unknown-unknown
+        override: true
+    - name: Install protoc
+      uses: arduino/setup-protoc@v1
+    - name: Run tests
+      run: |
+          cargo install cargo-expand &&
+          TRYBUILD=overwrite cargo test --locked --verbose --all
+  
+  build:
+    name: 'Build docker image and push to ECR'
+    needs: run_test
+    # if: steps.run_test.outcome == 'success'
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build, tag, and push image to Amazon ECR
+      id: build-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        # Build a docker container and
+        # push it to ECR so that it can
+        # be deployed to ECS.
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f  docker/ferrum.Dockerfile .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+  deploy:
+    name: 'EC2 Deployment'
+    needs: build
+    # if: steps.build.outcome == 'success'
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Deploy to ec2 server
+      uses: appleboy/ssh-action@v0.1.8
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+        port: 22
+        script: sudo /usr/local/bin/deployment.sh  > /var/log/scripts/deployments.log 2>&1
+
+  lint:
+    name: 'Run lints'
+    needs: run_test
+    # if: steps.run_test.outcome == 'success'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Rust Setup
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: nightly-2022-10-10
+        target: wasm32-unknown-unknown
+        override: true
+        components: rustfmt, clippy
+    - name: Install protoc
+      uses: arduino/setup-protoc@v1
+    - name: Check Cargo.toml Format
+      run: |
+        if taplo --version &> /dev/null; then
+          echo "taplo-cli is already installed"
+        else
+          cargo install taplo-cli
+        fi
+        taplo fmt --check
+    - name: Rustfmt
+      run: cargo fmt --all -- --check
+    - name: Clippy
+      run: cargo clippy --all -- -D warnings

@@ -48,7 +48,6 @@ pub struct QpConfig {
     pub network_vec: Vec<QpNetworkItem>,
     pub pair_vec: Vec<(u64, u64)>,
     pub signer_public_key: Vec<u8>,
-    pub eip_712_config: EIP712Config,
     pub role: Role,
 }
 
@@ -59,30 +58,8 @@ pub struct QpNetworkItem {
     // #[serde(with = "serde_bytes")]
     pub url: Vec<u8>,
     // #[serde(with = "serde_bytes")]
-    pub ledger_manager: Vec<u8>,
+    pub gateway_contract_address: Vec<u8>,
     pub id: u64,
-}
-
-#[derive(
-    Clone,
-    Eq,
-    PartialEq,
-    Decode,
-    Encode,
-    Debug,
-    Serialize,
-    Deserialize,
-    scale_info::TypeInfo,
-    Default,
-)]
-pub struct EIP712Config {
-    pub finalizer_contract_name: Vec<u8>,
-    pub finalizer_contract_version: Vec<u8>,
-    pub finalizer_verifying_address: Vec<u8>,
-
-    pub miner_contract_name: Vec<u8>,
-    pub miner_contract_version: Vec<u8>,
-    pub miner_verifying_address: Vec<u8>,
 }
 
 #[allow(non_camel_case_types)]

@@ -27,3 +27,4 @@ rls*.log
 *.iml
 /chain
 *.stderr
+*.log

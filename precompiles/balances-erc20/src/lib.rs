@@ -2,7 +2,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(test, feature(assert_matches))]
-
+#![allow(clippy::too_many_arguments)]
 use fp_evm::PrecompileHandle;
 use frame_support::{
     dispatch::{Dispatchable, GetDispatchInfo, PostDispatchInfo},
@@ -266,7 +266,7 @@ where
                 Some(origin).into(),
                 pallet_balances::Call::<Runtime, Instance>::transfer {
                     dest: Runtime::Lookup::unlookup(to),
-                    value: value,
+                    value,
                 },
             )?;
         }
@@ -329,7 +329,7 @@ where
                 Some(from).into(),
                 pallet_balances::Call::<Runtime, Instance>::transfer {
                     dest: Runtime::Lookup::unlookup(to),
-                    value: value,
+                    value,
                 },
             )?;
         }

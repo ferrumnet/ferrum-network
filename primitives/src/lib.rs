@@ -13,6 +13,8 @@ use sp_core::{ecdsa, H160, H256};
 #[cfg(feature = "std")]
 pub use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
+pub mod xcm;
+
 /// Defines application identifier for crypto keys for the offchain signer
 ///
 /// When an offchain worker is signing transactions it's going to request keys from type

@@ -19,8 +19,11 @@ use sp_std::{
 #[derive(Debug, Clone)]
 pub struct ContractClient {
     pub http_api: Vec<u8>,
-    pub contract_address: Address,
+    pub gateway_contract_address: Address,
     pub chain_id: u64,
+    pub ledger_manager_address: Option<Address>,
+    pub authority_manager_address: Option<Address>,
+    pub miner_manager_address: Option<Address>,
 }
 
 // #[derive(Clone)]
@@ -76,18 +79,79 @@ impl From<ecdsa::Public> for ContractClientSignature {
 }
 
 impl ContractClient {
-    pub fn new(http_api: Vec<u8>, contract_address: &Address, chain_id: u64) -> Self {
+    pub fn new(http_api: Vec<u8>, gateway_contract_address: &Address, chain_id: u64) -> Self {
         ContractClient {
             http_api,
-            contract_address: *contract_address,
+            gateway_contract_address: *gateway_contract_address,
             chain_id,
+            ledger_manager_address: None,
+            authority_manager_address: None,
+            miner_manager_address: None,
         }
+    }
+
+    pub fn get_ledger_manager_address(&self) -> Result<H160, ChainRequestError> {
+        // no cache, we fetch from the gateway contract
+        let signature = b"quantumPortalLedgerMgr()";
+        let res: Box<CallResponse> =
+            self.call(signature, &[], Some(self.gateway_contract_address))?;
+        log::info!("Ledger manager response is : {:?}", res);
+        let address = ChainUtils::decode_address_response(res.result.as_slice());
+        log::info!("Ledger manager address is : {:?}", address);
+
+        Ok(address)
+    }
+
+    pub fn get_miner_manager_address(&self) -> Result<H160, ChainRequestError> {
+        let ledger_manager_address = self.get_ledger_manager_address()?;
+
+        // no cache, we fetch from the gateway contract
+        let signature = b"minerMgr()";
+        let res: Box<CallResponse> = self.call(signature, &[], Some(ledger_manager_address))?;
+        log::info!("Miner manager response is : {:?}", res);
+        let address = ChainUtils::decode_address_response(res.result.as_slice());
+        log::info!("Miner manager address is : {:?}", address);
+
+        let signature = b"VERSION";
+        let res: Box<CallResponse> = self.call(signature, &[], Some(address))?;
+        log::info!("Miner manager version is : {:?}", &res.result.as_slice());
+
+        let signature = b"NAME";
+        let res: Box<CallResponse> = self.call(signature, &[], Some(address))?;
+        log::info!("Miner manager name is : {:?}", &res.result.as_slice());
+
+        Ok(address)
+    }
+
+    pub fn get_authority_manager_address(&self) -> Result<H160, ChainRequestError> {
+        let ledger_manager_address = self.get_ledger_manager_address()?;
+
+        // no cache, we fetch from the gateway contract
+        let signature = b"authorityMgr()";
+        let res: Box<CallResponse> = self.call(signature, &[], Some(ledger_manager_address))?;
+        log::info!("Authority manager response is : {:?}", res);
+        let address = ChainUtils::decode_address_response(res.result.as_slice());
+        log::info!("Authority manager address is : {:?}", address);
+
+        let signature = b"VERSION";
+        let res: Box<CallResponse> = self.call(signature, &[], Some(address))?;
+        log::info!(
+            "Authority manager version is : {:?}",
+            &res.result.as_slice()
+        );
+
+        let signature = b"NAME";
+        let res: Box<CallResponse> = self.call(signature, &[], Some(address))?;
+        log::info!("Authority manager name is : {:?}", &res.result.as_slice());
+
+        Ok(address)
     }
 
     pub fn call<T>(
         &self,
         method_signature: &[u8],
         inputs: &[Token],
+        address: Option<Address>,
     ) -> Result<Box<T>, ChainRequestError>
     where
         T: for<'de> Deserialize<'de>,
@@ -98,19 +162,25 @@ impl ContractClient {
         let encoded_bytes_0x = ChainUtils::bytes_to_hex(encoded_bytes.as_slice());
         let encoded_bytes_slice = encoded_bytes_0x.as_slice();
         let encoded_bytes_slice = ChainUtils::hex_add_0x(encoded_bytes_slice);
+
         let encoded = str::from_utf8(encoded_bytes_slice.as_slice()).unwrap();
         log::info!("encoded {}", encoded);
+        let contract_address = if let Some(address) = address {
+            address
+        } else {
+            self.get_ledger_manager_address()?
+        };
+
         log::info!(
             "contract address is {}",
-            str::from_utf8(ChainUtils::address_to_hex(self.contract_address).as_slice()).unwrap()
+            str::from_utf8(ChainUtils::address_to_hex(contract_address).as_slice()).unwrap()
         );
         let call_json = JsonSer::new()
             .start()
             .string("data", encoded)
             .string(
                 "to",
-                str::from_utf8(ChainUtils::address_to_hex(self.contract_address).as_slice())
-                    .unwrap(),
+                str::from_utf8(ChainUtils::address_to_hex(contract_address).as_slice()).unwrap(),
             )
             .end()
             .to_vec();
@@ -129,6 +199,7 @@ impl ContractClient {
         fetch_json_rpc(http_api, &req)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn send(
         &self,
         method_signature: &[u8],
@@ -165,7 +236,7 @@ impl ContractClient {
             nonce: nonce_val,
             gas_price: gas_price_val,
             gas_limit: gas_limit_val,
-            action: TransactionAction::Call(self.contract_address),
+            action: TransactionAction::Call(self.gateway_contract_address),
             value,
             input: encoded_bytes,
             signature: ChainUtils::empty_signature(),
@@ -235,8 +306,10 @@ impl ContractClient {
             )
             .string(
                 "to",
-                str::from_utf8(ChainUtils::address_to_hex(self.contract_address).as_slice())
-                    .unwrap(),
+                str::from_utf8(
+                    ChainUtils::address_to_hex(self.gateway_contract_address).as_slice(),
+                )
+                .unwrap(),
             )
             .string(
                 "value",

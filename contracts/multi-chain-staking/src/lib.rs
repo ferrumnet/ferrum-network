@@ -1,112 +1,95 @@
+//! QP Staking EVM contract interoperability using XVM interface.
 #![cfg_attr(not(feature = "std"), no_std)]
 
-#[ink::contract]
-mod MultiChainStaking {
-    use ethabi_nostd::Token;
-    use ethereum_types::{H160, U256};
+pub use self::qp_staking::{
+    QpStaking,
+    QpStakingRef,
+};
+
+/// EVM ID (from astar runtime)
+const EVM_ID: u8 = 0x0F;
+
+/// The EVM ERC20 delegation contract.
+#[ink::contract(env = xvm_environment::XvmDefaultEnvironment)]
+mod qp_staking {
+    // ======= IERC20.sol:IERC20 =======
+    // Quantum portal Function signatures:
+    // function runWithValue(uint256 fee, uint64 remoteChain, address remoteContract, address beneficiary, address token, bytes memory method) external;
+    // c154c628: runWithValue(uint256,uint64,address,address,address,bytes)
+    const QP_SELECTOR: [u8; 4] = hex!["c154c628"];
+
+    use ethabi::{
+        ethereum_types::{
+            H160,
+            U256,
+        },
+        Token,
+    };
     use hex_literal::hex;
     use ink::prelude::vec::Vec;
 
-    #[derive(Debug, scale::Encode, scale::Decode)]
-    #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
-    pub enum To {
-        EVM([u8; 20]),
-        WASM(AccountId),
-    }
-
-    const REMOTE_STAKE_FUNCTION: [u8; 4] = hex!["a9059cbb"];
-
-    impl From<To> for H160 {
-        fn from(f: To) -> Self {
-            return match f {
-                To::EVM(a) => a.into(),
-                To::WASM(a) => {
-                    let mut dest: H160 = [0; 20].into();
-                    dest.as_bytes_mut()
-                        .copy_from_slice(&<AccountId as AsRef<[u8]>>::as_ref(&a)[..20]);
-                    dest
-                }
-            };
-        }
-    }
-
     #[ink(storage)]
-    pub struct MultiChainStakingClient {
-        erc20_address: Address,
-        reward_token: Address,
-        totalRewards: u128,
-        totalStake: u128,
-        distributeRewards: bool,
-        stakeClosed: bool,
-        reserveAccount: AccountId,
+    pub struct QpStaking {
+        qp_contract_address: [u8; 20],
+        master_chain_id: u128,
+        master_contract_address: [u8; 20],
     }
 
-    /// Type alias for the contract's `Result` type.
-    pub type Result<T> = core::result::Result<T, Error>;
-
-    pub type Address = AccountId;
-
-    /// The contract error types.
-    #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
-    #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
-    pub enum Error {
-        /// Returned if not enough balance to fulfill a request is available.
-        InsufficientBalance,
-    }
-
-    /// Emitted when the sender starts closing the channel.
-    #[ink(event)]
-    pub struct SenderCloseStarted {
-        expiration: Timestamp,
-        close_duration: Timestamp,
-    }
-
-    impl MultiChainStakingClient {
+    impl QpStaking {
+        /// Create new ERC20 abstraction from given contract address.
         #[ink(constructor)]
-        pub fn new(recipient: AccountId, close_duration: Timestamp) -> Self {
+        pub fn new(
+            qp_contract_address: [u8; 20],
+            master_chain_id: u128,
+            master_contract_address: [u8; 20],
+        ) -> Self {
             Self {
-                sender: Self::env().caller(),
-                recipient,
-                expiration: None,
-                withdrawn: 0,
-                close_duration,
+                qp_contract_address,
+                master_chain_id: master_chain_id.into(),
+                master_contract_address,
             }
         }
 
-        #[ink(message, payable)]
+        /// Send `transfer_from` call to ERC20 contract.
+        #[ink(message)]
         pub fn stake(
             &mut self,
-            from: AccountId,
-            address: [u8; 20],
-            value: Balance,
-            fee: Balance,
-        ) -> Result<()> {
-            // transfer the tokens to the reserve address of the contract
-            let from_balance = self.balances.get(from).unwrap_or_default();
-            if from_balance < value {
-                return Err(Error::InsufficientBalance);
-            }
-            self.balances.insert(from, &(from_balance - value));
-            let to_balance = self.balance_of_impl(self.reserveAccount);
-            self.balances
-                .insert(self.reserveAccount, &(to_balance + value));
+            sender_address: [u8; 20],
+            token_address: [u8; 20],
+            amount: u128,
+            fee: u128,
+        ) -> bool {
+            // reserve the amount from the sender address
 
-            // trigger xcm message to the remote stake contract
-            let encoded_input = Self::transfer_encode(to.into(), value.into());
+            let encoded_input = Self::qp_encode(
+                self,
+                fee.into(),
+                sender_address.into(),
+                token_address.into(),
+            );
             self.env()
                 .extension()
                 .xvm_call(
                     super::EVM_ID,
-                    Vec::from(self.erc20_address.as_ref()),
+                    Vec::from(self.qp_contract_address.as_ref()),
                     encoded_input,
                 )
                 .is_ok()
         }
 
-        fn remote_stake_encode(to: H160, value: U256) -> Vec<u8> {
-            let mut encoded = REMOTE_STAKE_FUNCTION.to_vec();
-            let input = [Token::Address(to), Token::Uint(value)];
-            encoded.extend(&ethabi_nostd::encode(&input));
+        fn qp_encode(&mut self, fee: U256, sender_address: H160, token_address: H160) -> Vec<u8> {
+            let mut encoded = QP_SELECTOR.to_vec();
+            // 3183e730 : stakeRemote()
+            let encoded_method: [u8; 4] = hex!["3183e730"];
+            let input = [
+                Token::Uint(fee),
+                Token::Uint(self.master_chain_id.into()),
+                Token::Address(self.master_contract_address.into()),
+                Token::Address(sender_address),
+                Token::Address(token_address),
+                Token::Bytes(encoded_method.to_vec()),
+            ];
+            encoded.extend(&ethabi::encode(&input));
             encoded
         }
     }

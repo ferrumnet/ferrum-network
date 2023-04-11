@@ -35,6 +35,16 @@ mod qp_staking {
         master_contract_address: [u8; 20],
     }
 
+    /// The error types.
+    #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
+    #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+    pub enum Error {
+        /// Returned if not enough balance to fulfill a request is available.
+        InsufficientBalance,
+        /// Remote execution failed
+        RemoteExecutionFailed
+    }
+
     impl QpStaking {
         /// Create new ERC20 abstraction from given contract address.
         #[ink(constructor)]
@@ -51,15 +61,19 @@ mod qp_staking {
         }
 
         /// Send `transfer_from` call to ERC20 contract.
-        #[ink(message)]
+        #[ink(message, payable)]
         pub fn stake(
             &mut self,
             sender_address: [u8; 20],
             token_address: [u8; 20],
             amount: u128,
             fee: u128,
-        ) -> bool {
-            // reserve the amount from the sender address
+        ) -> Result<(), Error> {
+            // ensure the amount has been trasferred to the contract
+            let total_amount = amount + fee;
+            if Self::env().transferred_value() != total_amount {
+                return Err(Error::InsufficientBalance);
+            }
 
             let encoded_input = Self::qp_encode(
                 self,
@@ -67,14 +81,17 @@ mod qp_staking {
                 sender_address.into(),
                 token_address.into(),
             );
-            self.env()
+            
+            let qp_result = self.env()
                 .extension()
                 .xvm_call(
                     super::EVM_ID,
                     Vec::from(self.qp_contract_address.as_ref()),
                     encoded_input,
                 )
-                .is_ok()
+                .is_ok();
+
+            qp_result.then_some(()).ok_or(Error::RemoteExecutionFailed)
         }
 
         fn qp_encode(&mut self, fee: U256, sender_address: H160, token_address: H160) -> Vec<u8> {

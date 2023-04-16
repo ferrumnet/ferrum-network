@@ -11,8 +11,5 @@ rm -rf ./chain
 # insert the signing keys for bob
 ./target/release/ferrum-network key insert --key-type ofsg --scheme ecdsa --base-path ./chain/bob --chain ferrum-local-testnet.json --suri //Bob
 
-# start Alice node in background
-./target/release/ferrum-network --chain ferrum-local-testnet.json --alice --base-path ./chain/alice --ws-port 9944 --config-file-path ./alice_node_config.json &
-
-# start Bob node
-./target/release/ferrum-network --chain ferrum-local-testnet.json --bob --base-path ./chain/bob --ws-port 9945 --config-file-path ./bob_node_config.json
+# start relaychain and parachain in background
+polkadot-launch ./scripts/polkadot-launch/config.json

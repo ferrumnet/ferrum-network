@@ -4,6 +4,10 @@ use std::path::PathBuf;
 /// Sub-commands supported by the collator.
 #[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
+    /// Key management cli utilities
+    #[clap(subcommand)]
+    Key(sc_cli::KeySubcommand),
+
     /// Build a chain specification.
     BuildSpec(sc_cli::BuildSpecCmd),
 
@@ -43,8 +47,13 @@ pub enum Subcommand {
     /// Errors since the binary was not build with `--features try-runtime`.
     #[cfg(not(feature = "try-runtime"))]
     TryRuntime,
-    // /// Db meta columns information.
-    // FrontierDb(fc_cli::FrontierDbCmd),
+}
+
+#[allow(missing_docs)]
+#[derive(Debug, clap::Parser)]
+pub struct FerrumCmd {
+    #[clap(long, value_parser)]
+    pub config_file_path: Option<std::path::PathBuf>,
 }
 
 #[derive(Debug, clap::Parser)]
@@ -59,6 +68,9 @@ pub struct Cli {
 
     #[command(flatten)]
     pub run: cumulus_client_cli::RunCmd,
+
+    #[command(flatten)]
+    pub config: FerrumCmd,
 
     /// Disable automatic hardware benchmarks.
     ///

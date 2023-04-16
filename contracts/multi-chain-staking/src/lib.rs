@@ -17,6 +17,7 @@ mod qp_staking {
     // function runWithValue(uint256 fee, uint64 remoteChain, address remoteContract, address beneficiary, address token, bytes memory method) external;
     // c154c628: runWithValue(uint256,uint64,address,address,address,bytes)
     const QP_SELECTOR: [u8; 4] = hex!["c154c628"];
+    const TRANSFER_SELECTOR: [u8; 4] = hex!["a9059cbb"];
 
     use ethabi::{
         ethereum_types::{
@@ -33,6 +34,7 @@ mod qp_staking {
         qp_contract_address: [u8; 20],
         master_chain_id: u128,
         master_contract_address: [u8; 20],
+        base_token: [u8; 20],
     }
 
     /// The error types.
@@ -42,7 +44,7 @@ mod qp_staking {
         /// Returned if not enough balance to fulfill a request is available.
         InsufficientBalance,
         /// Remote execution failed
-        RemoteExecutionFailed
+        RemoteExecutionFailed,
     }
 
     impl QpStaking {
@@ -52,37 +54,47 @@ mod qp_staking {
             qp_contract_address: [u8; 20],
             master_chain_id: u128,
             master_contract_address: [u8; 20],
+            base_token: [u8; 20],
         ) -> Self {
             Self {
                 qp_contract_address,
                 master_chain_id: master_chain_id.into(),
                 master_contract_address,
+                base_token,
             }
         }
 
+        #[ink(message)]
+        pub fn get_base_token(&self) -> [u8; 20] {
+            // actual implementation
+            self.base_token
+        }
+
         /// Send `transfer_from` call to ERC20 contract.
-        #[ink(message, payable)]
+        #[ink(message)]
         pub fn stake(
             &mut self,
             sender_address: [u8; 20],
-            token_address: [u8; 20],
             amount: u128,
             fee: u128,
         ) -> Result<(), Error> {
             // ensure the amount has been trasferred to the contract
-            let total_amount = amount + fee;
-            if Self::env().transferred_value() != total_amount {
-                return Err(Error::InsufficientBalance);
-            }
+            let encoded_input =
+                Self::transfer_encode(self.master_contract_address.into(), amount.into());
 
-            let encoded_input = Self::qp_encode(
-                self,
-                fee.into(),
-                sender_address.into(),
-                token_address.into(),
-            );
-            
-            let qp_result = self.env()
+            self.env()
+                .extension()
+                .xvm_call(
+                    super::EVM_ID,
+                    Vec::from(self.base_token.as_ref()),
+                    encoded_input,
+                )
+                .map_err(|_| Error::InsufficientBalance)?;
+
+            let encoded_input = Self::qp_encode(self, fee.into(), sender_address.into());
+
+            let qp_result = self
+                .env()
                 .extension()
                 .xvm_call(
                     super::EVM_ID,
@@ -94,7 +106,7 @@ mod qp_staking {
             qp_result.then_some(()).ok_or(Error::RemoteExecutionFailed)
         }
 
-        fn qp_encode(&mut self, fee: U256, sender_address: H160, token_address: H160) -> Vec<u8> {
+        fn qp_encode(&mut self, fee: U256, sender_address: H160) -> Vec<u8> {
             let mut encoded = QP_SELECTOR.to_vec();
             // 3183e730 : stakeRemote()
             let encoded_method: [u8; 4] = hex!["3183e730"];
@@ -103,9 +115,16 @@ mod qp_staking {
                 Token::Uint(self.master_chain_id.into()),
                 Token::Address(self.master_contract_address.into()),
                 Token::Address(sender_address),
-                Token::Address(token_address),
+                Token::Address(self.base_token.into()),
                 Token::Bytes(encoded_method.to_vec()),
             ];
+            encoded.extend(&ethabi::encode(&input));
+            encoded
+        }
+
+        fn transfer_encode(to: H160, value: U256) -> Vec<u8> {
+            let mut encoded = TRANSFER_SELECTOR.to_vec();
+            let input = [Token::Address(to), Token::Uint(value)];
             encoded.extend(&ethabi::encode(&input));
             encoded
         }

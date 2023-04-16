@@ -221,7 +221,7 @@ fn testnet_genesis(
             balances: endowed_accounts
                 .iter()
                 .cloned()
-                .map(|k| (k, 1 << 100))
+                .map(|k| (k, 1 << 80))
                 .collect(),
         },
         parachain_info: ferrum_runtime::ParachainInfoConfig { parachain_id: id },

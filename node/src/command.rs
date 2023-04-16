@@ -14,6 +14,7 @@ use sc_service::config::{BasePath, PrometheusConfig};
 use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
 // Frontier
+use sc_service::PartialComponents;
 
 use crate::{
     chain_spec,
@@ -119,7 +120,7 @@ macro_rules! construct_async_run {
 	(|$components:ident, $cli:ident, $cmd:ident, $config:ident| $( $code:tt )* ) => {{
 		let runner = $cli.create_runner($cmd)?;
 		runner.async_run(|$config| {
-			let $components = new_partial::<ferrum::RuntimeApi, ferrum::Executor, _>(&$config, build_import_queue)?;
+			let $components = new_partial::<ferrum::RuntimeApi, ferrum::Executor, _>(&$config, build_import_queue, &$cli)?;
 			let task_manager = $components.task_manager;
 			{ $( $code )* }.map(|v| (v, task_manager))
 		})
@@ -131,6 +132,7 @@ pub fn run() -> Result<()> {
     let cli = Cli::from_args();
 
     match &cli.subcommand {
+        Some(Subcommand::Key(cmd)) => cmd.run(&cli),
         Some(Subcommand::BuildSpec(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             runner.sync_run(|config| cmd.run(config.chain_spec, config.network))
@@ -213,6 +215,7 @@ pub fn run() -> Result<()> {
                     let partials = new_partial::<ferrum::RuntimeApi, ferrum::Executor, _>(
                         &config,
                         build_import_queue,
+                        &cli,
                     )?;
                     cmd.run(partials.client)
                 }),
@@ -227,6 +230,7 @@ pub fn run() -> Result<()> {
                     let partials = new_partial::<ferrum::RuntimeApi, ferrum::Executor, _>(
                         &config,
                         build_import_queue,
+                        &cli,
                     )?;
                     let db = partials.backend.expose_db();
                     let storage = partials.backend.expose_storage();
@@ -241,14 +245,6 @@ pub fn run() -> Result<()> {
                 _ => Err("Benchmarking sub-command unsupported".into()),
             }
         }
-        // Some(Subcommand::FrontierDb(cmd)) => {
-        //     let runner = cli.create_runner(cmd)?;
-        //     runner.sync_run(|config| {
-        //         let PartialComponents { client, other, .. } = crate::service::new_partial(&config)?;
-        //         let frontier_backend = other.2;
-        //         cmd.run::<_, ferrum_runtime::opaque::Block>(client, frontier_backend)
-        //     })
-        // }
         #[cfg(feature = "try-runtime")]
         Some(Subcommand::TryRuntime(cmd)) => {
             let runner = cli.create_runner(cmd)?;
@@ -333,6 +329,7 @@ pub fn run() -> Result<()> {
 					collator_options,
 					id,
 					true,
+                    &cli
 				)
 				.await
 				.map(|r| r.0)

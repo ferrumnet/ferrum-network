@@ -4,11 +4,17 @@ use cumulus_client_cli::CollatorOptions;
 use cumulus_client_consensus_aura::{AuraConsensus, BuildAuraConsensusParams, SlotProportion};
 use cumulus_client_consensus_common::{ParachainBlockImport, ParachainConsensus};
 
+use crate::cli::Cli;
 use cumulus_client_network::BlockAnnounceValidator;
 use cumulus_client_service::{
     prepare_node_config, start_collator, start_full_node, StartCollatorParams, StartFullNodeParams,
 };
+use sp_application_crypto::sp_core::offchain::{OffchainStorage, STORAGE_PREFIX};
 // Local Runtime Types
+use codec::Encode;
+use futures::{future, StreamExt};
+// Substrate
+use crate::config::read_config_from_file;
 use cumulus_primitives_core::relay_chain::Nonce;
 use cumulus_primitives_core::ParaId;
 use cumulus_relay_chain_inprocess_interface::build_inprocess_relay_chain;
@@ -16,9 +22,11 @@ use cumulus_relay_chain_interface::{RelayChainError, RelayChainInterface, RelayC
 use cumulus_relay_chain_minimal_node::build_minimal_relay_chain_node;
 use fc_consensus::FrontierBlockImport;
 use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
+use ferrum_primitives::OFFCHAIN_SIGNER_CONFIG_KEY;
 use ferrum_runtime::{opaque::Block, AccountId, Balance, Hash};
-use futures::StreamExt;
 use polkadot_service::CollatorPair;
+use sc_cli::SubstrateCli;
+use sc_client_api::Backend;
 use sc_client_api::BlockchainEvents;
 use sc_consensus::ImportQueue;
 use sc_executor::NativeElseWasmExecutor;
@@ -71,6 +79,7 @@ pub mod ferrum {
 pub fn new_partial<RuntimeApi, Executor, BIQ>(
     config: &Configuration,
     build_import_queue: BIQ,
+    cli: &Cli,
 ) -> Result<
     PartialComponents<
         TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>,
@@ -182,6 +191,36 @@ where
         client.clone(),
     );
 
+    let keystore = keystore_container.sync_keystore();
+
+    if config.offchain_worker.enabled {
+        // only load the config if the config file path is provided from cli
+        if let Some(local_path_buf) = cli.config.config_file_path.clone() {
+            let mut offchain_storage = backend.offchain_storage().unwrap();
+
+            // read the config file
+            let config = read_config_from_file(local_path_buf)
+                .expect("Failed to read chainspec config file");
+
+            // Load the configs for the offchain worker to function properly, we read from the file and write to the offchain storage
+            offchain_storage.set(
+                STORAGE_PREFIX,
+                OFFCHAIN_SIGNER_CONFIG_KEY,
+                &crate::config::convert(config.networks).encode(),
+            );
+
+            println!("QP Configs loaded to offchain storage");
+        }
+
+        // just a sanity check to make sure the keystore is populated correctly
+        let ecdsa_keys: Vec<sp_core::ecdsa::Public> =
+            sp_keystore::SyncCryptoStore::ecdsa_public_keys(
+                &*keystore,
+                ferrum_primitives::OFFCHAIN_SIGNER_KEY_TYPE,
+            );
+        println!("ECDSA KEYS in keystore {ecdsa_keys:?}");
+    }
+
     let frontier_backend = crate::rpc::open_frontier_backend(client.clone(), config)?;
     let frontier_block_import =
         FrontierBlockImport::new(client.clone(), client.clone(), frontier_backend.clone());
@@ -255,6 +294,7 @@ async fn start_node_impl<RuntimeApi, Executor, BIQ, BIC>(
     enable_evm_rpc: bool,
     build_import_queue: BIQ,
     build_consensus: BIC,
+    cli: &Cli,
 ) -> sc_service::error::Result<(
     TaskManager,
     Arc<TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>>,
@@ -328,7 +368,8 @@ where
 {
     let parachain_config = prepare_node_config(parachain_config);
 
-    let params = new_partial::<RuntimeApi, Executor, BIQ>(&parachain_config, build_import_queue)?;
+    let params =
+        new_partial::<RuntimeApi, Executor, BIQ>(&parachain_config, build_import_queue, cli)?;
     let (parachain_block_import, mut telemetry, telemetry_worker_handle, frontier_backend) =
         params.other;
 
@@ -367,6 +408,15 @@ where
             })),
             warp_sync: None,
         })?;
+
+    if parachain_config.offchain_worker.enabled {
+            sc_service::build_offchain_workers(
+                &parachain_config,
+                task_manager.spawn_handle(),
+                client.clone(),
+                network.clone(),
+            );
+        }
 
     let filter_pool: FilterPool = Arc::new(std::sync::Mutex::new(BTreeMap::new()));
     let fee_history_cache: FeeHistoryCache = Arc::new(std::sync::Mutex::new(BTreeMap::new()));
@@ -598,6 +648,7 @@ pub async fn start_parachain_node(
     collator_options: CollatorOptions,
     id: ParaId,
     enable_evm_rpc: bool,
+    cli: &Cli,
 ) -> sc_service::error::Result<(
     TaskManager,
     Arc<TFullClient<Block, ferrum::RuntimeApi, NativeElseWasmExecutor<ferrum::Executor>>>,
@@ -718,5 +769,7 @@ pub async fn start_parachain_node(
                 telemetry,
             })
         )
-    }).await
+    },
+    cli
+).await
 }

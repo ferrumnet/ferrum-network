@@ -72,15 +72,12 @@ mod qp_staking {
 
         /// Send `transfer_from` call to ERC20 contract.
         #[ink(message)]
-        pub fn stake(
-            &mut self,
-            sender_address: [u8; 20],
-            amount: u128,
-            fee: u128,
-        ) -> Result<(), Error> {
-            // ensure the amount has been trasferred to the contract
+        pub fn stake(&mut self, amount: u128, fee: u128) -> Result<(), Error> {
+            let caller = self.env().caller();
+
+            // transfer the amount to the QP contract
             let encoded_input =
-                Self::transfer_encode(self.master_contract_address.into(), amount.into());
+                Self::transfer_encode(self.qp_contract_address.into(), amount.into());
 
             self.env()
                 .extension()
@@ -91,7 +88,7 @@ mod qp_staking {
                 )
                 .map_err(|_| Error::InsufficientBalance)?;
 
-            let encoded_input = Self::qp_encode(self, fee.into(), sender_address.into());
+            let encoded_input = Self::qp_encode(self, fee.into(), Self::h160(&caller));
 
             let qp_result = self
                 .env()
@@ -127,6 +124,13 @@ mod qp_staking {
             let input = [Token::Address(to), Token::Uint(value)];
             encoded.extend(&ethabi::encode(&input));
             encoded
+        }
+
+        fn h160(from: &AccountId) -> H160 {
+            let mut dest: H160 = [0; 20].into();
+            dest.as_bytes_mut()
+                .copy_from_slice(&<AccountId as AsRef<[u8]>>::as_ref(from)[..20]);
+            dest
         }
     }
 }

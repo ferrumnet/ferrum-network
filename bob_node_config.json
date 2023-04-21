@@ -6,11 +6,11 @@
             "id": 80001
         },
         {
-            "url": "https://data-seed-prebsc-2-s3.binance.org:8545",
-            "gateway_contract_address": "fE174DC5FF85Ed8871e4f35d86f1BB32A8461A38",
-            "id": 97
+            "url": "http://127.0.0.1:8545",
+            "gateway_contract_address": "92660CBfA6F120dD4343AfD4A74A030506dC9Acb",
+            "id": 26100
         }],
-	    "pair_vec": [[80001, 97], [97, 80001]],
+	    "pair_vec": [[80001, 26100], [26100, 80001]],
         "signer_public_key": "0390084fdbf27d2b79d26a4f13f0ccd982cb755a661969143c37cbc49ef5b91f27",
         "role" : "QP_MINER"
     }

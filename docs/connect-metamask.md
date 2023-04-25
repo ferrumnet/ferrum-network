@@ -14,9 +14,9 @@ https://testnet.dev.svcs.ferrumnetwork.io/faucet/
 
 Network Name : Ferrum Testnet
 
-RPC URL : http://testnet.dev.svcs.ferrumnetwork.io:9933
+RPC URL : http://testnet.dev.svcs.ferrumnetwork.io:8545
 
-ChainId : 26026
+ChainId : 26100
 
 Currency : tFRM
 

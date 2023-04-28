@@ -6,7 +6,7 @@ const $ = gulpLoadPlugins();
 
 gulp.task('publish', () => {
   console.log('Publish Gitbook (_book) to Github Pages');
-  return gulp.src('./docs/_book/**/*')
+  return gulp.src('./book/**/*')
     .pipe($.ghPages({
       origin: 'origin',
       branch: 'gh-pages'

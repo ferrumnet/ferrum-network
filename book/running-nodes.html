@@ -1,0 +1,446 @@
+
+<!DOCTYPE HTML>
+<html lang="" >
+    <head>
+        <meta charset="UTF-8">
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <title>Running Nodes · GitBook</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 3.2.3">
+        
+        
+        
+    
+    <link rel="stylesheet" href="gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-highlight/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-search/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-fontsettings/website.css">
+                
+            
+        
+
+    
+
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+
+        
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    <link rel="next" href="running-collator-node.md" />
+    
+    
+    <link rel="prev" href="getting-started.html" />
+    
+
+    </head>
+    <body>
+        
+<div class="book">
+    <div class="book-summary">
+        
+            
+<div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search" />
+</div>
+
+            
+                <nav role="navigation">
+                
+
+
+<ul class="summary">
+    
+    
+
+    
+
+    
+        
+        
+    
+        <li class="chapter " data-level="1.1" data-path="./">
+            
+                <a href="./">
+            
+                    
+                    Introduction
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2" data-path="getting-started.html">
+            
+                <a href="getting-started.html">
+            
+                    
+                    Getting Started
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter active" data-level="1.3" data-path="running-nodes.html">
+            
+                <a href="running-nodes.html">
+            
+                    
+                    Running Nodes
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4" data-path="running-collator-node.md">
+            
+                <span>
+            
+                    
+                    Run a collator node
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5" data-path="running-miner-node.html">
+            
+                <a href="running-miner-node.html">
+            
+                    
+                    Run a miner node
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6" data-path="running-finalizer-node.html">
+            
+                <a href="running-finalizer-node.html">
+            
+                    
+                    Run a finalizer node
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7" data-path="running-archive-node.html">
+            
+                <a href="running-archive-node.html">
+            
+                    
+                    Run an archive node
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.8" data-path="deploy-evm-contracts.html">
+            
+                <a href="deploy-evm-contracts.html">
+            
+                    
+                    Deploy EVM Contracts
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.9" data-path="deploy-wasm-contracts.html">
+            
+                <a href="deploy-wasm-contracts.html">
+            
+                    
+                    Deploy Wasm Contracts
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10" data-path="develop-with-qp.html">
+            
+                <a href="develop-with-qp.html">
+            
+                    
+                    Develop with QP
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11" data-path="faq.html">
+            
+                <a href="faq.html">
+            
+                    
+                    FAQ
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+
+    <li class="divider"></li>
+
+    <li>
+        <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+            Published with GitBook
+        </a>
+    </li>
+</ul>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href="." >Running Nodes</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+                                <section class="normal markdown-section">
+                                
+                                <h1 id="run-a-ferrum-testnet-node">Run a Ferrum Testnet Node</h1>
+<h2 id="table-of-contents">Table of Contents:</h2>
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#types-of-nodes">Types of Nodes</a></li>
+<li><a href="#how-quantum-portal-works">How Quantum Portal Works</a></li>
+<li><a href="#what-is-quantum-portal-mining">What is QP Mining</a></li>
+<li><a href="#what-is-quantum-portal-finalisation">What is QP Finalisation</a></li>
+<li><a href="#system-requirements">System Requirements</a></li>
+<li><a href="#account-requirements">Account Requirements</a></li>
+<li><a href="#node-prerequisites">Node Prerequisites</a></li>
+</ul>
+<h2 id="introduction">Introduction</h2>
+<p>Collators/collators are members of the network that maintain the parachains they take part in. They run a full node (for both their particular parachain and the relay chain), and they produce the state transition proof for relay chain collators.</p>
+<p>Candidates will need a minimum amount of tokens bonded (self-bonded) to be considered eligible. Along with running a collator node for the ferrum blockchain, you can choose to run a specific type of Ferrum node, which help in validating cross chain transactions on the ferrum network.</p>
+<h2 id="types-of-nodes">Types of Nodes</h2>
+<p>The different types of nodes of ferrum network:</p>
+<ol>
+<li><p><strong>Collator node</strong></p>
+<p> Running a collator node means you pariticipate in the block production of ferrum network. Once your collator node is up and running, you can choose to be a block producer candidate, and if you have a minimum amount of tokens you would be selected for block production. Currently we do not have staking or rewards for block production but we plan to support this in the future.</p>
+</li>
+</ol>
+<ol>
+<li><p><strong>Miner Node (QP Miner)</strong></p>
+<p>A miner node is responsible for mining cross chain transactions, these nodes will observe the qp chain pairs and mine blocks on each other chains. This type of node can be run in conjunction with a collator node or indepdently to mine the block on the pair chain. Do note that running this node requires a minimum amount of tokens to pay for transaction costs on the pair chains.</p>
+</li>
+</ol>
+<ol>
+<li><p><strong>Finalizer Node (QP Finalizer)</strong></p>
+<p> The finalizer node is responsible for finalizing the mined blocks, these nodes will observe the mined blocks on the pair chains and finalize the block on the pair chain. This type of node can be run in conjunction with a collator node or indepdently to finalize the block on the pair chain. Do note that running this node requires a minimum amount of tokens to pay for transaction costs on the pair chains.</p>
+</li>
+<li><p><strong>Archive Node</strong></p>
+<p> The archive node is the simplest type of node, the node will sync and update the latest block on the ferrum chain. This type of node is useful to run an indexer or explorer.</p>
+</li>
+</ol>
+<h2 id="how-quantum-portal-works">How Quantum Portal works</h2>
+<p>Quantum Portal is part of the Ferrum Runtime Node. When you deploy the Ferrum Network node you can configure it to mine or validate Quantum Portal transactions of Ferrum Network transactions as a collator on the network.</p>
+<h3 id="overview">Overview</h3>
+<p>Quantum Portal is part of the Ferrum Runtime Node. When you deploy the Ferrum Network node you can configure it to mine or validate Quantum Portal transactions of Ferrum Network transactions as a collator on the network.</p>
+<p>Quantum Portal includes the following core components:</p>
+<ol>
+<li>QP Smart Contract</li>
+<li>QP Miner</li>
+<li>QP Finalizer</li>
+</ol>
+<p><img src="images/qp-overview.png" alt="alt text" title="Title"></p>
+<h3 id="what-is-quantum-portal-mining">What is Quantum Portal Mining?</h3>
+<p>The QP Miners take turns based on an algorithm to create and relay these blocks from the sourceChain to the destinationChain. QP Miners do this by running the Ferrum Node as a QP Miner (QP Node). Once configured, this QP Node monitors the transactions on the network that they have set up to be miners and staked tokens on. The QP Node monitors transactions on the sourceChain and if new data is available, it creates a block every 15 seconds. After creating a block, the QP Node calls the mineRemoteBlock on the destinationChain in order to execute the transaction and mine the QP Block. It is considered a mined block after the transaction executes on the destinationChain</p>
+<h3 id="what-is-quantum-portal-finalisation">What is Quantum Portal Finalisation?</h3>
+<p>The QP collators take turns based on an algorithm to pick the pending (mined but not finalized) Quantum Portal Blocks from the Quantum Portal Mined Block mempool. QP collators do this by running the Ferrum Node as a QP collator (QP Node). Once configured, this QP Node monitors the Quantum Portal Mined Block mempool for mined Quantum Portal Blocks, If new data is available, it creates a finalized block every 15 seconds. After creating a finalized block, the QP Node calls the finalizeRemoteBlock on the destinationChain in order to record the block as finalized and execute any remote transactions if applicable. The QP Block. It is considered a finalized block after the finalizeRemoteBlock transaction executes on the destinationChain
+Once mined QP Blocks are finalized, the record of the finalized mined blocks and the finalized block itself is added to the destinationChains.</p>
+<h2 id="system-requirements">System Requirements</h2>
+<p>The most common way for a beginner to run a validator is on a cloud server running Linux. You may choose whatever VPS provider that your prefer. As OS it is best to use a recent Debian Linux. For this guide we will be using Ubuntu 22.04, but the instructions should be similar for other platforms.</p>
+<h3 id="reference-hardware">Reference Hardware</h3>
+<p>The transaction weights in Polkadot are benchmarked on reference hardware. We ran the benchmark on VM instances of two major cloud providers: Google Cloud Platform (GCP) and Amazon Web Services (AWS). To be specific, we used c2d-highcpu-8 VM instance on GCP and c6id.2xlarge on AWS. It is recommended that the hardware used to run the validators at least matches the specs of the reference hardware in order to ensure they are able to process all blocks in time. If you use subpar hardware you will possibly run into performance issues, get less era points, and potentially even get slashed.</p>
+<h4 id="cpu">CPU</h4>
+<p>x86-64 compatible;
+Intel Ice Lake, or newer (Xeon or Core series); AMD Zen3, or newer (EPYC or Ryzen);
+4 physical cores @ 3.4GHz;
+Simultaneous multithreading disabled (Hyper-Threading on Intel, SMT on AMD);
+Prefer single-threaded performance over higher cores count. A comparison of single-threaded performance can be found here.</p>
+<h4 id="storage">Storage</h4>
+<p>An NVMe SSD of 1 TB (As it should be reasonably sized to deal with blockchain growth). An estimation of current chain snapshot sizes can be found here. In general, the latency is more important than the throughput.</p>
+<h4 id="memory">Memory</h4>
+<p>16GB DDR4 ECC.
+System
+Linux Kernel 5.16 or newer.</p>
+<h4 id="network">Network</h4>
+<p>The minimum symmetric networking speed is set to 500 Mbit/s (= 62.5 MB/s). This is required to support a large number of parachains and allow for proper congestion control in busy network situations.</p>
+<p>The specs posted above are not a hard requirement to run a collator, but are considered best practice. Running a collator is a responsible task; using professional hardware is a must in any way.</p>
+<h2 id="account-requirements">Account Requirements</h2>
+<p>Similar to Polkadot validators, you need to create an account. For Ferrum, this is an H160 account or an Ethereum-style account from which you hold the private keys. As a collator, you are responsible for correctly managing your own keys. Incorrectly doing so can result in a loss of funds.</p>
+<p>There are many Ethereum wallets that can be used, but for production purposes it is recommended to generate keys as securely as possible. It is also recommended to generate backup keys.</p>
+<p>To generate keys securely it is recommended to do so on an air-gapped machine. Once you generate your keys make sure you store them safely. To securely store your keys, here are some recommendations, from least to most secure:</p>
+<p>Write down and laminate your keys
+Engrave your keys into a metal plate
+Shard your keys using a tool like Horcrux
+As always, it is recommended to do your own research and use tools that you vet as trustworthy.</p>
+<h2 id="node-prerequisites">Node Prerequisites</h2>
+<p>Once you choose your cloud service provider and set-up your new server, the first thing you will do is install Rust.</p>
+<p>If you have never installed Rust, you should do this first.</p>
+<p>If you have already installed Rust, run the following command to make sure you are using the latest version.</p>
+<pre><code>rustup update
+</code></pre><p>If not, this command will fetch the latest version of Rust and install it.</p>
+<pre><code>curl https://sh.rustup.rs -sSf | sh -s -- -y
+</code></pre><p>Finally, run this command to install the necessary dependencies for compiling and running the Polkadot node software.</p>
+<pre><code>sudo apt install make clang pkg-config libssl-dev build-essential
+</code></pre>
+                                
+                                </section>
+                            
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+                
+                <a href="getting-started.html" class="navigation navigation-prev " aria-label="Previous page: Getting Started">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+                
+                
+                <a href="running-collator-node.md" class="navigation navigation-next " aria-label="Next page: Run a collator node">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+                
+            
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"Running Nodes","level":"1.3","depth":1,"next":{"title":"Run a collator node","level":"1.4","depth":1,"path":"running-collator-node.md","ref":"running-collator-node.md","articles":[]},"previous":{"title":"Getting Started","level":"1.2","depth":1,"path":"getting-started.md","ref":"getting-started.md","articles":[]},"dir":"ltr"},"config":{"gitbook":"*","theme":"default","variables":{},"plugins":[],"pluginsConfig":{"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"fontsettings":{"theme":"white","family":"sans","size":2},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"}},"file":{"path":"running-nodes.md","mtime":"2023-04-28T13:35:29.410Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2023-04-28T13:50:25.549Z"},"basePath":".","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    <script src="gitbook/gitbook.js"></script>
+    <script src="gitbook/theme.js"></script>
+    
+        
+        <script src="gitbook/gitbook-plugin-search/search-engine.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-search/search.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-lunr/lunr.min.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-lunr/search-lunr.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-sharing/buttons.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        
+    
+
+    </body>
+</html>
+

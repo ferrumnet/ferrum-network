@@ -1,0 +1,1 @@
+# Miner Staking on Ferrum testnet

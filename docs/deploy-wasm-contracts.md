@@ -1,0 +1,1 @@
+# Deploy WASM contracts

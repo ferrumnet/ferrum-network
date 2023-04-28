@@ -28,3 +28,4 @@ rls*.log
 /chain
 *.stderr
 *.log
+/docs/_book

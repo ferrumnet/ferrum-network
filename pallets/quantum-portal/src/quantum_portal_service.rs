@@ -172,8 +172,8 @@ impl<T: Config> QuantumPortalService<T> {
         );
         let now = local_client.now;
 
-        // mine if role is miner
-        if role == Role::QP_MINER {
+        // // mine if role is miner
+        // if role == Role::QP_MINER {
             let mine_tx = local_client.mine(remote_client)?;
             if mine_tx.is_some() {
                 self.save_tx(PendingTransaction::MineTransaction(
@@ -183,9 +183,9 @@ impl<T: Config> QuantumPortalService<T> {
                     mine_tx.unwrap(),
                 ))?
             }
-        }
+        //}
         // finalize if role is finalizer
-        if role == Role::QP_FINALIZER {
+        //if role == Role::QP_FINALIZER {
             let fin_tx = local_client.finalize(remote_chain)?;
             if fin_tx.is_some() {
                 // Save tx
@@ -196,7 +196,7 @@ impl<T: Config> QuantumPortalService<T> {
                     fin_tx.unwrap(),
                 ))?
             }
-        }
+        //}
 
         self.remove_lock()?;
         Ok(())

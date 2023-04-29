@@ -14,6 +14,7 @@ use sc_service::config::{BasePath, PrometheusConfig};
 use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
 // Frontier
+use sc_service::PartialComponents;
 
 use crate::{
     chain_spec,
@@ -27,6 +28,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn ChainSpec>, String> {
     Ok(match id {
         "dev" => Box::new(chain_spec::development_config()),
         "template-rococo" => Box::new(chain_spec::local_testnet_config()),
+        "alpha-testnet" => Box::new(chain_spec::alpha_testnet_config()),
         "rococo" => Box::new(chain_spec::rococo_config()),
         "" | "local" => Box::new(chain_spec::local_testnet_config()),
         path => Box::new(chain_spec::ChainSpec::from_json_file(
@@ -37,7 +39,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn ChainSpec>, String> {
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
-        "Parachain Collator Template".into()
+        "Ferrum Parachain".into()
     }
 
     fn impl_version() -> String {
@@ -46,7 +48,7 @@ impl SubstrateCli for Cli {
 
     fn description() -> String {
         format!(
-            "Parachain Collator Template\n\nThe command-line arguments provided first will be \
+            "Ferrum Parachain\n\nThe command-line arguments provided first will be \
 		passed to the parachain node, while the arguments provided after -- will be passed \
 		to the relay chain node.\n\n\
 		{} <parachain-args> -- <relay-chain-args>",
@@ -77,7 +79,7 @@ impl SubstrateCli for Cli {
 
 impl SubstrateCli for RelayChainCli {
     fn impl_name() -> String {
-        "Parachain Collator Template".into()
+        "Ferrum Parachain".into()
     }
 
     fn impl_version() -> String {
@@ -86,7 +88,7 @@ impl SubstrateCli for RelayChainCli {
 
     fn description() -> String {
         format!(
-            "Parachain Collator Template\n\nThe command-line arguments provided first will be \
+            "Ferrum Parachain\n\nThe command-line arguments provided first will be \
 		passed to the parachain node, while the arguments provided after -- will be passed \
 		to the relay chain node.\n\n\
 		{} <parachain-args> -- <relay-chain-args>",
@@ -119,7 +121,7 @@ macro_rules! construct_async_run {
 	(|$components:ident, $cli:ident, $cmd:ident, $config:ident| $( $code:tt )* ) => {{
 		let runner = $cli.create_runner($cmd)?;
 		runner.async_run(|$config| {
-			let $components = new_partial::<ferrum::RuntimeApi, ferrum::Executor, _>(&$config, build_import_queue)?;
+			let $components = new_partial::<ferrum::RuntimeApi, ferrum::Executor, _>(&$config, build_import_queue, &$cli)?;
 			let task_manager = $components.task_manager;
 			{ $( $code )* }.map(|v| (v, task_manager))
 		})
@@ -131,6 +133,7 @@ pub fn run() -> Result<()> {
     let cli = Cli::from_args();
 
     match &cli.subcommand {
+        Some(Subcommand::Key(cmd)) => cmd.run(&cli),
         Some(Subcommand::BuildSpec(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             runner.sync_run(|config| cmd.run(config.chain_spec, config.network))
@@ -213,6 +216,7 @@ pub fn run() -> Result<()> {
                     let partials = new_partial::<ferrum::RuntimeApi, ferrum::Executor, _>(
                         &config,
                         build_import_queue,
+                        &cli,
                     )?;
                     cmd.run(partials.client)
                 }),
@@ -227,6 +231,7 @@ pub fn run() -> Result<()> {
                     let partials = new_partial::<ferrum::RuntimeApi, ferrum::Executor, _>(
                         &config,
                         build_import_queue,
+                        &cli,
                     )?;
                     let db = partials.backend.expose_db();
                     let storage = partials.backend.expose_storage();
@@ -241,14 +246,6 @@ pub fn run() -> Result<()> {
                 _ => Err("Benchmarking sub-command unsupported".into()),
             }
         }
-        // Some(Subcommand::FrontierDb(cmd)) => {
-        //     let runner = cli.create_runner(cmd)?;
-        //     runner.sync_run(|config| {
-        //         let PartialComponents { client, other, .. } = crate::service::new_partial(&config)?;
-        //         let frontier_backend = other.2;
-        //         cmd.run::<_, ferrum_runtime::opaque::Block>(client, frontier_backend)
-        //     })
-        // }
         #[cfg(feature = "try-runtime")]
         Some(Subcommand::TryRuntime(cmd)) => {
             let runner = cli.create_runner(cmd)?;
@@ -333,6 +330,7 @@ pub fn run() -> Result<()> {
 					collator_options,
 					id,
 					true,
+                    &cli
 				)
 				.await
 				.map(|r| r.0)

@@ -154,6 +154,57 @@ pub fn local_testnet_config() -> ChainSpec {
     )
 }
 
+pub fn alpha_testnet_config() -> ChainSpec {
+    // Give your base currency a tFRM name and decimal places
+    let mut properties = sc_chain_spec::Properties::new();
+    properties.insert("tokenSymbol".into(), "tFRM".into());
+    properties.insert("tokenDecimals".into(), 18.into());
+    properties.insert("ss58Format".into(), 42.into());
+
+    ChainSpec::from_genesis(
+        // Name
+        "Ferrum Testnet",
+        // ID
+        "ferrum_testnet",
+        ChainType::Local,
+        move || {
+            testnet_genesis(
+                // initial collators.
+                vec![
+                    (
+                        AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
+                        get_collator_keys_from_seed("Alice"),
+                    ),
+                    (
+                        AccountId::from_str("0x25451A4de12dcCc2D166922fA938E900fCc4ED24").unwrap(),
+                        get_collator_keys_from_seed("Bob"),
+                    ),
+                ],
+                // Endowed Accounts
+                vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
+                // Sudo Key
+                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
+                1000.into(),
+            )
+        },
+        // Bootnodes
+        Vec::new(),
+        // Telemetry
+        None,
+        // Protocol ID
+        Some("ferrum-alpha-testnet"),
+        // Fork ID
+        None,
+        // Properties
+        Some(properties),
+        // Extensions
+        Extensions {
+            relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
+            para_id: 1000,
+        },
+    )
+}
+
 pub fn rococo_config() -> ChainSpec {
     // Give your base currency a tFRM name and decimal places
     let mut properties = sc_chain_spec::Properties::new();
@@ -221,7 +272,7 @@ fn testnet_genesis(
             balances: endowed_accounts
                 .iter()
                 .cloned()
-                .map(|k| (k, 1 << 100))
+                .map(|k| (k, 1 << 80))
                 .collect(),
         },
         parachain_info: ferrum_runtime::ParachainInfoConfig { parachain_id: id },

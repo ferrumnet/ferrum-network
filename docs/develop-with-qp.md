@@ -12,8 +12,9 @@ For the fist example lets build a simple ping-pong contract, the contract will s
 
 ```solidity
 pragma solidity ^0.8.0;
-import "../IQuantumPortalPoc.sol";
-import "../IQuantumPortalFeeManager.sol";
+pragma solidity ^0.8.0;
+import "quantum-portal-smart-contracts/contracts/quantumPortal/poc/IQuantumPortalPoc.sol";
+import "quantum-portal-smart-contracts/contracts/quantumPortal/poc/IQuantumPortalFeeManager.sol";
 
 contract Pong  {
     uint256 public CHAIN_ID;

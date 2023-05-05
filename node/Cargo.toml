@@ -94,6 +94,7 @@ fp-dynamic-fee = { git = 'https://github.com/paritytech/frontier.git', default-f
 fp-evm = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.39" }
 fp-rpc = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.39" }
 fp-storage = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.39" }
+fc-storage = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.39" }
 
 # Local Dependencies
 ferrum-primitives = { path = "../primitives" }

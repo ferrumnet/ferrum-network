@@ -2979,6 +2979,7 @@ dependencies = [
  "fc-mapping-sync",
  "fc-rpc",
  "fc-rpc-core",
+ "fc-storage",
  "ferrum-primitives",
  "ferrum-runtime",
  "fp-consensus",

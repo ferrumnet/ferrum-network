@@ -180,7 +180,7 @@ pub mod pallet {
                     }
                 }
             );
-            let _ = T::EnsureProxy::ensure_ok(
+            T::EnsureProxy::ensure_ok(
                 T::AddressMapping::into_account_id(transact_as),
                 T::AddressMapping::into_account_id(source),
             )

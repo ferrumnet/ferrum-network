@@ -109,7 +109,7 @@ impl XcmToEthereum for EthereumXcmTransactionV1 {
         let from_tuple_to_access_list = |t: &Vec<(H160, Vec<H256>)>| -> AccessList {
             t.iter()
                 .map(|item| AccessListItem {
-                    address: item.0.clone(),
+                    address: item.0,
                     storage_keys: item.1.clone(),
                 })
                 .collect::<Vec<AccessListItem>>()
@@ -173,7 +173,7 @@ impl XcmToEthereum for EthereumXcmTransactionV1 {
                     s: rs_id(),
                 }))
             }
-            _ => return None,
+            _ => None,
         }
     }
 }
@@ -187,7 +187,7 @@ impl XcmToEthereum for EthereumXcmTransactionV2 {
         let from_tuple_to_access_list = |t: &Vec<(H160, Vec<H256>)>| -> AccessList {
             t.iter()
                 .map(|item| AccessListItem {
-                    address: item.0.clone(),
+                    address: item.0,
                     storage_keys: item.1.clone(),
                 })
                 .collect::<Vec<AccessListItem>>()
@@ -294,7 +294,7 @@ mod tests {
         let from_tuple_to_access_list = |t: &Vec<(H160, Vec<H256>)>| -> AccessList {
             t.iter()
                 .map(|item| AccessListItem {
-                    address: item.0.clone(),
+                    address: item.0,
                     storage_keys: item.1.clone(),
                 })
                 .collect::<Vec<AccessListItem>>()

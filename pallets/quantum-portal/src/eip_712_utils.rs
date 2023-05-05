@@ -1,6 +1,7 @@
 use crate::chain_utils::ChainUtils;
 use ethabi_nostd::{encoder, Token, H256, U256}; //vec::{Vec};
 use sp_std::prelude::*;
+use ethabi_nostd::Address;
 
 pub struct EIP712Utils;
 
@@ -10,7 +11,7 @@ impl EIP712Utils {
         contract_name: &[u8],
         contract_version: &[u8],
         chain_id: u64,
-        contract_address: &[u8],
+        contract_address: Address,
     ) -> H256 {
         let type_hash = ChainUtils::keccack(
             b"EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)",
@@ -23,7 +24,7 @@ impl EIP712Utils {
             Token::FixedBytes(Vec::from(hashed_name.as_bytes())),
             Token::FixedBytes(Vec::from(hashed_version.as_bytes())),
             Token::Uint(U256::from(chain_id)),
-            Token::Address(ChainUtils::hex_to_address(contract_address)),
+            Token::Address(contract_address),
         ]);
 
         encoded_domain_seperator

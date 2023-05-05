@@ -1,0 +1,46 @@
+{
+	"relaychain": {
+		"bin": "../../../../polkadot/target/release/polkadot",
+		"chain": "rococo-local",
+		"nodes": [
+			{
+				"name": "alice",
+				"wsPort": 9944,
+				"rpcPort": 9933,
+				"port": 30444
+			},
+			{
+				"name": "bob",
+				"wsPort": 9955,
+				"rpcPort": 9934,
+				"port": 30555
+			}
+		]
+	},
+	"parachains": [
+		{
+			"bin": "../../target/release/ferrum-network",
+			"nodes": [
+				{
+					"wsPort": 9946,
+					"rpcPort": 8545,
+					"name": "alice",
+					"port": 31200,
+					"basePath": "./chain/alice",
+					"flags": [
+						"--config-file-path=alice_node_config.json",
+						"--rpc-cors=all",
+						"--rpc-external",
+						"--ws-external",
+						"--rpc-methods=unsafe",
+						"--ws-max-connections=1000",
+						"--",
+						"--execution=wasm"
+					]
+				}
+			]
+		}
+	],
+	"types": {
+	}
+}

@@ -99,6 +99,7 @@ impl pallet_evm::Config for Runtime {
     type PrecompilesType = Precompiles<Self>;
     type PrecompilesValue = PrecompilesValue;
     type ChainId = ();
+    type OnCreate = ();
     type OnChargeTransaction = ();
     type BlockGasLimit = BlockGasLimit;
     type BlockHashMapping = pallet_evm::SubstrateBlockHashMapping<Self>;
@@ -145,15 +146,10 @@ impl Erc20Metadata for NativeErc20Metadata {
     }
 }
 
+#[derive(Default)]
 pub(crate) struct ExtBuilder {
     // endowed accounts with balances
     balances: Vec<(AccountId, Balance)>,
-}
-
-impl Default for ExtBuilder {
-    fn default() -> ExtBuilder {
-        ExtBuilder { balances: vec![] }
-    }
 }
 
 impl ExtBuilder {

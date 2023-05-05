@@ -316,10 +316,10 @@ fn transfer_not_enough_funds() {
                     },
                 )
                 .execute_reverts(|output| {
-                    from_utf8(&output)
+                    from_utf8(output)
                         .unwrap()
                         .contains("Dispatched call failed with error: ")
-                        && from_utf8(&output).unwrap().contains("InsufficientBalance")
+                        && from_utf8(output).unwrap().contains("InsufficientBalance")
                 });
         });
 }
@@ -868,7 +868,7 @@ fn permit_valid() {
                     SELECTOR_LOG_APPROVAL,
                     CryptoAlith,
                     Bob,
-                    EvmDataWriter::new().write(U256::from(value)).build(),
+                    EvmDataWriter::new().write(value).build(),
                 ))
                 .execute_returns(vec![]);
 

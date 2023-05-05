@@ -8,7 +8,6 @@ use crate::{
     Config,
 };
 use ethabi_nostd::{decoder::decode, ParamKind, Token};
-use frame_support::traits::Randomness;
 use sp_core::{H256, U256};
 use sp_std::marker::PhantomData;
 use sp_std::prelude::*;
@@ -438,13 +437,10 @@ impl<T: Config> QuantumPortalClient<T> {
 
         // set timestamp 1hr from now
         let current_timestamp = source_block.timestamp;
-        let expiry_buffer = core::time::Duration::from_secs(259200u64);
+        let expiry_buffer = core::time::Duration::from_secs(3600u64);
         let expiry_time = current_timestamp.saturating_add(expiry_buffer.as_secs());
         let expiry = Token::Uint(U256::from(expiry_time));
-
-        // set a random salt
-        let (random_hash, _) = T::PalletRandomness::random_seed();
-        let salt = Token::FixedBytes(Vec::from(random_hash.as_ref()));
+        let salt = Token::FixedBytes(vec![0u8, 0u8]);
 
         let tx_vec: Vec<Token> = txs
             .iter()

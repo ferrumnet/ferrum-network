@@ -22,7 +22,7 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: nightly-2022-10-10
+        toolchain: nightly-2023-01-26
         target: wasm32-unknown-unknown
         override: true
     - name: Install protoc

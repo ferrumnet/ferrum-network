@@ -98,7 +98,9 @@ fc-storage = { git = 'https://github.com/paritytech/frontier.git', default-featu
 
 # Local Dependencies
 ferrum-primitives = { path = "../primitives" }
-ferrum-runtime = { path = "../runtime" }
+ferrum-testnet-runtime = { path = "../runtime/testnet" }
+ferrum-rococo-runtime = { path = "../runtime/rococo" }
+ferrum-runtime = { path = "../runtime/kusama" }
 pallet-quantum-portal = { path = "../pallets/quantum-portal" }
 
 [build-dependencies]
@@ -108,10 +110,10 @@ substrate-build-script-utils = { git = "https://github.com/paritytech/substrate"
 default = []
 runtime-benchmarks = [
 	"try-runtime-cli/try-runtime",
-	"ferrum-runtime/runtime-benchmarks",
+	"ferrum-testnet-runtime/runtime-benchmarks",
 	"polkadot-cli/runtime-benchmarks",
 ]
 try-runtime = [
 	"try-runtime-cli/try-runtime",
-	"ferrum-runtime/try-runtime",
+	"ferrum-testnet-runtime/try-runtime",
 ]

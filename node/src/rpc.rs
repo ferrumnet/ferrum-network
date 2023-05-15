@@ -8,7 +8,7 @@ use fc_rpc::{
 };
 use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
 pub use fc_storage::overrides_handle;
-use ferrum_runtime::{opaque::Block, AccountId, Balance, Hash};
+use ferrum_testnet_runtime::{opaque::Block, AccountId, Balance, Hash};
 use fp_storage::EthereumStorageSchema;
 use jsonrpsee::RpcModule;
 use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};

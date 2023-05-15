@@ -23,7 +23,7 @@ use cumulus_relay_chain_minimal_node::build_minimal_relay_chain_node;
 use fc_consensus::FrontierBlockImport;
 use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
 use ferrum_primitives::OFFCHAIN_SIGNER_CONFIG_KEY;
-use ferrum_runtime::{opaque::Block, AccountId, Balance, Hash};
+use ferrum_testnet_runtime::{opaque::Block, AccountId, Balance, Hash};
 use polkadot_service::CollatorPair;
 use sc_cli::SubstrateCli;
 use sc_client_api::Backend;
@@ -42,7 +42,7 @@ use substrate_prometheus_endpoint::Registry;
 
 /// Ferrum network runtime executor.
 pub mod ferrum {
-    pub use ferrum_runtime::RuntimeApi;
+    pub use ferrum_testnet_runtime::RuntimeApi;
 
     /// Shibuya runtime executor.
     pub struct Executor;
@@ -63,11 +63,11 @@ pub mod ferrum {
         );
 
         fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
-            ferrum_runtime::api::dispatch(method, data)
+            ferrum_testnet_runtime::api::dispatch(method, data)
         }
 
         fn native_version() -> sc_executor::NativeVersion {
-            ferrum_runtime::native_version()
+            ferrum_testnet_runtime::native_version()
         }
     }
 }

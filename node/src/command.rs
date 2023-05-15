@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use codec::Encode;
 use cumulus_client_cli::generate_genesis_block;
 use cumulus_primitives_core::ParaId;
-use ferrum_runtime::Block;
+use ferrum_testnet_runtime::Block;
 use frame_benchmarking_cli::{BenchmarkCmd, SUBSTRATE_REFERENCE_HARDWARE};
 use log::{info, warn};
 use sc_cli::{
@@ -73,7 +73,7 @@ impl SubstrateCli for Cli {
     }
 
     fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-        &ferrum_runtime::VERSION
+        &ferrum_testnet_runtime::VERSION
     }
 }
 

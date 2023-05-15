@@ -5,51 +5,10 @@ use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
 use sp_core::{Pair, Public};
 use std::str::FromStr;
+use super::*;
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
-pub type ChainSpec = sc_service::GenericChainSpec<ferrum_runtime::GenesisConfig, Extensions>;
-
-/// The default XCM version to set in genesis config.
-const SAFE_XCM_VERSION: u32 = xcm::prelude::XCM_VERSION;
-
-/// The extensions for the [`ChainSpec`].
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ChainSpecGroup, ChainSpecExtension)]
-#[serde(deny_unknown_fields)]
-pub struct Extensions {
-    /// The relay chain of the Parachain.
-    pub relay_chain: String,
-    /// The id of the Parachain.
-    pub para_id: u32,
-}
-
-impl Extensions {
-    /// Try to get the extension from the given `ChainSpec`.
-    pub fn try_get(chain_spec: &dyn sc_service::ChainSpec) -> Option<&Self> {
-        sc_chain_spec::get_extension(chain_spec.extensions())
-    }
-}
-
-/// Generate a crypto pair from seed.
-pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
-    TPublic::Pair::from_string(&format!("//{seed}"), None)
-        .expect("static values are valid; qed")
-        .public()
-}
-
-/// Generate collator keys from seed.
-///
-/// This function's return type must always match the session keys of the chain in tuple format.
-pub fn get_collator_keys_from_seed(s: &str) -> AuraId {
-    get_from_seed::<AuraId>(s)
-}
-
-// /// Helper function to generate an account ID from seed
-// pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
-// where
-//     AccountPublic: From<<TPublic::Pair as Pair>::Public>,
-// {
-//     AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
-// }
+pub type KusamaChainSpec = sc_service::GenericChainSpec<ferrum_runtime::GenesisConfig, Extensions>;
 
 /// Generate the session keys from individual elements.
 ///
@@ -58,67 +17,22 @@ pub fn ferrum_session_keys(keys: AuraId) -> ferrum_runtime::SessionKeys {
     ferrum_runtime::SessionKeys { aura: keys }
 }
 
-pub fn development_config() -> ChainSpec {
+pub fn kusama_local_config() -> ChainSpec {
     // Give your base currency a tFRM name and decimal places
     let mut properties = sc_chain_spec::Properties::new();
-    properties.insert("tokenSymbol".into(), "tFRM".into());
+    properties.insert("tokenSymbol".into(), "FRM".into());
     properties.insert("tokenDecimals".into(), 18.into());
     properties.insert("ss58Format".into(), 42.into());
 
     ChainSpec::from_genesis(
         // Name
-        "Ferrum Development",
+        "Ferrum",
         // ID
-        "dev",
-        ChainType::Development,
-        move || {
-            testnet_genesis(
-                // initial collators.
-                vec![
-                    (
-                        AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
-                        get_collator_keys_from_seed("Alice"),
-                    ),
-                    (
-                        AccountId::from_str("0x25451A4de12dcCc2D166922fA938E900fCc4ED24").unwrap(),
-                        get_collator_keys_from_seed("Bob"),
-                    ),
-                ],
-                // Endowed Accounts
-                vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
-                // Sudo Key
-                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
-                1000.into(),
-            )
-        },
-        Vec::new(),
-        None,
-        None,
-        None,
-        None,
-        Extensions {
-            relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
-            para_id: 1000,
-        },
-    )
-}
-
-pub fn local_testnet_config() -> ChainSpec {
-    // Give your base currency a tFRM name and decimal places
-    let mut properties = sc_chain_spec::Properties::new();
-    properties.insert("tokenSymbol".into(), "tFRM".into());
-    properties.insert("tokenDecimals".into(), 18.into());
-    properties.insert("ss58Format".into(), 42.into());
-
-    ChainSpec::from_genesis(
-        // Name
-        "Ferrum Testnet",
-        // ID
-        "ferrum_testnet",
+        "ferrum_parachain",
         ChainType::Local,
         move || {
             testnet_genesis(
-                // initial collators.
+                // TODO : Configure initial accounts
                 vec![
                     (
                         AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
@@ -154,7 +68,7 @@ pub fn local_testnet_config() -> ChainSpec {
     )
 }
 
-pub fn alpha_testnet_config() -> ChainSpec {
+pub fn kusama_config() -> ChainSpec {
     // Give your base currency a tFRM name and decimal places
     let mut properties = sc_chain_spec::Properties::new();
     properties.insert("tokenSymbol".into(), "tFRM".into());
@@ -168,7 +82,7 @@ pub fn alpha_testnet_config() -> ChainSpec {
         "ferrum_testnet",
         ChainType::Local,
         move || {
-            testnet_genesis(
+            generate_genesis(
                 // initial collators.
                 vec![
                     (
@@ -192,71 +106,20 @@ pub fn alpha_testnet_config() -> ChainSpec {
         // Telemetry
         None,
         // Protocol ID
-        Some("ferrum-alpha-testnet"),
+        Some("ferrum-parachain"),
         // Fork ID
         None,
         // Properties
         Some(properties),
         // Extensions
         Extensions {
-            relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
-            para_id: 1000,
+            relay_chain: "kusama".into(),
+            para_id: 1000, // TODO : Set this after we reserve slot
         },
     )
 }
 
-pub fn rococo_config() -> ChainSpec {
-    // Give your base currency a tFRM name and decimal places
-    let mut properties = sc_chain_spec::Properties::new();
-    properties.insert("tokenSymbol".into(), "tFRM".into());
-    properties.insert("tokenDecimals".into(), 18.into());
-    properties.insert("ss58Format".into(), 42.into());
-
-    ChainSpec::from_genesis(
-        // Name
-        "Ferrum Rococo",
-        // ID
-        "ferrum_rococo",
-        ChainType::Local,
-        move || {
-            testnet_genesis(
-                // initial collators.
-                vec![
-                    (
-                        AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
-                        get_collator_keys_from_seed("Alice"),
-                    ),
-                    (
-                        AccountId::from_str("0x25451A4de12dcCc2D166922fA938E900fCc4ED24").unwrap(),
-                        get_collator_keys_from_seed("Bob"),
-                    ),
-                ],
-                // Endowed Accounts
-                vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
-                // Sudo Key
-                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
-                4238.into(),
-            )
-        },
-        // Bootnodes
-        Vec::new(),
-        // Telemetry
-        None,
-        // Protocol ID
-        Some("ferrum-rococo"),
-        // Fork ID
-        None,
-        // Properties
-        Some(properties),
-        // Extensions
-        Extensions {
-            relay_chain: "rococo".into(), // You MUST set this to the correct network!
-            para_id: 4238,
-        },
-    )
-}
-
-fn testnet_genesis(
+fn generate_genesis(
     invulnerables: Vec<(AccountId, AuraId)>,
     endowed_accounts: Vec<AccountId>,
     root_key: AccountId,
@@ -272,7 +135,7 @@ fn testnet_genesis(
             balances: endowed_accounts
                 .iter()
                 .cloned()
-                .map(|k| (k, 1 << 80))
+                .map(|k| (k, 1000)) // TODO : Use UNITS
                 .collect(),
         },
         parachain_info: ferrum_runtime::ParachainInfoConfig { parachain_id: id },

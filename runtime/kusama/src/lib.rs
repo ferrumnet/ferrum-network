@@ -625,11 +625,11 @@ impl pallet_base_fee::Config for Runtime {
     type DefaultElasticity = DefaultElasticity;
 }
 
-impl pallet_quantum_portal::Config for Runtime {
-    type RuntimeCall = RuntimeCall;
-    type RuntimeEvent = RuntimeEvent;
-    type Timestamp = Timestamp;
-}
+// impl pallet_quantum_portal::Config for Runtime {
+//     type RuntimeCall = RuntimeCall;
+//     type RuntimeEvent = RuntimeEvent;
+//     type Timestamp = Timestamp;
+// }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
 where
@@ -720,7 +720,7 @@ construct_runtime!(
         EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>}= 41,
         DynamicFee: pallet_dynamic_fee::{Pallet, Call, Storage, Config, Inherent}= 42,
         BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event}= 43,
-        QuantumPortal: pallet_quantum_portal::{Pallet, Call, Storage, Event<T>/*, ValidateUnsigned*/}= 44,
+        //QuantumPortal: pallet_quantum_portal::{Pallet, Call, Storage, Event<T>/*, ValidateUnsigned*/}= 44,
     }
 );
 

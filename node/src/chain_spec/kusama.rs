@@ -18,17 +18,17 @@ pub fn ferrum_session_keys(keys: AuraId) -> ferrum_runtime::SessionKeys {
 }
 
 pub fn kusama_local_config() -> ChainSpec {
-    // Give your base currency a tFRM name and decimal places
+    // Give your base currency a QPN name and decimal places
     let mut properties = sc_chain_spec::Properties::new();
-    properties.insert("tokenSymbol".into(), "FRM".into());
+    properties.insert("tokenSymbol".into(), "tQPN".into());
     properties.insert("tokenDecimals".into(), 18.into());
     properties.insert("ss58Format".into(), 42.into());
 
     ChainSpec::from_genesis(
         // Name
-        "Ferrum",
+        "Quantum Portal Network Local",
         // ID
-        "ferrum_parachain",
+        "quantum_portal_network_local",
         ChainType::Local,
         move || {
             testnet_genesis(
@@ -69,17 +69,17 @@ pub fn kusama_local_config() -> ChainSpec {
 }
 
 pub fn kusama_config() -> ChainSpec {
-    // Give your base currency a tFRM name and decimal places
+    // Give your base currency a QPN name and decimal places
     let mut properties = sc_chain_spec::Properties::new();
-    properties.insert("tokenSymbol".into(), "tFRM".into());
+    properties.insert("tokenSymbol".into(), "QPN".into());
     properties.insert("tokenDecimals".into(), 18.into());
     properties.insert("ss58Format".into(), 42.into());
 
     ChainSpec::from_genesis(
         // Name
-        "Ferrum Testnet",
+        "Quantum Portal Network",
         // ID
-        "ferrum_testnet",
+        "quantum_portal_network",
         ChainType::Local,
         move || {
             generate_genesis(
@@ -106,7 +106,7 @@ pub fn kusama_config() -> ChainSpec {
         // Telemetry
         None,
         // Protocol ID
-        Some("ferrum-parachain"),
+        Some("qpn-parachain"),
         // Fork ID
         None,
         // Properties

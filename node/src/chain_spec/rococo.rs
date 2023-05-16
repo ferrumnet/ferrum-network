@@ -87,7 +87,7 @@ pub fn rococo_config() -> RococoChainSpec {
         "Ferrum Rococo",
         // ID
         "rococo_ferrum",
-        ChainType::Local,
+        ChainType::Live,
         move || {
             rococo_genesis(
                 // initial collators.
@@ -142,7 +142,7 @@ fn rococo_genesis(
             balances: endowed_accounts
                 .iter()
                 .cloned()
-                .map(|k| (k, 1000)) // TODO : Use UNITS
+                .map(|k| (k, 1 << 80)) // TODO : Use UNITS
                 .collect(),
         },
         parachain_info: ferrum_rococo_runtime::ParachainInfoConfig { parachain_id: id },

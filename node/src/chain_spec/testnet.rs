@@ -80,7 +80,7 @@ pub fn local_testnet_config() -> TestnetChainSpec {
         // Name
         "Ferrum Testnet",
         // ID
-        "ferrum_testnet",
+        "testnet_local",
         ChainType::Local,
         move || {
             testnet_genesis(
@@ -131,8 +131,8 @@ pub fn alpha_testnet_config() -> TestnetChainSpec {
         // Name
         "Ferrum Testnet",
         // ID
-        "ferrum_testnet",
-        ChainType::Local,
+        "testnet_alpha",
+        ChainType::Live,
         move || {
             testnet_genesis(
                 // initial collators.

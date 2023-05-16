@@ -35,7 +35,7 @@ impl IdentifyChain for dyn sc_service::ChainSpec {
         self.id().starts_with("quantum")
     }
     fn is_dev(&self) -> bool {
-        self.id().starts_with("dev")
+        self.id().starts_with("dev") || self.id().starts_with("testnet")
     }
     fn is_rococo(&self) -> bool {
         self.id().starts_with("rococo")
@@ -58,7 +58,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn ChainSpec>, String> {
     Ok(match id {
         // testnet
         "dev" => Box::new(chain_spec::testnet::development_config()),
-        "alpha-testnet" => Box::new(chain_spec::testnet::alpha_testnet_config()),
+        "testnet-alpha" => Box::new(chain_spec::testnet::alpha_testnet_config()),
 
         // rococo
         "rococo-local" => Box::new(chain_spec::rococo::rococo_local_config()),
@@ -75,6 +75,8 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn ChainSpec>, String> {
                 Box::new(chain_spec::KusamaChainSpec::from_json_file(path.into())?)
             } else if chain_spec.is_rococo() {
                 Box::new(chain_spec::RococoChainSpec::from_json_file(path.into())?)
+            } else if chain_spec.is_dev() {
+                Box::new(chain_spec)
             } else {
                 Err("Unclear which chain spec to base this chain on")?
             }

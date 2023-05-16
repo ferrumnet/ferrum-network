@@ -86,7 +86,7 @@ pub fn kusama_config() -> KusamaChainSpec {
         "Quantum Portal Network",
         // ID
         "quantum_portal_network",
-        ChainType::Local,
+        ChainType::Live,
         move || {
             generate_genesis(
                 // initial collators.
@@ -141,7 +141,7 @@ fn generate_genesis(
             balances: endowed_accounts
                 .iter()
                 .cloned()
-                .map(|k| (k, 1000)) // TODO : Use UNITS
+                .map(|k| (k, 1 << 80)) // TODO : Use UNITS
                 .collect(),
         },
         parachain_info: ferrum_runtime::ParachainInfoConfig { parachain_id: id },

@@ -1,14 +1,20 @@
+use super::*;
 use cumulus_primitives_core::ParaId;
 use ferrum_runtime::{AccountId, AuraId, EXISTENTIAL_DEPOSIT};
-use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
+
 use sc_service::ChainType;
-use serde::{Deserialize, Serialize};
-use sp_core::{Pair, Public};
+
 use std::str::FromStr;
-use super::*;
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type KusamaChainSpec = sc_service::GenericChainSpec<ferrum_runtime::GenesisConfig, Extensions>;
+
+/// Generate collator keys from seed.
+///
+/// This function's return type must always match the session keys of the chain in tuple format.
+pub fn get_collator_keys_from_seed(s: &str) -> AuraId {
+    get_from_seed::<AuraId>(s)
+}
 
 /// Generate the session keys from individual elements.
 ///
@@ -17,21 +23,21 @@ pub fn ferrum_session_keys(keys: AuraId) -> ferrum_runtime::SessionKeys {
     ferrum_runtime::SessionKeys { aura: keys }
 }
 
-pub fn kusama_local_config() -> ChainSpec {
+pub fn kusama_local_config() -> KusamaChainSpec {
     // Give your base currency a QPN name and decimal places
     let mut properties = sc_chain_spec::Properties::new();
     properties.insert("tokenSymbol".into(), "tQPN".into());
     properties.insert("tokenDecimals".into(), 18.into());
     properties.insert("ss58Format".into(), 42.into());
 
-    ChainSpec::from_genesis(
+    KusamaChainSpec::from_genesis(
         // Name
         "Quantum Portal Network Local",
         // ID
         "quantum_portal_network_local",
         ChainType::Local,
         move || {
-            testnet_genesis(
+            generate_genesis(
                 // TODO : Configure initial accounts
                 vec![
                     (
@@ -68,14 +74,14 @@ pub fn kusama_local_config() -> ChainSpec {
     )
 }
 
-pub fn kusama_config() -> ChainSpec {
+pub fn kusama_config() -> KusamaChainSpec {
     // Give your base currency a QPN name and decimal places
     let mut properties = sc_chain_spec::Properties::new();
     properties.insert("tokenSymbol".into(), "QPN".into());
     properties.insert("tokenDecimals".into(), 18.into());
     properties.insert("ss58Format".into(), 42.into());
 
-    ChainSpec::from_genesis(
+    KusamaChainSpec::from_genesis(
         // Name
         "Quantum Portal Network",
         // ID

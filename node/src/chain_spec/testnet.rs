@@ -1,14 +1,21 @@
+use super::*;
 use cumulus_primitives_core::ParaId;
 use ferrum_testnet_runtime::{AccountId, AuraId, EXISTENTIAL_DEPOSIT};
-use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
-use sc_service::ChainType;
-use serde::{Deserialize, Serialize};
-use sp_core::{Pair, Public};
-use std::str::FromStr;
-use super::*;
 
-/// Specialized `ChainSpec` for the normal parachain runtime.
-pub type TestnetChainSpec = sc_service::GenericChainSpec<ferrum_testnet_runtime::GenesisConfig, Extensions>;
+use sc_service::ChainType;
+
+use std::str::FromStr;
+
+/// Specialized `TestnetChainSpec` for the normal parachain runtime.
+pub type TestnetChainSpec =
+    sc_service::GenericChainSpec<ferrum_testnet_runtime::GenesisConfig, Extensions>;
+
+/// Generate collator keys from seed.
+///
+/// This function's return type must always match the session keys of the chain in tuple format.
+pub fn get_collator_keys_from_seed(s: &str) -> AuraId {
+    get_from_seed::<AuraId>(s)
+}
 
 /// Generate the session keys from individual elements.
 ///
@@ -17,14 +24,14 @@ pub fn ferrum_session_keys(keys: AuraId) -> ferrum_testnet_runtime::SessionKeys 
     ferrum_testnet_runtime::SessionKeys { aura: keys }
 }
 
-pub fn development_config() -> ChainSpec {
+pub fn development_config() -> TestnetChainSpec {
     // Give your base currency a tFRM name and decimal places
     let mut properties = sc_chain_spec::Properties::new();
     properties.insert("tokenSymbol".into(), "tFRM".into());
     properties.insert("tokenDecimals".into(), 18.into());
     properties.insert("ss58Format".into(), 42.into());
 
-    ChainSpec::from_genesis(
+    TestnetChainSpec::from_genesis(
         // Name
         "Ferrum Development",
         // ID
@@ -62,14 +69,14 @@ pub fn development_config() -> ChainSpec {
     )
 }
 
-pub fn local_testnet_config() -> ChainSpec {
+pub fn local_testnet_config() -> TestnetChainSpec {
     // Give your base currency a tFRM name and decimal places
     let mut properties = sc_chain_spec::Properties::new();
     properties.insert("tokenSymbol".into(), "tFRM".into());
     properties.insert("tokenDecimals".into(), 18.into());
     properties.insert("ss58Format".into(), 42.into());
 
-    ChainSpec::from_genesis(
+    TestnetChainSpec::from_genesis(
         // Name
         "Ferrum Testnet",
         // ID
@@ -113,14 +120,14 @@ pub fn local_testnet_config() -> ChainSpec {
     )
 }
 
-pub fn alpha_testnet_config() -> ChainSpec {
+pub fn alpha_testnet_config() -> TestnetChainSpec {
     // Give your base currency a tFRM name and decimal places
     let mut properties = sc_chain_spec::Properties::new();
     properties.insert("tokenSymbol".into(), "tFRM".into());
     properties.insert("tokenDecimals".into(), 18.into());
     properties.insert("ss58Format".into(), 42.into());
 
-    ChainSpec::from_genesis(
+    TestnetChainSpec::from_genesis(
         // Name
         "Ferrum Testnet",
         // ID

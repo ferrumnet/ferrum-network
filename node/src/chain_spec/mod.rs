@@ -1,8 +1,6 @@
-use sc_chain_spec::ChainSpecExtension;
+use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use serde::{Deserialize, Serialize};
 use sp_core::{Pair, Public};
-
-use crate::primitives::Block;
 
 pub mod kusama;
 pub mod rococo;
@@ -37,11 +35,4 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
     TPublic::Pair::from_string(&format!("//{seed}"), None)
         .expect("static values are valid; qed")
         .public()
-}
-
-/// Generate collator keys from seed.
-///
-/// This function's return type must always match the session keys of the chain in tuple format.
-pub fn get_collator_keys_from_seed(s: &str) -> AuraId {
-    get_from_seed::<AuraId>(s)
 }

@@ -1,13 +1,21 @@
+use super::*;
 use cumulus_primitives_core::ParaId;
 use ferrum_rococo_runtime::{AccountId, AuraId, EXISTENTIAL_DEPOSIT};
-use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
+
 use sc_service::ChainType;
-use serde::{Deserialize, Serialize};
-use sp_core::{Pair, Public};
+
 use std::str::FromStr;
 
-/// Specialized `ChainSpec` for the normal parachain runtime.
-pub type RococoChainSpec = sc_service::GenericChainSpec<ferrum_rococo_runtime::GenesisConfig, Extensions>;
+/// Specialized `RococoChainSpec` for the normal parachain runtime.
+pub type RococoChainSpec =
+    sc_service::GenericChainSpec<ferrum_rococo_runtime::GenesisConfig, Extensions>;
+
+/// Generate collator keys from seed.
+///
+/// This function's return type must always match the session keys of the chain in tuple format.
+pub fn get_collator_keys_from_seed(s: &str) -> AuraId {
+    get_from_seed::<AuraId>(s)
+}
 
 /// Generate the session keys from individual elements.
 ///
@@ -16,18 +24,18 @@ pub fn ferrum_session_keys(keys: AuraId) -> ferrum_rococo_runtime::SessionKeys {
     ferrum_rococo_runtime::SessionKeys { aura: keys }
 }
 
-pub fn rococo_local_config() -> ChainSpec {
+pub fn rococo_local_config() -> RococoChainSpec {
     // Give your base currency a tFRM name and decimal places
     let mut properties = sc_chain_spec::Properties::new();
     properties.insert("tokenSymbol".into(), "rFRM".into());
     properties.insert("tokenDecimals".into(), 18.into());
     properties.insert("ss58Format".into(), 42.into());
 
-    ChainSpec::from_genesis(
+    RococoChainSpec::from_genesis(
         // Name
         "Ferrum Rococo",
         // ID
-        "ferrum_rococo",
+        "rococo_ferrum",
         ChainType::Local,
         move || {
             rococo_genesis(
@@ -67,18 +75,18 @@ pub fn rococo_local_config() -> ChainSpec {
     )
 }
 
-pub fn rococo_config() -> ChainSpec {
+pub fn rococo_config() -> RococoChainSpec {
     // Give your base currency a tFRM name and decimal places
     let mut properties = sc_chain_spec::Properties::new();
     properties.insert("tokenSymbol".into(), "rFRM".into());
     properties.insert("tokenDecimals".into(), 18.into());
     properties.insert("ss58Format".into(), 42.into());
 
-    ChainSpec::from_genesis(
+    RococoChainSpec::from_genesis(
         // Name
         "Ferrum Rococo",
         // ID
-        "ferrum_rococo",
+        "rococo_ferrum",
         ChainType::Local,
         move || {
             rococo_genesis(

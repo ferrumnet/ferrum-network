@@ -1,6 +1,5 @@
 # Summary
 
-* [Introduction](Readme.md)
 * [Getting Started](getting-started.md)
 * [Running Nodes](running-nodes.md)
 * [Run a collator node](running-collator-node.md)

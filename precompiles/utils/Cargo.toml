@@ -1,6 +1,6 @@
 [package]
 name = "precompile-utils"
-authors = ['Ferrum Network <https://github.com/ferrumnet/ferrum-network>']
+authors = [ "PureStake" ]
 description = "Utils to write EVM precompiles."
 edition = "2021"
 version = "0.1.0"

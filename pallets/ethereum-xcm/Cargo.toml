@@ -1,13 +1,11 @@
 [package]
 name = "pallet-ethereum-xcm"
-version = "1.0.0-dev"
-authors = ["Ferrum Network"]
+authors = [ "Parity Technologies <admin@parity.io>" ]
+description = "Xcm Transact compatibility for pallet-etherum."
 edition = "2021"
-homepage = "https://ferrum.network/"
-license = "Unlicense"
-publish = false
-repository = "https://github.com/ferrum-network"
-description = "Ethereum adapter for xcm"
+license = "Apache-2.0"
+repository = "https://github.com/paritytech/frontier/"
+version = "1.0.0-dev"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]

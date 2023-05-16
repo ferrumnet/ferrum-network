@@ -46,7 +46,7 @@ pub fn development_config() -> TestnetChainSpec {
                         get_collator_keys_from_seed("Alice"),
                     ),
                     (
-                        AccountId::from_str("0x25451A4de12dcCc2D166922fA938E900fCc4ED24").unwrap(),
+                        AccountId::from_str("977D8B2C924dB8a92340e9bb58e6C0d876de9D60").unwrap(),
                         get_collator_keys_from_seed("Bob"),
                     ),
                 ],
@@ -91,7 +91,7 @@ pub fn local_testnet_config() -> TestnetChainSpec {
                         get_collator_keys_from_seed("Alice"),
                     ),
                     (
-                        AccountId::from_str("0x25451A4de12dcCc2D166922fA938E900fCc4ED24").unwrap(),
+                        AccountId::from_str("977D8B2C924dB8a92340e9bb58e6C0d876de9D60").unwrap(),
                         get_collator_keys_from_seed("Bob"),
                     ),
                 ],
@@ -142,7 +142,7 @@ pub fn alpha_testnet_config() -> TestnetChainSpec {
                         get_collator_keys_from_seed("Alice"),
                     ),
                     (
-                        AccountId::from_str("0x25451A4de12dcCc2D166922fA938E900fCc4ED24").unwrap(),
+                        AccountId::from_str("977D8B2C924dB8a92340e9bb58e6C0d876de9D60").unwrap(),
                         get_collator_keys_from_seed("Bob"),
                     ),
                 ],
@@ -224,5 +224,12 @@ fn testnet_genesis(
         ethereum: ferrum_testnet_runtime::EthereumConfig {},
         dynamic_fee: Default::default(),
         base_fee: Default::default(),
+        technical_committee: ferrum_testnet_runtime::TechnicalCommitteeConfig {
+            members: vec![
+                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
+                AccountId::from_str("977D8B2C924dB8a92340e9bb58e6C0d876de9D60").unwrap(),
+            ],
+            phantom: Default::default(),
+        },
     }
 }

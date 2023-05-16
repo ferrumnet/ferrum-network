@@ -686,6 +686,25 @@ pub mod currency {
     }
 }
 
+parameter_types! {
+    pub const TechnicalMotionDuration: BlockNumber = 2 * DAYS;
+    pub const TechnicalMaxProposals: u32 = 100;
+    pub const TechnicalMaxMembers: u32 = 100;
+}
+
+pub type TechnicalCollective = pallet_collective::Instance1;
+impl pallet_collective::Config<TechnicalCollective> for Runtime {
+    type RuntimeOrigin = RuntimeOrigin;
+    type Proposal = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
+    type MotionDuration = TechnicalMotionDuration;
+    type MaxProposals = TechnicalMaxProposals;
+    type MaxMembers = TechnicalMaxMembers;
+    type DefaultVote = pallet_collective::PrimeDefaultVote;
+    type SetMembersOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = ();
+}
+
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
 where
     RuntimeCall: From<C>,
@@ -733,6 +752,7 @@ construct_runtime!(
         DynamicFee: pallet_dynamic_fee::{Pallet, Call, Storage, Config, Inherent}= 42,
         BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event}= 43,
         QuantumPortal: pallet_quantum_portal::{Pallet, Call, Storage, Event<T>/*, ValidateUnsigned*/}= 44,
+        TechnicalCommittee: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 45,
     }
 );
 

@@ -3235,6 +3235,7 @@ dependencies = [
  "pallet-balances",
  "pallet-base-fee",
  "pallet-collator-selection",
+ "pallet-collective",
  "pallet-dynamic-fee",
  "pallet-ethereum",
  "pallet-evm",

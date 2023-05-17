@@ -142,7 +142,7 @@ fn rococo_genesis(
             balances: endowed_accounts
                 .iter()
                 .cloned()
-                .map(|k| (k, 1 << 80)) // TODO : Use UNITS
+                .map(|k| (k, EXISTENTIAL_DEPOSIT * 1000))
                 .collect(),
         },
         parachain_info: ferrum_rococo_runtime::ParachainInfoConfig { parachain_id: id },

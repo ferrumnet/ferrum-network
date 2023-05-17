@@ -3046,6 +3046,7 @@ name = "ferrum-primitives"
 version = "0.1.1"
 dependencies = [
  "blake2-rfc",
+ "cumulus-primitives-core",
  "ethereum",
  "ethereum-types",
  "frame-support",
@@ -3058,6 +3059,7 @@ dependencies = [
  "scale-info",
  "serde",
  "sha3",
+ "smallvec",
  "sp-core",
  "sp-io",
  "sp-runtime",

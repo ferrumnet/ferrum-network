@@ -83,11 +83,10 @@ pallet-evm-precompile-modexp = { git = 'https://github.com/paritytech/frontier.g
 pallet-evm-precompile-sha3fips = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.39" }
 pallet-evm-precompile-simple = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v0.9.39" }
 
-
 # Local Dependencies
 ferrum-primitives = { default-features = false, path = "../../primitives" }
-pallet-quantum-portal = { default-features = false, path = "../../pallets/quantum-portal" }
 pallet-evm-precompile-balances-erc20 = { path = "../../precompiles/balances-erc20", default-features = false }
+pallet-quantum-portal = { default-features = false, path = "../../pallets/quantum-portal" }
 precompile-utils = { path = "../../precompiles/utils", default-features = false }
 
 [features]

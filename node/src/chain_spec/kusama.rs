@@ -26,7 +26,7 @@ pub fn ferrum_session_keys(keys: AuraId) -> ferrum_runtime::SessionKeys {
 pub fn kusama_local_config() -> KusamaChainSpec {
     // Give your base currency a QPN name and decimal places
     let mut properties = sc_chain_spec::Properties::new();
-    properties.insert("tokenSymbol".into(), "tQPN".into());
+    properties.insert("tokenSymbol".into(), "tqpFRM".into());
     properties.insert("tokenDecimals".into(), 18.into());
     properties.insert("ss58Format".into(), 42.into());
 
@@ -77,7 +77,7 @@ pub fn kusama_local_config() -> KusamaChainSpec {
 pub fn kusama_config() -> KusamaChainSpec {
     // Give your base currency a QPN name and decimal places
     let mut properties = sc_chain_spec::Properties::new();
-    properties.insert("tokenSymbol".into(), "QPN".into());
+    properties.insert("tokenSymbol".into(), "qpFRM".into());
     properties.insert("tokenDecimals".into(), 18.into());
     properties.insert("ss58Format".into(), 42.into());
 
@@ -141,7 +141,7 @@ fn generate_genesis(
             balances: endowed_accounts
                 .iter()
                 .cloned()
-                .map(|k| (k, 1 << 80)) // TODO : Use UNITS
+                .map(|k| (k, EXISTENTIAL_DEPOSIT * 1000))
                 .collect(),
         },
         parachain_info: ferrum_runtime::ParachainInfoConfig { parachain_id: id },

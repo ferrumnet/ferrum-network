@@ -5,15 +5,15 @@ authors = ["Ferrum Network"]
 edition = "2021"
 
 [dependencies]
-ink = { version = "4.0.0", default-features = false }
 ethabi = { git = "https://github.com/akru/ethabi", default-features = false }
 hex-literal = "0.3"
+ink = { version = "4.0.0", default-features = false }
 
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = [
-    "derive",
+	"derive",
 ] }
 scale-info = { version = "2", default-features = false, features = [
-    "derive",
+	"derive",
 ], optional = true }
 
 xvm-environment = { gith = "https://github.com/AstarNetwork/ink-xvm-sdk", default-features = false }
@@ -25,7 +25,7 @@ path = "lib.rs"
 # create a dynamic system library. For WebAssembly though it specifies
 # that the compiler should create a `*.wasm` without a start function.
 crate-type = [
-    "cdylib",
+	"cdylib",
 ]
 
 [features]

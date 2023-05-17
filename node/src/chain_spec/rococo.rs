@@ -33,9 +33,9 @@ pub fn rococo_local_config() -> RococoChainSpec {
 
     RococoChainSpec::from_genesis(
         // Name
-        "Ferrum Rococo",
+        "QPN Rococo",
         // ID
-        "rococo_ferrum",
+        "rococo_qpn",
         ChainType::Local,
         move || {
             rococo_genesis(
@@ -84,9 +84,9 @@ pub fn rococo_config() -> RococoChainSpec {
 
     RococoChainSpec::from_genesis(
         // Name
-        "Ferrum Rococo",
+        "QPN Rococo",
         // ID
-        "rococo_ferrum",
+        "rococo_qpn",
         ChainType::Live,
         move || {
             rococo_genesis(
@@ -113,7 +113,7 @@ pub fn rococo_config() -> RococoChainSpec {
         // Telemetry
         None,
         // Protocol ID
-        Some("ferrum-rococo"),
+        Some("qpn-rococo"),
         // Fork ID
         None,
         // Properties

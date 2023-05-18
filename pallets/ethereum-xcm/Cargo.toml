@@ -1,6 +1,6 @@
 [package]
 name = "pallet-ethereum-xcm"
-authors = [ "Parity Technologies <admin@parity.io>" ]
+authors = ["Parity Technologies <admin@parity.io>"]
 description = "Xcm Transact compatibility for pallet-etherum."
 edition = "2021"
 license = "Apache-2.0"

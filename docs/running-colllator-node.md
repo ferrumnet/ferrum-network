@@ -43,15 +43,14 @@ sudo chown -R $(id -u):$(id -g) /var/lib/ferrum-data
 ```bash
 docker run --network="host" -v "/var/lib/ferrum-data:/data" \
 -u $(id -u ${USER}):$(id -g ${USER}) \
-ferrum_node \
+ferrum-network \
 --base-path=/data \
---chain alpha-testnet \
+--chain ./chainspecs/ferrum-alpha-testnet \
 --name="YOUR-NODE-NAME" \
 --collator \
 --config-file-path=/var/lib/node-config.json
 -- \
---execution wasm \
---name="YOUR-NODE-NAME (Embedded Relay)"
+--chain ./chainspecs/ferrum-testnet-relaychain.json
 ```
 Once the node has started, your output should look similar to this
 
@@ -118,15 +117,14 @@ cargo build --release
 
 ```bash
 ./target/release/ferrum-network \
---base-path=/var/lib/ferrum-data \
---chain alpha-testnet \
---name="YOUR-NODE-NAME" \
+--base-path <PATH_TO_CHAIN_STORAGE> \
+--chain ./chainspecs/ferrum-alpha-testnet.json \
+--name "YOUR-NODE-NAME" \
 --collator \
--config-file-path node-config.json
--execution wasm \
+--config-file-path <PATH_TO_YOUR_NODE_CONFIG> \
+--execution=wasm \
 -- \
---execution wasm \
---name="YOUR-NODE-NAME (Embedded Relay)"
+--chain ./chainspecs/ferrum-testnet-relaychain.json
 ```
 
 Once the node has started, your output should look similar to this

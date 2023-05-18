@@ -31,6 +31,7 @@ use frame_system::{
     EnsureRoot,
 };
 use pallet_balances::NegativeImbalance;
+use pallet_ethereum::PostLogContent;
 use pallet_ethereum::{Call::transact, Transaction as EthereumTransaction};
 use pallet_evm::FeeCalculator;
 use pallet_evm::{Account as EVMAccount, EnsureAddressNever, EnsureAddressRoot, Runner};
@@ -291,7 +292,7 @@ const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 /// We allow for 0.5 of a second of compute with a 12 second average block time.
 const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
     WEIGHT_REF_TIME_PER_SECOND.saturating_div(2),
-    cumulus_primitives_core::relay_chain::v2::MAX_POV_SIZE as u64,
+    cumulus_primitives_core::relay_chain::MAX_POV_SIZE as u64,
 );
 
 /// The version information used to identify this runtime when compiled natively.
@@ -400,8 +401,6 @@ impl pallet_sudo::Config for Runtime {
 
 impl pallet_authorship::Config for Runtime {
     type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Aura>;
-    type UncleGenerations = ConstU32<0>;
-    type FilterUncle = ();
     type EventHandler = (CollatorSelection,);
 }
 
@@ -467,6 +466,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
     type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
     type ControllerOrigin = EnsureRoot<AccountId>;
     type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
+    type PriceForSiblingDelivery = ();
     type WeightInfo = ();
 }
 
@@ -581,9 +581,14 @@ impl pallet_evm::Config for Runtime {
     type FindAuthor = FindAuthorTruncated<Aura>;
 }
 
+parameter_types! {
+    pub const PostBlockAndTxnHashes: PostLogContent = PostLogContent::BlockAndTxnHashes;
+}
+
 impl pallet_ethereum::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type StateRoot = pallet_ethereum::IntermediateStateRoot<Self>;
+    type PostLogContent = PostBlockAndTxnHashes;
 }
 
 frame_support::parameter_types! {
@@ -620,12 +625,9 @@ impl pallet_base_fee::Config for Runtime {
     type DefaultElasticity = DefaultElasticity;
 }
 
-impl pallet_randomness_collective_flip::Config for Runtime {}
-
 impl pallet_quantum_portal::Config for Runtime {
     type RuntimeCall = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
-    type PalletRandomness = RandomnessCollectiveFlip;
     type Timestamp = Timestamp;
 }
 
@@ -694,14 +696,13 @@ construct_runtime!(
         } = 1,
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 2,
         ParachainInfo: parachain_info::{Pallet, Storage, Config} = 3,
-        RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage} = 4,
 
         // Monetary stuff.
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>} = 11,
 
         // Collator support. The order of these 4 are important and shall not change.
-        Authorship: pallet_authorship::{Pallet, Call, Storage} = 20,
+        Authorship: pallet_authorship::{Pallet, Storage} = 20,
         CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 21,
         Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 22,
         Aura: pallet_aura::{Pallet, Storage, Config<T>} = 23,
@@ -985,6 +986,12 @@ impl_runtime_apis! {
         ) -> pallet_transaction_payment::FeeDetails<Balance> {
             TransactionPayment::query_fee_details(uxt, len)
         }
+        fn query_weight_to_fee(weight: Weight) -> Balance {
+            TransactionPayment::weight_to_fee(weight)
+        }
+        fn query_length_to_fee(length: u32) -> Balance {
+            TransactionPayment::length_to_fee(length)
+        }
     }
 
     impl pallet_transaction_payment_rpc_runtime_api::TransactionPaymentCallApi<Block, Balance, RuntimeCall>
@@ -1001,6 +1008,12 @@ impl_runtime_apis! {
             len: u32,
         ) -> pallet_transaction_payment::FeeDetails<Balance> {
             TransactionPayment::query_call_fee_details(call, len)
+        }
+        fn query_weight_to_fee(weight: Weight) -> Balance {
+            TransactionPayment::weight_to_fee(weight)
+        }
+        fn query_length_to_fee(length: u32) -> Balance {
+            TransactionPayment::length_to_fee(length)
         }
     }
 

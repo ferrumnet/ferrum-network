@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
 use crate::chain_utils::ChainUtils;
+use ethabi_nostd::Address;
 use ethabi_nostd::{encoder, Token, H256, U256}; //vec::{Vec};
 use sp_std::prelude::*;
-use ethabi_nostd::Address;
 
 pub struct EIP712Utils;
 

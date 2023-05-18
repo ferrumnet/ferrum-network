@@ -157,7 +157,7 @@ impl<T: Config> QuantumPortalService<T> {
         &self,
         remote_chain: u64,
         local_chain: u64,
-        role: Role,
+        _role: Role,
     ) -> ChainRequestResult<()> {
         // Processes between two chains.
         // If there is an existing pending tx, for this pair, it will wait until the pending is
@@ -189,28 +189,28 @@ impl<T: Config> QuantumPortalService<T> {
 
         // // mine if role is miner
         // if role == Role::QP_MINER {
-            let mine_tx = local_client.mine(remote_client)?;
-            if mine_tx.is_some() {
-                self.save_tx(PendingTransaction::MineTransaction(
-                    local_chain,
-                    remote_chain,
-                    now,
-                    mine_tx.unwrap(),
-                ))?
-            }
+        let mine_tx = local_client.mine(remote_client)?;
+        if mine_tx.is_some() {
+            self.save_tx(PendingTransaction::MineTransaction(
+                local_chain,
+                remote_chain,
+                now,
+                mine_tx.unwrap(),
+            ))?
+        }
         //}
         // finalize if role is finalizer
         //if role == Role::QP_FINALIZER {
-            let fin_tx = local_client.finalize(remote_chain)?;
-            if fin_tx.is_some() {
-                // Save tx
-                // MineTransaction(chain, remote_chain, timestamp, tx_id)
-                self.save_tx(PendingTransaction::FinalizeTransaction(
-                    local_chain,
-                    now,
-                    fin_tx.unwrap(),
-                ))?
-            }
+        let fin_tx = local_client.finalize(remote_chain)?;
+        if fin_tx.is_some() {
+            // Save tx
+            // MineTransaction(chain, remote_chain, timestamp, tx_id)
+            self.save_tx(PendingTransaction::FinalizeTransaction(
+                local_chain,
+                now,
+                fin_tx.unwrap(),
+            ))?
+        }
         //}
 
         self.remove_lock()?;

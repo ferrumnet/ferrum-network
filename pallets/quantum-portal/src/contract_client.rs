@@ -140,7 +140,9 @@ impl ContractClient {
         Ok((address, version.to_vec(), name.to_vec()))
     }
 
-    pub fn get_authority_manager_address(&self) -> Result<(H160, Vec<u8>, Vec<u8>), ChainRequestError> {
+    pub fn get_authority_manager_address(
+        &self,
+    ) -> Result<(H160, Vec<u8>, Vec<u8>), ChainRequestError> {
         let ledger_manager_address = self.get_ledger_manager_address()?;
 
         // no cache, we fetch from the gateway contract
@@ -153,10 +155,7 @@ impl ContractClient {
         let signature = b"VERSION()";
         let res: Box<CallResponse> = self.call(signature, &[], Some(address))?;
         let version = &res.result.as_slice();
-        log::info!(
-            "Authority manager version is : {:?}",
-            version
-        );
+        log::info!("Authority manager version is : {:?}", version);
 
         let signature = b"NAME()";
         let res: Box<CallResponse> = self.call(signature, &[], Some(address))?;
@@ -242,7 +241,12 @@ impl ContractClient {
             Some(v) => v,
         };
         let gas_limit_val = match gas_limit {
-            None => self.estimate_gas(encoded_bytes_slice.as_slice(), &value, from, recipient_address)?,
+            None => self.estimate_gas(
+                encoded_bytes_slice.as_slice(),
+                &value,
+                from,
+                recipient_address,
+            )?,
             Some(v) => v,
         };
         let gas_price_val = match gas_price {
@@ -327,10 +331,7 @@ impl ContractClient {
             )
             .string(
                 "to",
-                str::from_utf8(
-                    ChainUtils::address_to_hex(recipient_address).as_slice(),
-                )
-                .unwrap(),
+                str::from_utf8(ChainUtils::address_to_hex(recipient_address).as_slice()).unwrap(),
             )
             .string(
                 "value",

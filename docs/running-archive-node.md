@@ -36,7 +36,7 @@ docker run --network="host" -v "/var/lib/ferrum-data:/data" \
 -u $(id -u ${USER}):$(id -g ${USER}) \
 ferrum_node \
 --base-path=/data \
---chain alpha-testnet \
+--chain ./chainspecs/ferrum-alpha-testnet \
 --name="YOUR-NODE-NAME" \
 --pruning archive \
 --config-file-path=/var/lib/node-config.json
@@ -110,7 +110,7 @@ cargo build --release
 ```bash
 ./target/release/ferrum-network \
 --base-path=/var/lib/ferrum-data \
---chain alpha-testnet \
+--chain ./chainspecs/ferrum-alpha-testnet \
 --name="YOUR-NODE-NAME" \
 --pruning archive \
 -config-file-path node-config.json

@@ -1,5 +1,5 @@
 #!/bin/bash
-./target/release/ferrum-network build-spec --disable-default-bootnode --chain alpha-testnet > ./chainspecs/ferrum-alpha-testnet.json
+./target/release/ferrum-network build-spec --disable-default-bootnode --chain ./chainspecs/ferrum-alpha-testnet > ./chainspecs/ferrum-alpha-testnet.json
 
 
 # Relay 1

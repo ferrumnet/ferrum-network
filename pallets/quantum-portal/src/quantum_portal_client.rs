@@ -8,7 +8,6 @@ use crate::{
     Config,
 };
 use ethabi_nostd::{decoder::decode, ParamKind, Token};
-use frame_support::traits::Randomness;
 use sp_core::{H256, U256};
 use sp_std::marker::PhantomData;
 use sp_std::prelude::*;
@@ -325,7 +324,7 @@ impl<T: Config> QuantumPortalClient<T> {
             None,
             self.signer.from,
             &self.signer,
-            recipient_address
+            recipient_address,
         )?;
         Ok(res)
     }
@@ -344,15 +343,16 @@ impl<T: Config> QuantumPortalClient<T> {
         salt: Token,
         expiry: Token,
     ) -> Result<Vec<u8>, TransactionCreationError> {
-        let (verifying_contract_address, verifying_contract_version, verifying_contract_name) = &self
-            .contract
-            .get_authority_manager_address()
-            .map_err(|_| TransactionCreationError::CannotFindContractAddress)?;
+        let (verifying_contract_address, verifying_contract_version, verifying_contract_name) =
+            &self
+                .contract
+                .get_authority_manager_address()
+                .map_err(|_| TransactionCreationError::CannotFindContractAddress)?;
         // Generate the domain seperator hash, the hash is generated from the given arguments
         let domain_seperator_hash = EIP712Utils::generate_eip_712_domain_seperator_hash(
-            verifying_contract_name, // ContractName
-            verifying_contract_version, // ContractVersion
-            self.contract.chain_id,                                   // ChainId
+            verifying_contract_name,     // ContractName
+            verifying_contract_version,  // ContractVersion
+            self.contract.chain_id,      // ChainId
             *verifying_contract_address, // VerifyingAddress
         );
         log::info!("domain_seperator_hash {:?}", domain_seperator_hash);
@@ -438,13 +438,10 @@ impl<T: Config> QuantumPortalClient<T> {
 
         // set timestamp 1hr from now
         let current_timestamp = source_block.timestamp;
-        let expiry_buffer = core::time::Duration::from_secs(259200u64);
+        let expiry_buffer = core::time::Duration::from_secs(3600u64);
         let expiry_time = current_timestamp.saturating_add(expiry_buffer.as_secs());
         let expiry = Token::Uint(U256::from(expiry_time));
-
-        // set a random salt
-        let (random_hash, _) = T::PalletRandomness::random_seed();
-        let salt = Token::FixedBytes(Vec::from(random_hash.as_ref()));
+        let salt = Token::FixedBytes(vec![0u8, 0u8]);
 
         let tx_vec: Vec<Token> = txs
             .iter()
@@ -494,7 +491,7 @@ impl<T: Config> QuantumPortalClient<T> {
             None,
             self.signer.from,
             &self.signer,
-            recipient_address
+            recipient_address,
         )?;
         Ok(res)
     }
@@ -512,17 +509,18 @@ impl<T: Config> QuantumPortalClient<T> {
         salt: Token,
         expiry: Token,
     ) -> Result<Vec<u8>, TransactionCreationError> {
-        let (verifying_contract_address, verifying_contract_version, verifying_contract_name) = &self
-            .contract
-            .get_miner_manager_address()
-            .map_err(|_| TransactionCreationError::CannotFindContractAddress)?;
+        let (verifying_contract_address, _verifying_contract_version, _verifying_contract_name) =
+            &self
+                .contract
+                .get_miner_manager_address()
+                .map_err(|_| TransactionCreationError::CannotFindContractAddress)?;
 
         // Generate the domain seperator hash, the hash is generated from the given arguments
         let domain_seperator_hash = EIP712Utils::generate_eip_712_domain_seperator_hash(
             b"FERRUM_QUANTUM_PORTAL_MINER_MGR", // ContractName
-            b"000.010", // ContractVersion
-            self.contract.chain_id,   // ChainId
-            *verifying_contract_address, // VerifyingAddress
+            b"000.010",                         // ContractVersion
+            self.contract.chain_id,             // ChainId
+            *verifying_contract_address,        // VerifyingAddress
         );
         log::info!("domain_seperator_hash {:?}", domain_seperator_hash);
 
@@ -633,7 +631,8 @@ impl<T: Config> QuantumPortalClient<T> {
             return Err(ChainRequestError::RemoteBlockAlreadyMined);
         }
         log::info!("Getting source block?");
-        let source_block = remote_client.local_block_by_nonce(local_chain, last_mined_block.nonce.saturating_add(1))?;
+        let source_block = remote_client
+            .local_block_by_nonce(local_chain, last_mined_block.nonce.saturating_add(1))?;
         let default_qp_transaction = QpTransaction::default();
         log::info!(
             "Source block is GOT\n{:?}\n{:?}",

@@ -30,7 +30,7 @@ pub use ethereum::{
     AccessListItem, BlockV2 as Block, LegacyTransactionMessage, Log, ReceiptV3 as Receipt,
     TransactionAction, TransactionV2 as Transaction,
 };
-pub use ferrum_primitives::xcm::{EthereumXcmTransaction, XcmToEthereum};
+pub use ferrum_primitives::xcm_primitives::{EthereumXcmTransaction, XcmToEthereum};
 pub use fp_rpc::TransactionStatus;
 
 /// Ensure that a proxy between `delegator` and `delegatee` exists in order to deny or grant

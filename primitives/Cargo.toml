@@ -19,8 +19,10 @@ libsecp256k1 = { version = "0.7", default-features = false, features = ["hmac"] 
 log = "0.4"
 serde = { version = "1.0.101", optional = true, default-features = false, features = ["derive"] }
 sha3 = { version = "0.10", default-features = false }
+smallvec = "1.10.0"
 
 # Substrate
+cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.39", default-features = false }
 frame-support = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.39", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.39", default-features = false }
 parity-scale-codec = { version = "3.0.0", default-features = false, features = ["derive"] }
@@ -49,6 +51,7 @@ std = [
 	"sp-runtime/std",
 	"sp-std/std",
 	"frame-system/std",
+	"cumulus-primitives-core/std",
 ]
 
 full_crypto = [

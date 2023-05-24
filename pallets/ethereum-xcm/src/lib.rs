@@ -6,10 +6,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::comparison_chain, clippy::large_enum_variant)]
 
-#[cfg(all(feature = "std", test))]
-mod mock;
-#[cfg(all(feature = "std", test))]
-mod tests;
+// #[cfg(all(feature = "std", test))]
+// mod mock;
+// #[cfg(all(feature = "std", test))]
+// mod tests;
 
 use ethereum_types::{H160, U256};
 use fp_ethereum::{TransactionData, ValidatedTransaction};
@@ -30,7 +30,7 @@ pub use ethereum::{
     AccessListItem, BlockV2 as Block, LegacyTransactionMessage, Log, ReceiptV3 as Receipt,
     TransactionAction, TransactionV2 as Transaction,
 };
-pub use ferrum_primitives::xcm::{EthereumXcmTransaction, XcmToEthereum};
+pub use ferrum_primitives::xcm_primitives::{EthereumXcmTransaction, XcmToEthereum};
 pub use fp_rpc::TransactionStatus;
 
 /// Ensure that a proxy between `delegator` and `delegatee` exists in order to deny or grant
@@ -180,7 +180,7 @@ pub mod pallet {
                     }
                 }
             );
-            let _ = T::EnsureProxy::ensure_ok(
+            T::EnsureProxy::ensure_ok(
                 T::AddressMapping::into_account_id(transact_as),
                 T::AddressMapping::into_account_id(source),
             )

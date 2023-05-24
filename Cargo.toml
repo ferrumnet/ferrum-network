@@ -5,6 +5,6 @@ panic = 'unwind'
 members = [
 	'node',
 	'pallets/*',
-	'runtime',
+	'runtime/*',
 	'precompiles/*',
 ]

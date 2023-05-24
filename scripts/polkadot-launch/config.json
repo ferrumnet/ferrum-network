@@ -28,7 +28,7 @@
 					"port": 31200,
 					"basePath": "./chain/alice",
 					"flags": [
-						"--config-file-path=alice_node_config.json",
+						"--config-file-path=./example_config/alice_node_config.json",
 						"--rpc-cors=all",
 						"--rpc-external",
 						"--ws-external",

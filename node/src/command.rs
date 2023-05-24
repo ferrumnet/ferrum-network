@@ -1,10 +1,10 @@
 use std::net::SocketAddr;
 
+use crate::primitives::Block;
 use codec::Encode;
 use cumulus_client_cli::generate_genesis_block;
 use cumulus_primitives_core::ParaId;
-use ferrum_runtime::Block;
-use frame_benchmarking_cli::{BenchmarkCmd, SUBSTRATE_REFERENCE_HARDWARE};
+
 use log::{info, warn};
 use sc_cli::{
     ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams,
@@ -14,32 +14,79 @@ use sc_service::config::{BasePath, PrometheusConfig};
 use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
 // Frontier
+use crate::service::{start_kusama_node, start_rococo_node, start_testnet_node};
+use log::error;
 use sc_service::PartialComponents;
 
 use crate::{
     chain_spec,
     cli::{Cli, RelayChainCli, Subcommand},
-    service::{
-        build_import_queue, ferrum, ferrum::Executor as ParachainNativeExecutor, new_partial,
-    },
+    service::{build_import_queue, ferrum_testnet, kusama, new_partial, rococo},
 };
+
+trait IdentifyChain {
+    fn is_kusama(&self) -> bool;
+    fn is_dev(&self) -> bool;
+    fn is_rococo(&self) -> bool;
+}
+
+impl IdentifyChain for dyn sc_service::ChainSpec {
+    fn is_kusama(&self) -> bool {
+        self.id().starts_with("quantum")
+    }
+    fn is_dev(&self) -> bool {
+        self.id().starts_with("dev") || self.id().starts_with("testnet")
+    }
+    fn is_rococo(&self) -> bool {
+        self.id().starts_with("rococo")
+    }
+}
+
+impl<T: sc_service::ChainSpec + 'static> IdentifyChain for T {
+    fn is_kusama(&self) -> bool {
+        <dyn sc_service::ChainSpec>::is_kusama(self)
+    }
+    fn is_dev(&self) -> bool {
+        <dyn sc_service::ChainSpec>::is_dev(self)
+    }
+    fn is_rococo(&self) -> bool {
+        <dyn sc_service::ChainSpec>::is_rococo(self)
+    }
+}
 
 fn load_spec(id: &str) -> std::result::Result<Box<dyn ChainSpec>, String> {
     Ok(match id {
-        "dev" => Box::new(chain_spec::development_config()),
-        "template-rococo" => Box::new(chain_spec::local_testnet_config()),
-        "alpha-testnet" => Box::new(chain_spec::alpha_testnet_config()),
-        "rococo" => Box::new(chain_spec::rococo_config()),
-        "" | "local" => Box::new(chain_spec::local_testnet_config()),
-        path => Box::new(chain_spec::ChainSpec::from_json_file(
-            std::path::PathBuf::from(path),
-        )?),
+        // testnet
+        "dev" => Box::new(chain_spec::testnet::development_config()),
+        "testnet-alpha" => Box::new(chain_spec::testnet::alpha_testnet_config()),
+
+        // rococo
+        "rococo-local" => Box::new(chain_spec::rococo::rococo_local_config()),
+        "rococo" => Box::new(chain_spec::rococo::rococo_config()),
+
+        // kusama
+        "qpn-local" => Box::new(chain_spec::kusama::kusama_local_config()),
+        "qpn" => Box::new(chain_spec::kusama::kusama_config()),
+
+        "" | "local" => Box::new(chain_spec::testnet::local_testnet_config()),
+        path => {
+            let chain_spec = chain_spec::TestnetChainSpec::from_json_file(path.into())?;
+            if chain_spec.is_kusama() {
+                Box::new(chain_spec::KusamaChainSpec::from_json_file(path.into())?)
+            } else if chain_spec.is_rococo() {
+                Box::new(chain_spec::RococoChainSpec::from_json_file(path.into())?)
+            } else if chain_spec.is_dev() {
+                Box::new(chain_spec)
+            } else {
+                Err("Unclear which chain spec to base this chain on")?
+            }
+        }
     })
 }
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
-        "Ferrum Parachain".into()
+        "Quantum Portal Parachain".into()
     }
 
     fn impl_version() -> String {
@@ -48,7 +95,7 @@ impl SubstrateCli for Cli {
 
     fn description() -> String {
         format!(
-            "Ferrum Parachain\n\nThe command-line arguments provided first will be \
+            "Quantum Portal Parachain\n\nThe command-line arguments provided first will be \
 		passed to the parachain node, while the arguments provided after -- will be passed \
 		to the relay chain node.\n\n\
 		{} <parachain-args> -- <relay-chain-args>",
@@ -61,7 +108,7 @@ impl SubstrateCli for Cli {
     }
 
     fn support_url() -> String {
-        "https://github.com/paritytech/cumulus/issues/new".into()
+        "https://github.com/ferrumnet/ferrum-network/issues/new".into()
     }
 
     fn copyright_start_year() -> i32 {
@@ -73,13 +120,13 @@ impl SubstrateCli for Cli {
     }
 
     fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-        &ferrum_runtime::VERSION
+        &ferrum_testnet_runtime::VERSION
     }
 }
 
 impl SubstrateCli for RelayChainCli {
     fn impl_name() -> String {
-        "Ferrum Parachain".into()
+        "Quantum Portal Parachain".into()
     }
 
     fn impl_version() -> String {
@@ -88,7 +135,7 @@ impl SubstrateCli for RelayChainCli {
 
     fn description() -> String {
         format!(
-            "Ferrum Parachain\n\nThe command-line arguments provided first will be \
+            "Quantum Portal Parachain\n\nThe command-line arguments provided first will be \
 		passed to the parachain node, while the arguments provided after -- will be passed \
 		to the relay chain node.\n\n\
 		{} <parachain-args> -- <relay-chain-args>",
@@ -101,7 +148,7 @@ impl SubstrateCli for RelayChainCli {
     }
 
     fn support_url() -> String {
-        "https://github.com/paritytech/cumulus/issues/new".into()
+        "https://github.com/ferrumnet/ferrum-network/issues/new".into()
     }
 
     fn copyright_start_year() -> i32 {
@@ -121,7 +168,8 @@ macro_rules! construct_async_run {
 	(|$components:ident, $cli:ident, $cmd:ident, $config:ident| $( $code:tt )* ) => {{
 		let runner = $cli.create_runner($cmd)?;
 		runner.async_run(|$config| {
-			let $components = new_partial::<ferrum::RuntimeApi, ferrum::Executor, _>(&$config, build_import_queue, &$cli)?;
+			let $components = new_partial::<ferrum::RuntimeApi, ferrum::Executor, _>(&$config, build_import_queue,
+&cli &$cli)?;
 			let task_manager = $components.task_manager;
 			{ $( $code )* }.map(|v| (v, task_manager))
 		})
@@ -139,29 +187,240 @@ pub fn run() -> Result<()> {
             runner.sync_run(|config| cmd.run(config.chain_spec, config.network))
         }
         Some(Subcommand::CheckBlock(cmd)) => {
-            construct_async_run!(|components, cli, cmd, config| {
-                Ok(cmd.run(components.client, components.import_queue))
-            })
+            let runner = cli.create_runner(cmd)?;
+            if runner.config().chain_spec.is_kusama() {
+                runner.async_run(|config| {
+                    let PartialComponents {
+                        client,
+                        task_manager,
+                        import_queue,
+                        ..
+                    } = new_partial::<kusama::RuntimeApi, kusama::Executor, _>(
+                        &config,
+                        build_import_queue,
+                        &cli,
+                    )?;
+                    Ok((cmd.run(client, import_queue), task_manager))
+                })
+            } else if runner.config().chain_spec.is_rococo() {
+                runner.async_run(|config| {
+                    let PartialComponents {
+                        client,
+                        task_manager,
+                        import_queue,
+                        ..
+                    } = new_partial::<rococo::RuntimeApi, rococo::Executor, _>(
+                        &config,
+                        build_import_queue,
+                        &cli,
+                    )?;
+                    Ok((cmd.run(client, import_queue), task_manager))
+                })
+            } else {
+                runner.async_run(|config| {
+                    let PartialComponents {
+                        client,
+                        task_manager,
+                        import_queue,
+                        ..
+                    } = new_partial::<ferrum_testnet::RuntimeApi, ferrum_testnet::Executor, _>(
+                        &config,
+                        build_import_queue,
+                        &cli,
+                    )?;
+                    Ok((cmd.run(client, import_queue), task_manager))
+                })
+            }
         }
         Some(Subcommand::ExportBlocks(cmd)) => {
-            construct_async_run!(|components, cli, cmd, config| {
-                Ok(cmd.run(components.client, config.database))
-            })
+            let runner = cli.create_runner(cmd)?;
+            if runner.config().chain_spec.is_kusama() {
+                runner.async_run(|config| {
+                    let PartialComponents {
+                        client,
+                        task_manager,
+                        ..
+                    } = new_partial::<kusama::RuntimeApi, kusama::Executor, _>(
+                        &config,
+                        build_import_queue,
+                        &cli,
+                    )?;
+                    Ok((cmd.run(client, config.database), task_manager))
+                })
+            } else if runner.config().chain_spec.is_rococo() {
+                runner.async_run(|config| {
+                    let PartialComponents {
+                        client,
+                        task_manager,
+                        ..
+                    } = new_partial::<rococo::RuntimeApi, rococo::Executor, _>(
+                        &config,
+                        build_import_queue,
+                        &cli,
+                    )?;
+                    Ok((cmd.run(client, config.database), task_manager))
+                })
+            } else {
+                runner.async_run(|config| {
+                    let PartialComponents {
+                        client,
+                        task_manager,
+                        ..
+                    } = new_partial::<ferrum_testnet::RuntimeApi, ferrum_testnet::Executor, _>(
+                        &config,
+                        build_import_queue,
+                        &cli,
+                    )?;
+                    Ok((cmd.run(client, config.database), task_manager))
+                })
+            }
         }
         Some(Subcommand::ExportState(cmd)) => {
-            construct_async_run!(|components, cli, cmd, config| {
-                Ok(cmd.run(components.client, config.chain_spec))
-            })
+            let runner = cli.create_runner(cmd)?;
+            if runner.config().chain_spec.is_kusama() {
+                runner.async_run(|config| {
+                    let PartialComponents {
+                        client,
+                        task_manager,
+                        ..
+                    } = new_partial::<kusama::RuntimeApi, kusama::Executor, _>(
+                        &config,
+                        build_import_queue,
+                        &cli,
+                    )?;
+                    Ok((cmd.run(client, config.chain_spec), task_manager))
+                })
+            } else if runner.config().chain_spec.is_rococo() {
+                runner.async_run(|config| {
+                    let PartialComponents {
+                        client,
+                        task_manager,
+                        ..
+                    } = new_partial::<rococo::RuntimeApi, rococo::Executor, _>(
+                        &config,
+                        build_import_queue,
+                        &cli,
+                    )?;
+                    Ok((cmd.run(client, config.chain_spec), task_manager))
+                })
+            } else {
+                runner.async_run(|config| {
+                    let PartialComponents {
+                        client,
+                        task_manager,
+                        ..
+                    } = new_partial::<ferrum_testnet::RuntimeApi, ferrum_testnet::Executor, _>(
+                        &config,
+                        build_import_queue,
+                        &cli,
+                    )?;
+                    Ok((cmd.run(client, config.chain_spec), task_manager))
+                })
+            }
         }
         Some(Subcommand::ImportBlocks(cmd)) => {
-            construct_async_run!(|components, cli, cmd, config| {
-                Ok(cmd.run(components.client, components.import_queue))
-            })
+            let runner = cli.create_runner(cmd)?;
+            if runner.config().chain_spec.is_kusama() {
+                runner.async_run(|config| {
+                    let PartialComponents {
+                        client,
+                        task_manager,
+                        import_queue,
+                        ..
+                    } = new_partial::<kusama::RuntimeApi, kusama::Executor, _>(
+                        &config,
+                        build_import_queue,
+                        &cli,
+                    )?;
+                    Ok((cmd.run(client, import_queue), task_manager))
+                })
+            } else if runner.config().chain_spec.is_rococo() {
+                runner.async_run(|config| {
+                    let PartialComponents {
+                        client,
+                        task_manager,
+                        import_queue,
+                        ..
+                    } = new_partial::<rococo::RuntimeApi, rococo::Executor, _>(
+                        &config,
+                        build_import_queue,
+                        &cli,
+                    )?;
+                    Ok((cmd.run(client, import_queue), task_manager))
+                })
+            } else {
+                runner.async_run(|config| {
+                    let PartialComponents {
+                        client,
+                        task_manager,
+                        import_queue,
+                        ..
+                    } = new_partial::<ferrum_testnet::RuntimeApi, ferrum_testnet::Executor, _>(
+                        &config,
+                        build_import_queue,
+                        &cli,
+                    )?;
+                    Ok((cmd.run(client, import_queue), task_manager))
+                })
+            }
         }
         Some(Subcommand::Revert(cmd)) => {
-            construct_async_run!(|components, cli, cmd, config| {
-                Ok(cmd.run(components.client, components.backend, None))
-            })
+            let runner = cli.create_runner(cmd)?;
+            if runner.config().chain_spec.is_kusama() {
+                runner.async_run(|config| {
+                    let PartialComponents {
+                        client,
+                        task_manager,
+                        backend,
+                        ..
+                    } = new_partial::<kusama::RuntimeApi, kusama::Executor, _>(
+                        &config,
+                        build_import_queue,
+                        &cli,
+                    )?;
+                    let aux_revert = Box::new(|client, _, blocks| {
+                        sc_finality_grandpa::revert(client, blocks)?;
+                        Ok(())
+                    });
+                    Ok((cmd.run(client, backend, Some(aux_revert)), task_manager))
+                })
+            } else if runner.config().chain_spec.is_rococo() {
+                runner.async_run(|config| {
+                    let PartialComponents {
+                        client,
+                        task_manager,
+                        backend,
+                        ..
+                    } = new_partial::<rococo::RuntimeApi, rococo::Executor, _>(
+                        &config,
+                        build_import_queue,
+                        &cli,
+                    )?;
+                    let aux_revert = Box::new(|client, _, blocks| {
+                        sc_finality_grandpa::revert(client, blocks)?;
+                        Ok(())
+                    });
+                    Ok((cmd.run(client, backend, Some(aux_revert)), task_manager))
+                })
+            } else {
+                runner.async_run(|config| {
+                    let PartialComponents {
+                        client,
+                        task_manager,
+                        backend,
+                        ..
+                    } = new_partial::<ferrum_testnet::RuntimeApi, ferrum_testnet::Executor, _>(
+                        &config,
+                        build_import_queue,
+                        &cli,
+                    )?;
+                    let aux_revert = Box::new(|client, _, blocks| {
+                        sc_finality_grandpa::revert(client, blocks)?;
+                        Ok(())
+                    });
+                    Ok((cmd.run(client, backend, Some(aux_revert)), task_manager))
+                })
+            }
         }
         Some(Subcommand::PurgeChain(cmd)) => {
             let runner = cli.create_runner(cmd)?;
@@ -199,51 +458,246 @@ pub fn run() -> Result<()> {
                 cmd.run(&*spec)
             })
         }
+        #[cfg(not(feature = "frame-benchmarking-cli"))]
+        Some(Subcommand::Benchmark(_cmd)) => todo!(),
+        #[cfg(feature = "frame-benchmarking-cli")]
         Some(Subcommand::Benchmark(cmd)) => {
+            use crate::benchmarking::*;
+            use sp_keyring::Sr25519Keyring;
+
             let runner = cli.create_runner(cmd)?;
+            let chain_spec = &runner.config().chain_spec;
+
             // Switch on the concrete benchmark sub-command-
             match cmd {
                 BenchmarkCmd::Pallet(cmd) => {
-                    if cfg!(feature = "runtime-benchmarks") {
-                        runner.sync_run(|config| cmd.run::<Block, ParachainNativeExecutor>(config))
+                    if chain_spec.is_kusama() {
+                        runner.sync_run(|config| {
+                            cmd.run::<ferrum_runtime::Block, kusama::Executor>(config)
+                        })
+                    } else if chain_spec.is_rococo() {
+                        runner.sync_run(|config| {
+                            cmd.run::<ferrum_rococo_runtime::Block, rococo::Executor>(config)
+                        })
                     } else {
-                        Err("Benchmarking wasn't enabled when building the node. \
-					You can enable it with `--features runtime-benchmarks`."
-                            .into())
+                        runner.sync_run(|config| {
+                            cmd.run::<ferrum_testnet_runtime::Block, ferrum_testnet::Executor>(
+                                config,
+                            )
+                        })
                     }
                 }
-                BenchmarkCmd::Block(cmd) => runner.sync_run(|config| {
-                    let partials = new_partial::<ferrum::RuntimeApi, ferrum::Executor, _>(
-                        &config,
-                        build_import_queue,
-                        &cli,
-                    )?;
-                    cmd.run(partials.client)
-                }),
-                #[cfg(not(feature = "runtime-benchmarks"))]
-                BenchmarkCmd::Storage(_) => Err(sc_cli::Error::Input(
-                    "Compile with --features=runtime-benchmarks \
-						to enable storage benchmarks."
-                        .into(),
-                )),
-                #[cfg(feature = "runtime-benchmarks")]
-                BenchmarkCmd::Storage(cmd) => runner.sync_run(|config| {
-                    let partials = new_partial::<ferrum::RuntimeApi, ferrum::Executor, _>(
-                        &config,
-                        build_import_queue,
-                        &cli,
-                    )?;
-                    let db = partials.backend.expose_db();
-                    let storage = partials.backend.expose_storage();
-                    cmd.run(config, partials.client.clone(), db, storage)
-                }),
+                BenchmarkCmd::Block(cmd) => {
+                    if chain_spec.is_kusama() {
+                        runner.sync_run(|config| {
+                            let params = new_partial::<kusama::RuntimeApi, kusama::Executor, _>(
+                                &config,
+                                build_import_queue,
+                                &cli,
+                            )?;
+                            cmd.run(params.client)
+                        })
+                    } else if chain_spec.is_rococo() {
+                        runner.sync_run(|config| {
+                            let params = new_partial::<rococo::RuntimeApi, rococo::Executor, _>(
+                                &config,
+                                build_import_queue,
+                                &cli,
+                            )?;
+                            cmd.run(params.client)
+                        })
+                    } else {
+                        runner.sync_run(|config| {
+                            let params = new_partial::<
+                                ferrum_testnet::RuntimeApi,
+                                ferrum_testnet::Executor,
+                                _,
+                            >(
+                                &config, build_import_queue, &cli
+                            )?;
+                            cmd.run(params.client)
+                        })
+                    }
+                }
+                BenchmarkCmd::Storage(cmd) => {
+                    if chain_spec.is_kusama() {
+                        runner.sync_run(|config| {
+                            let params = new_partial::<kusama::RuntimeApi, kusama::Executor, _>(
+                                &config,
+                                build_import_queue,
+                                &cli,
+                            )?;
+                            let db = params.backend.expose_db();
+                            let storage = params.backend.expose_storage();
+
+                            cmd.run(config, params.client, db, storage)
+                        })
+                    } else if chain_spec.is_rococo() {
+                        runner.sync_run(|config| {
+                            let params = new_partial::<rococo::RuntimeApi, rococo::Executor, _>(
+                                &config,
+                                build_import_queue,
+                                &cli,
+                            )?;
+                            let db = params.backend.expose_db();
+                            let storage = params.backend.expose_storage();
+
+                            cmd.run(config, params.client, db, storage)
+                        })
+                    } else {
+                        runner.sync_run(|config| {
+                            let params = new_partial::<
+                                ferrum_testnet::RuntimeApi,
+                                ferrum_testnet::Executor,
+                                _,
+                            >(
+                                &config, build_import_queue, &cli
+                            )?;
+                            let db = params.backend.expose_db();
+                            let storage = params.backend.expose_storage();
+
+                            cmd.run(config, params.client, db, storage)
+                        })
+                    }
+                }
+                BenchmarkCmd::Overhead(cmd) => {
+                    if chain_spec.is_kusama() {
+                        runner.sync_run(|config| {
+                            let params = new_partial::<kusama::RuntimeApi, kusama::Executor, _>(
+                                &config,
+                                build_import_queue,
+                                &cli,
+                            )?;
+                            let ext_builder = RemarkBuilder::new(params.client.clone());
+                            let inherent_data = para_benchmark_inherent_data()
+                                .map_err(|e| format!("generating inherent data: {:?}", e))?;
+
+                            cmd.run(
+                                config,
+                                params.client,
+                                inherent_data,
+                                Vec::new(),
+                                &ext_builder,
+                            )
+                        })
+                    } else if chain_spec.is_rococo() {
+                        runner.sync_run(|config| {
+                            let params = new_partial::<rococo::RuntimeApi, rococo::Executor, _>(
+                                &config,
+                                build_import_queue,
+                                &cli,
+                            )?;
+
+                            let ext_builder = RemarkBuilder::new(params.client.clone());
+                            let inherent_data = para_benchmark_inherent_data()
+                                .map_err(|e| format!("generating inherent data: {:?}", e))?;
+
+                            cmd.run(
+                                config,
+                                params.client,
+                                inherent_data,
+                                Vec::new(),
+                                &ext_builder,
+                            )
+                        })
+                    } else {
+                        runner.sync_run(|config| {
+                            let params = new_partial::<
+                                ferrum_testnet::RuntimeApi,
+                                ferrum_testnet::Executor,
+                                _,
+                            >(
+                                &config, build_import_queue, &cli
+                            )?;
+
+                            let ext_builder = RemarkBuilder::new(params.client.clone());
+                            let inherent_data = para_benchmark_inherent_data()
+                                .map_err(|e| format!("generating inherent data: {:?}", e))?;
+
+                            cmd.run(
+                                config,
+                                params.client,
+                                inherent_data,
+                                Vec::new(),
+                                &ext_builder,
+                            )
+                        })
+                    }
+                }
+                BenchmarkCmd::Extrinsic(cmd) => {
+                    if chain_spec.is_kusama() {
+                        runner.sync_run(|config| {
+                            let params = new_partial::<kusama::RuntimeApi, kusama::Executor, _>(
+                                &config,
+                                build_import_queue,
+                                &cli,
+                            )?;
+                            let remark_builder = RemarkBuilder::new(params.client.clone());
+                            let tka_builder = TransferKeepAliveBuilder::new(
+                                params.client.clone(),
+                                Sr25519Keyring::Alice.to_account_id(),
+                                params.client.existential_deposit(),
+                            );
+                            let ext_factory = ExtrinsicFactory(vec![
+                                Box::new(remark_builder),
+                                Box::new(tka_builder),
+                            ]);
+                            let inherent_data = para_benchmark_inherent_data()
+                                .map_err(|e| format!("generating inherent data: {:?}", e))?;
+
+                            cmd.run(params.client, inherent_data, Vec::new(), &ext_factory)
+                        })
+                    } else if chain_spec.is_rococo() {
+                        runner.sync_run(|config| {
+                            let params = new_partial::<rococo::RuntimeApi, rococo::Executor, _>(
+                                &config,
+                                build_import_queue,
+                                &cli,
+                            )?;
+                            let remark_builder = RemarkBuilder::new(params.client.clone());
+                            let tka_builder = TransferKeepAliveBuilder::new(
+                                params.client.clone(),
+                                Sr25519Keyring::Alice.to_account_id(),
+                                params.client.existential_deposit(),
+                            );
+                            let ext_factory = ExtrinsicFactory(vec![
+                                Box::new(remark_builder),
+                                Box::new(tka_builder),
+                            ]);
+                            let inherent_data = para_benchmark_inherent_data()
+                                .map_err(|e| format!("generating inherent data: {:?}", e))?;
+
+                            cmd.run(params.client, inherent_data, Vec::new(), &ext_factory)
+                        })
+                    } else {
+                        runner.sync_run(|config| {
+                            let params = new_partial::<
+                                ferrum_testnet::RuntimeApi,
+                                ferrum_testnet::Executor,
+                                _,
+                            >(
+                                &config, build_import_queue, &cli
+                            )?;
+                            let remark_builder = RemarkBuilder::new(params.client.clone());
+                            let tka_builder = TransferKeepAliveBuilder::new(
+                                params.client.clone(),
+                                Sr25519Keyring::Alice.to_account_id(),
+                                params.client.existential_deposit(),
+                            );
+                            let ext_factory = ExtrinsicFactory(vec![
+                                Box::new(remark_builder),
+                                Box::new(tka_builder),
+                            ]);
+                            let inherent_data = para_benchmark_inherent_data()
+                                .map_err(|e| format!("generating inherent data: {:?}", e))?;
+
+                            cmd.run(params.client, inherent_data, Vec::new(), &ext_factory)
+                        })
+                    }
+                }
                 BenchmarkCmd::Machine(cmd) => {
                     runner.sync_run(|config| cmd.run(&config, SUBSTRATE_REFERENCE_HARDWARE.clone()))
                 }
-                // NOTE: this allows the Client to leniently implement
-                // new benchmark commands without requiring a companion MR.
-                #[allow(unreachable_patterns)]
-                _ => Err("Benchmarking sub-command unsupported".into()),
             }
         }
         #[cfg(feature = "try-runtime")]
@@ -324,17 +778,44 @@ pub fn run() -> Result<()> {
 					warn!("Detected relay chain node arguments together with --relay-chain-rpc-url. This command starts a minimal Polkadot node that only uses a network-related subset of all relay chain CLI options.");
 				}
 
-				crate::service::start_parachain_node(
-					config,
-					polkadot_config,
-					collator_options,
-					id,
-					true,
-                    &cli
-				)
-				.await
-				.map(|r| r.0)
-				.map_err(Into::into)
+				if config.chain_spec.is_kusama() {
+                    start_kusama_node(
+                        config,
+                        polkadot_config,
+                        collator_options,
+                        id,
+                        true,
+                        &cli
+                    )
+                        .await
+                        .map(|r| r.0)
+                        .map_err(Into::into)
+                } else if config.chain_spec.is_rococo() {
+                    start_rococo_node( config,
+                        polkadot_config,
+                        collator_options,
+                        id,
+                        true,
+                        &cli
+                    )
+                        .await
+                        .map(|r| r.0)
+                        .map_err(Into::into)
+                } else if config.chain_spec.is_dev() {
+                    start_testnet_node( config,
+                        polkadot_config,
+                        collator_options,
+                        id,
+                        true,
+                    &cli)
+                        .await
+                        .map(|r| r.0)
+                        .map_err(Into::into)
+                } else {
+                    let err_msg = "Unrecognized chain spec - name should start with one of: kusama or rococo or testnet";
+                    error!("{}", err_msg);
+                    Err(err_msg.into())
+                }
 			})
         }
     }

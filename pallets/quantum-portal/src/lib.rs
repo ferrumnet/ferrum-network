@@ -25,7 +25,6 @@ pub mod pallet {
     use core::convert::TryInto;
     use ferrum_primitives::{OFFCHAIN_SIGNER_CONFIG_KEY, OFFCHAIN_SIGNER_CONFIG_PREFIX};
     use frame_support::pallet_prelude::*;
-    use frame_support::traits::Randomness;
     use frame_support::traits::UnixTime;
     use frame_system::{
         offchain::{SignedPayload, SigningTypes},
@@ -80,8 +79,6 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// The overarching dispatch call type.
         type RuntimeCall: From<frame_system::Call<Self>>;
-        /// Randomeness generator for the runtime
-        type PalletRandomness: Randomness<Self::Hash, Self::BlockNumber>;
         /// Onchain timestamp for the runtime
         type Timestamp: UnixTime;
     }

@@ -12,9 +12,10 @@ use cumulus_client_service::{
 use sp_application_crypto::sp_core::offchain::{OffchainStorage, STORAGE_PREFIX};
 // Local Runtime Types
 use codec::Encode;
-use futures::{future, StreamExt};
+use futures::StreamExt;
 // Substrate
 use crate::config::read_config_from_file;
+use crate::primitives::{AccountId, Balance, Block, Hash};
 use cumulus_primitives_core::relay_chain::Nonce;
 use cumulus_primitives_core::ParaId;
 use cumulus_relay_chain_inprocess_interface::build_inprocess_relay_chain;
@@ -23,9 +24,8 @@ use cumulus_relay_chain_minimal_node::build_minimal_relay_chain_node;
 use fc_consensus::FrontierBlockImport;
 use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
 use ferrum_primitives::OFFCHAIN_SIGNER_CONFIG_KEY;
-use ferrum_runtime::{opaque::Block, AccountId, Balance, Hash};
 use polkadot_service::CollatorPair;
-use sc_cli::SubstrateCli;
+
 use sc_client_api::Backend;
 use sc_client_api::BlockchainEvents;
 use sc_consensus::ImportQueue;
@@ -40,8 +40,8 @@ use sp_runtime::traits::BlakeTwo256;
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 use substrate_prometheus_endpoint::Registry;
 
-/// Ferrum network runtime executor.
-pub mod ferrum {
+/// Ferrum kusama runtime executor.
+pub mod kusama {
     pub use ferrum_runtime::RuntimeApi;
 
     /// Shibuya runtime executor.
@@ -68,6 +68,70 @@ pub mod ferrum {
 
         fn native_version() -> sc_executor::NativeVersion {
             ferrum_runtime::native_version()
+        }
+    }
+}
+
+/// Ferrum testnet runtime executor.
+pub mod rococo {
+    pub use ferrum_rococo_runtime::RuntimeApi;
+
+    /// Shibuya runtime executor.
+    pub struct Executor;
+    impl sc_executor::NativeExecutionDispatch for Executor {
+        #[cfg(all(not(feature = "evm-tracing"), not(feature = "runtime-benchmarks")))]
+        type ExtendHostFunctions = ();
+
+        #[cfg(all(not(feature = "runtime-benchmarks"), feature = "evm-tracing"))]
+        type ExtendHostFunctions = moonbeam_primitives_ext::moonbeam_ext::HostFunctions;
+
+        #[cfg(all(not(feature = "evm-tracing"), feature = "runtime-benchmarks"))]
+        type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
+
+        #[cfg(all(feature = "runtime-benchmarks", feature = "evm-tracing"))]
+        type ExtendHostFunctions = (
+            frame_benchmarking::benchmarking::HostFunctions,
+            moonbeam_primitives_ext::moonbeam_ext::HostFunctions,
+        );
+
+        fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
+            ferrum_rococo_runtime::api::dispatch(method, data)
+        }
+
+        fn native_version() -> sc_executor::NativeVersion {
+            ferrum_rococo_runtime::native_version()
+        }
+    }
+}
+
+/// Ferrum testnet runtime executor.
+pub mod ferrum_testnet {
+    pub use ferrum_testnet_runtime::RuntimeApi;
+
+    /// Shibuya runtime executor.
+    pub struct Executor;
+    impl sc_executor::NativeExecutionDispatch for Executor {
+        #[cfg(all(not(feature = "evm-tracing"), not(feature = "runtime-benchmarks")))]
+        type ExtendHostFunctions = ();
+
+        #[cfg(all(not(feature = "runtime-benchmarks"), feature = "evm-tracing"))]
+        type ExtendHostFunctions = moonbeam_primitives_ext::moonbeam_ext::HostFunctions;
+
+        #[cfg(all(not(feature = "evm-tracing"), feature = "runtime-benchmarks"))]
+        type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
+
+        #[cfg(all(feature = "runtime-benchmarks", feature = "evm-tracing"))]
+        type ExtendHostFunctions = (
+            frame_benchmarking::benchmarking::HostFunctions,
+            moonbeam_primitives_ext::moonbeam_ext::HostFunctions,
+        );
+
+        fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
+            ferrum_testnet_runtime::api::dispatch(method, data)
+        }
+
+        fn native_version() -> sc_executor::NativeVersion {
+            ferrum_testnet_runtime::native_version()
         }
     }
 }
@@ -406,17 +470,17 @@ where
             block_announce_validator_builder: Some(Box::new(|_| {
                 Box::new(block_announce_validator)
             })),
-            warp_sync: None,
+            warp_sync_params: None,
         })?;
 
     if parachain_config.offchain_worker.enabled {
-            sc_service::build_offchain_workers(
-                &parachain_config,
-                task_manager.spawn_handle(),
-                client.clone(),
-                network.clone(),
-            );
-        }
+        sc_service::build_offchain_workers(
+            &parachain_config,
+            task_manager.spawn_handle(),
+            client.clone(),
+            network.clone(),
+        );
+    }
 
     let filter_pool: FilterPool = Arc::new(std::sync::Mutex::new(BTreeMap::new()));
     let fee_history_cache: FeeHistoryCache = Arc::new(std::sync::Mutex::new(BTreeMap::new()));
@@ -432,6 +496,7 @@ where
             Duration::new(6, 0),
             client.clone(),
             backend.clone(),
+            overrides.clone(),
             frontier_backend.clone(),
             3,
             0,
@@ -521,6 +586,10 @@ where
 
     let relay_chain_slot_duration = Duration::from_secs(6);
 
+    let overseer_handle = relay_chain_interface
+        .overseer_handle()
+        .map_err(|e| sc_service::Error::Application(Box::new(e)))?;
+
     if is_authority {
         let parachain_consensus = build_consensus(
             client.clone(),
@@ -549,6 +618,7 @@ where
             import_queue: import_queue_service,
             collator_key: collator_key.expect("Command line arguments do not allow this. qed"),
             relay_chain_slot_duration,
+            recovery_handle: Box::new(overseer_handle),
         };
 
         start_collator(params).await?;
@@ -561,6 +631,7 @@ where
             relay_chain_interface,
             relay_chain_slot_duration,
             import_queue: import_queue_service,
+            recovery_handle: Box::new(overseer_handle),
         };
 
         start_full_node(params)?;
@@ -641,8 +712,8 @@ where
     .map_err(Into::into)
 }
 
-/// Start a parachain node for Ferrum.
-pub async fn start_parachain_node(
+/// Start a parachain node for Ferrum Testnet
+pub async fn start_testnet_node(
     parachain_config: Configuration,
     polkadot_config: Configuration,
     collator_options: CollatorOptions,
@@ -651,9 +722,281 @@ pub async fn start_parachain_node(
     cli: &Cli,
 ) -> sc_service::error::Result<(
     TaskManager,
-    Arc<TFullClient<Block, ferrum::RuntimeApi, NativeElseWasmExecutor<ferrum::Executor>>>,
+    Arc<
+        TFullClient<
+            Block,
+            ferrum_testnet::RuntimeApi,
+            NativeElseWasmExecutor<ferrum_testnet::Executor>,
+        >,
+    >,
 )> {
-    start_node_impl::<ferrum::RuntimeApi, ferrum::Executor, _, _>(
+    start_node_impl::<ferrum_testnet::RuntimeApi, ferrum_testnet::Executor, _, _>(
+        parachain_config,
+        polkadot_config,
+        collator_options,
+        id,
+        enable_evm_rpc,
+        |client,
+         block_import,
+         config,
+         telemetry,
+         task_manager| {
+            let slot_duration = cumulus_client_consensus_aura::slot_duration(&*client)?;
+
+            cumulus_client_consensus_aura::import_queue::<
+                sp_consensus_aura::sr25519::AuthorityPair,
+                _,
+                _,
+                _,
+                _,
+                _,
+            >(cumulus_client_consensus_aura::ImportQueueParams {
+                block_import,
+                client,
+                create_inherent_data_providers: move |_, _| async move {
+                    let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+
+                    let slot =
+                        sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+                            *timestamp,
+                            slot_duration,
+                        );
+
+                    Ok((slot, timestamp))
+                },
+                registry: config.prometheus_registry(),
+                spawner: &task_manager.spawn_essential_handle(),
+                telemetry,
+            })
+            .map_err(Into::into)
+        },
+        |client,
+         block_import,
+         prometheus_registry,
+         telemetry,
+         task_manager,
+         relay_chain_interface,
+         transaction_pool,
+         sync_oracle,
+         keystore,
+         force_authoring| {
+            let spawn_handle = task_manager.spawn_handle();
+
+            let slot_duration =
+                cumulus_client_consensus_aura::slot_duration(&*client).unwrap();
+
+            let proposer_factory =
+                sc_basic_authorship::ProposerFactory::with_proof_recording(
+                    spawn_handle,
+                    client.clone(),
+                    transaction_pool,
+                    prometheus_registry,
+                    telemetry.clone(),
+                );
+
+            let relay_chain_for_aura = relay_chain_interface.clone();
+
+            Ok(AuraConsensus::build::<
+                sp_consensus_aura::sr25519::AuthorityPair,
+                _,
+                _,
+                _,
+                _,
+                _,
+                _,
+            >(BuildAuraConsensusParams {
+                proposer_factory,
+                create_inherent_data_providers:
+                    move |_, (relay_parent, validation_data)| {
+                        let relay_chain_for_aura = relay_chain_for_aura.clone();
+                        async move {
+                            let parachain_inherent =
+                                cumulus_primitives_parachain_inherent::ParachainInherentData::create_at(
+                                    relay_parent,
+                                    &relay_chain_for_aura,
+                                    &validation_data,
+                                    id,
+                                ).await;
+                            let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+                            let slot =
+                                sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+                                    *timestamp,
+                                    slot_duration,
+                                );
+
+                            let parachain_inherent = parachain_inherent.ok_or_else(|| {
+                                Box::<dyn std::error::Error + Send + Sync>::from(
+                                    "Failed to create parachain inherent",
+                                )
+                            })?;
+                            Ok((slot, timestamp, parachain_inherent))
+                        }
+                    },
+                block_import,
+                para_client: client,
+                backoff_authoring_blocks: Option::<()>::None,
+                sync_oracle,
+                keystore,
+                force_authoring,
+                slot_duration,
+                // We got around 500ms for proposing
+                block_proposal_slot_portion: SlotProportion::new(1f32 / 24f32),
+                // And a maximum of 750ms if slots are skipped
+                max_block_proposal_slot_portion: Some(SlotProportion::new(1f32 / 16f32)),
+                telemetry,
+            })
+        )
+    },
+    cli
+).await
+}
+
+/// Start a parachain node for Ferrum Rococo
+pub async fn start_rococo_node(
+    parachain_config: Configuration,
+    polkadot_config: Configuration,
+    collator_options: CollatorOptions,
+    id: ParaId,
+    enable_evm_rpc: bool,
+    cli: &Cli,
+) -> sc_service::error::Result<(
+    TaskManager,
+    Arc<TFullClient<Block, rococo::RuntimeApi, NativeElseWasmExecutor<rococo::Executor>>>,
+)> {
+    start_node_impl::<rococo::RuntimeApi, rococo::Executor, _, _>(
+        parachain_config,
+        polkadot_config,
+        collator_options,
+        id,
+        enable_evm_rpc,
+        |client,
+         block_import,
+         config,
+         telemetry,
+         task_manager| {
+            let slot_duration = cumulus_client_consensus_aura::slot_duration(&*client)?;
+
+            cumulus_client_consensus_aura::import_queue::<
+                sp_consensus_aura::sr25519::AuthorityPair,
+                _,
+                _,
+                _,
+                _,
+                _,
+            >(cumulus_client_consensus_aura::ImportQueueParams {
+                block_import,
+                client,
+                create_inherent_data_providers: move |_, _| async move {
+                    let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+
+                    let slot =
+                        sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+                            *timestamp,
+                            slot_duration,
+                        );
+
+                    Ok((slot, timestamp))
+                },
+                registry: config.prometheus_registry(),
+                spawner: &task_manager.spawn_essential_handle(),
+                telemetry,
+            })
+            .map_err(Into::into)
+        },
+        |client,
+         block_import,
+         prometheus_registry,
+         telemetry,
+         task_manager,
+         relay_chain_interface,
+         transaction_pool,
+         sync_oracle,
+         keystore,
+         force_authoring| {
+            let spawn_handle = task_manager.spawn_handle();
+
+            let slot_duration =
+                cumulus_client_consensus_aura::slot_duration(&*client).unwrap();
+
+            let proposer_factory =
+                sc_basic_authorship::ProposerFactory::with_proof_recording(
+                    spawn_handle,
+                    client.clone(),
+                    transaction_pool,
+                    prometheus_registry,
+                    telemetry.clone(),
+                );
+
+            let relay_chain_for_aura = relay_chain_interface.clone();
+
+            Ok(AuraConsensus::build::<
+                sp_consensus_aura::sr25519::AuthorityPair,
+                _,
+                _,
+                _,
+                _,
+                _,
+                _,
+            >(BuildAuraConsensusParams {
+                proposer_factory,
+                create_inherent_data_providers:
+                    move |_, (relay_parent, validation_data)| {
+                        let relay_chain_for_aura = relay_chain_for_aura.clone();
+                        async move {
+                            let parachain_inherent =
+                                cumulus_primitives_parachain_inherent::ParachainInherentData::create_at(
+                                    relay_parent,
+                                    &relay_chain_for_aura,
+                                    &validation_data,
+                                    id,
+                                ).await;
+                            let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+                            let slot =
+                                sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+                                    *timestamp,
+                                    slot_duration,
+                                );
+
+                            let parachain_inherent = parachain_inherent.ok_or_else(|| {
+                                Box::<dyn std::error::Error + Send + Sync>::from(
+                                    "Failed to create parachain inherent",
+                                )
+                            })?;
+                            Ok((slot, timestamp, parachain_inherent))
+                        }
+                    },
+                block_import,
+                para_client: client,
+                backoff_authoring_blocks: Option::<()>::None,
+                sync_oracle,
+                keystore,
+                force_authoring,
+                slot_duration,
+                // We got around 500ms for proposing
+                block_proposal_slot_portion: SlotProportion::new(1f32 / 24f32),
+                // And a maximum of 750ms if slots are skipped
+                max_block_proposal_slot_portion: Some(SlotProportion::new(1f32 / 16f32)),
+                telemetry,
+            })
+        )
+    },
+    cli
+).await
+}
+
+/// Start a parachain node for QPN
+pub async fn start_kusama_node(
+    parachain_config: Configuration,
+    polkadot_config: Configuration,
+    collator_options: CollatorOptions,
+    id: ParaId,
+    enable_evm_rpc: bool,
+    cli: &Cli,
+) -> sc_service::error::Result<(
+    TaskManager,
+    Arc<TFullClient<Block, kusama::RuntimeApi, NativeElseWasmExecutor<kusama::Executor>>>,
+)> {
+    start_node_impl::<kusama::RuntimeApi, kusama::Executor, _, _>(
         parachain_config,
         polkadot_config,
         collator_options,

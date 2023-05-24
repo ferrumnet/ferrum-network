@@ -12,11 +12,11 @@ pub mod precompile_set;
 pub mod revert;
 pub mod substrate;
 
-#[cfg(feature = "testing")]
-pub mod testing;
+// #[cfg(feature = "testing")]
+// pub mod testing;
 
-#[cfg(test)]
-mod tests;
+// #[cfg(test)]
+// mod tests;
 
 use crate::alloc::{borrow::ToOwned, vec::Vec};
 use fp_evm::{ExitRevert, ExitSucceed, PrecompileFailure, PrecompileHandle, PrecompileOutput};

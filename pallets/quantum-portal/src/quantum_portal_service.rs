@@ -28,18 +28,13 @@ use sp_std::{marker::PhantomData, prelude::*, str};
 
 const TIMEOUT: u64 = 3600 * 1000;
 
-#[derive(Debug, Encode, Decode, Clone, PartialEq, MaxEncodedLen, scale_info::TypeInfo)]
+#[derive(Debug, Encode, Decode, Clone, PartialEq, MaxEncodedLen, scale_info::TypeInfo, Default)]
 pub enum PendingTransaction {
     // MineTransaction(chain, remote_chain, timestamp, tx_id)
     MineTransaction(u64, u64, u64, H256),
     FinalizeTransaction(u64, u64, H256),
+    #[default]
     None,
-}
-
-impl Default for PendingTransaction {
-    fn default() -> Self {
-        PendingTransaction::None
-    }
 }
 
 pub struct QuantumPortalService<T: Config> {

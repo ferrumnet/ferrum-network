@@ -1,0 +1,17 @@
+{
+    "networks": {
+        "network_vec": [{
+            "url": "https://rpc-mumbai.maticvigil.com/",
+            "gateway_contract_address": "c7BcC4c1f7bA7fF7A618a8B8e1A1c1007cBD5393",
+            "id": 80001
+        },
+        {
+            "url": "https://data-seed-prebsc-2-s3.binance.org:8545",
+            "gateway_contract_address": "c1F13fde5fFDE7B7ae6C95C9190d038A2eEb9e29",
+            "id": 97
+        }],
+        "pair_vec": [[80001, 97], [97, 80001]],
+        "signer_public_key": "020a1091341fe5664bfa1782d5e04779689068c916b04cb365ec3153755684d9a1",
+        "role" : "QP_MINER"
+    }
+}

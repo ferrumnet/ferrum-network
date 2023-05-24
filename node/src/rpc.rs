@@ -15,16 +15,15 @@
 // along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
 //! Ferrum RPCs implementation.
 
+use crate::primitives::{AccountId, Balance, Block, Hash};
 use cumulus_primitives_core::relay_chain::Nonce;
 use fc_rpc::{
     Eth, EthApiServer, EthBlockDataCacheTask, EthFilter, EthFilterApiServer, EthPubSub,
-    EthPubSubApiServer, Net, NetApiServer, OverrideHandle, RuntimeApiStorageOverride,
-    SchemaV1Override, SchemaV2Override, SchemaV3Override, StorageOverride, Web3, Web3ApiServer,
+    EthPubSubApiServer, Net, NetApiServer, OverrideHandle, Web3, Web3ApiServer,
 };
 use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
 pub use fc_storage::overrides_handle;
-use ferrum_runtime::{opaque::Block, AccountId, Balance, Hash};
-use fp_storage::EthereumStorageSchema;
+
 use jsonrpsee::RpcModule;
 use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
 use sc_client_api::{AuxStore, Backend, BlockchainEvents, StateBackend, StorageProvider};
@@ -39,7 +38,7 @@ use sp_blockchain::{
     Backend as BlockchainBackend, Error as BlockChainError, HeaderBackend, HeaderMetadata,
 };
 use sp_runtime::traits::BlakeTwo256;
-use std::collections::BTreeMap;
+
 use std::sync::Arc;
 use substrate_frame_rpc_system::{System, SystemApiServer};
 

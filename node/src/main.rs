@@ -23,6 +23,7 @@ mod service;
 mod cli;
 mod command;
 mod config;
+mod primitives;
 mod rpc;
 
 fn main() -> sc_cli::Result<()> {

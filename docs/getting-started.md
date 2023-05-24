@@ -24,7 +24,7 @@ To connect your metamask to Ferrum network, use the below configuration
 ```
 Network Name : Ferrum Testnet
 
-RPC URL : http://testnet.dev.svcs.ferrumnetwork.io:8545
+RPC URL : https://testnet.dev.svcs.ferrumnetwork.io/rpc/
 
 ChainId : 26100
 

@@ -54,6 +54,8 @@ pub mod kusama {
         fn native_version() -> sc_executor::NativeVersion {
             ferrum_runtime::native_version()
         }
+
+        type ExtendHostFunctions = ();
     }
 }
 
@@ -71,6 +73,8 @@ pub mod rococo {
         fn native_version() -> sc_executor::NativeVersion {
             ferrum_rococo_runtime::native_version()
         }
+
+        type ExtendHostFunctions = ();
     }
 }
 
@@ -78,7 +82,7 @@ pub mod rococo {
 pub mod ferrum_testnet {
     pub use ferrum_testnet_runtime::RuntimeApi;
 
-    /// Shibuya runtime executor.
+    /// Testnet runtime executor.
     pub struct Executor;
     impl sc_executor::NativeExecutionDispatch for Executor {
         fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
@@ -88,6 +92,8 @@ pub mod ferrum_testnet {
         fn native_version() -> sc_executor::NativeVersion {
             ferrum_testnet_runtime::native_version()
         }
+
+        type ExtendHostFunctions = ();
     }
 }
 

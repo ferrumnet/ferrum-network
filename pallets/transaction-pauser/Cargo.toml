@@ -21,7 +21,7 @@ categories = [
 array-bytes = "4.1"
 log = { version = "0.4.14", default-features = false }
 parity-scale-codec = { default-features = false, features = ['derive'], version = '3.1.2' }
-
+scale-info = { default-features = false, features = ['derive'], version = '2.1.2' }
 # Substrate packages
 ferrum-primitives = { default-features = false, path = "../../primitives" }
 frame-support = { git = 'https://github.com/paritytech/substrate.git', default-features = false, branch = "polkadot-v0.9.39" }

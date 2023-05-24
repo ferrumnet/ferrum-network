@@ -91,6 +91,7 @@ precompile-utils = { path = "../../precompiles/utils", default-features = false 
 # Local Dependencies
 ferrum-primitives = { default-features = false, path = "../../primitives" }
 pallet-quantum-portal = { default-features = false, path = "../../pallets/quantum-portal" }
+pallet-transaction-pauser = { default-features = false, path = "../../pallets/transaction-pauser" }
 
 [features]
 default = [
@@ -152,6 +153,7 @@ std = [
 	"pallet-multisig/std",
 	"pallet-utility/std",
 	"pallet-collective/std",
+	"pallet-transaction-pauser/std"
 ]
 
 runtime-benchmarks = [

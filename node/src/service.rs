@@ -59,24 +59,9 @@ use substrate_prometheus_endpoint::Registry;
 pub mod kusama {
     pub use ferrum_runtime::RuntimeApi;
 
-    /// Shibuya runtime executor.
+    /// Kusama runtime executor.
     pub struct Executor;
     impl sc_executor::NativeExecutionDispatch for Executor {
-        #[cfg(all(not(feature = "evm-tracing"), not(feature = "runtime-benchmarks")))]
-        type ExtendHostFunctions = ();
-
-        #[cfg(all(not(feature = "runtime-benchmarks"), feature = "evm-tracing"))]
-        type ExtendHostFunctions = moonbeam_primitives_ext::moonbeam_ext::HostFunctions;
-
-        #[cfg(all(not(feature = "evm-tracing"), feature = "runtime-benchmarks"))]
-        type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
-
-        #[cfg(all(feature = "runtime-benchmarks", feature = "evm-tracing"))]
-        type ExtendHostFunctions = (
-            frame_benchmarking::benchmarking::HostFunctions,
-            moonbeam_primitives_ext::moonbeam_ext::HostFunctions,
-        );
-
         fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
             ferrum_runtime::api::dispatch(method, data)
         }
@@ -84,6 +69,8 @@ pub mod kusama {
         fn native_version() -> sc_executor::NativeVersion {
             ferrum_runtime::native_version()
         }
+
+        type ExtendHostFunctions = ();
     }
 }
 
@@ -91,24 +78,9 @@ pub mod kusama {
 pub mod rococo {
     pub use ferrum_rococo_runtime::RuntimeApi;
 
-    /// Shibuya runtime executor.
+    /// Rococo runtime executor.
     pub struct Executor;
     impl sc_executor::NativeExecutionDispatch for Executor {
-        #[cfg(all(not(feature = "evm-tracing"), not(feature = "runtime-benchmarks")))]
-        type ExtendHostFunctions = ();
-
-        #[cfg(all(not(feature = "runtime-benchmarks"), feature = "evm-tracing"))]
-        type ExtendHostFunctions = moonbeam_primitives_ext::moonbeam_ext::HostFunctions;
-
-        #[cfg(all(not(feature = "evm-tracing"), feature = "runtime-benchmarks"))]
-        type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
-
-        #[cfg(all(feature = "runtime-benchmarks", feature = "evm-tracing"))]
-        type ExtendHostFunctions = (
-            frame_benchmarking::benchmarking::HostFunctions,
-            moonbeam_primitives_ext::moonbeam_ext::HostFunctions,
-        );
-
         fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
             ferrum_rococo_runtime::api::dispatch(method, data)
         }
@@ -116,6 +88,8 @@ pub mod rococo {
         fn native_version() -> sc_executor::NativeVersion {
             ferrum_rococo_runtime::native_version()
         }
+
+        type ExtendHostFunctions = ();
     }
 }
 
@@ -123,24 +97,9 @@ pub mod rococo {
 pub mod ferrum_testnet {
     pub use ferrum_testnet_runtime::RuntimeApi;
 
-    /// Shibuya runtime executor.
+    /// Testnet runtime executor.
     pub struct Executor;
     impl sc_executor::NativeExecutionDispatch for Executor {
-        #[cfg(all(not(feature = "evm-tracing"), not(feature = "runtime-benchmarks")))]
-        type ExtendHostFunctions = ();
-
-        #[cfg(all(not(feature = "runtime-benchmarks"), feature = "evm-tracing"))]
-        type ExtendHostFunctions = moonbeam_primitives_ext::moonbeam_ext::HostFunctions;
-
-        #[cfg(all(not(feature = "evm-tracing"), feature = "runtime-benchmarks"))]
-        type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
-
-        #[cfg(all(feature = "runtime-benchmarks", feature = "evm-tracing"))]
-        type ExtendHostFunctions = (
-            frame_benchmarking::benchmarking::HostFunctions,
-            moonbeam_primitives_ext::moonbeam_ext::HostFunctions,
-        );
-
         fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
             ferrum_testnet_runtime::api::dispatch(method, data)
         }
@@ -148,6 +107,8 @@ pub mod ferrum_testnet {
         fn native_version() -> sc_executor::NativeVersion {
             ferrum_testnet_runtime::native_version()
         }
+
+        type ExtendHostFunctions = ();
     }
 }
 

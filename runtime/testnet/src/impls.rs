@@ -1,5 +1,5 @@
-use crate::NegativeImbalance;
-use frame_support::traits::{Currency, Imbalance, OnUnbalanced};
+use crate::{NegativeImbalance, Runtime, RuntimeCall};
+use frame_support::traits::{Contains, Currency, Imbalance, OnUnbalanced};
 
 /// Logic for the author to get a portion of fees.
 pub struct ToAuthor<R>(sp_std::marker::PhantomData<R>);
@@ -34,5 +34,50 @@ where
             //<pallet_treasury::Pallet<R> as OnUnbalanced<_>>::on_unbalanced(split.0);
             <ToAuthor<R> as OnUnbalanced<_>>::on_unbalanced(split.1);
         }
+    }
+}
+
+pub struct FerrumCallFilter;
+impl Contains<RuntimeCall> for FerrumCallFilter {
+    fn contains(call: &RuntimeCall) -> bool {
+        let is_core_call = matches!(
+            call,
+            RuntimeCall::System(_) | RuntimeCall::Timestamp(_) | RuntimeCall::ParachainSystem(_)
+        );
+        if is_core_call {
+            // always allow core call
+            return true;
+        }
+
+        let is_paused =
+            pallet_transaction_pauser::PausedTransactionFilter::<Runtime>::contains(call);
+        if is_paused {
+            // no paused call
+            return false;
+        }
+
+        if let RuntimeCall::PolkadotXcm(xcm_method) = call {
+            match xcm_method {
+                pallet_xcm::Call::send { .. }
+                | pallet_xcm::Call::execute { .. }
+                | pallet_xcm::Call::teleport_assets { .. }
+                | pallet_xcm::Call::reserve_transfer_assets { .. }
+                | pallet_xcm::Call::limited_reserve_transfer_assets { .. }
+                | pallet_xcm::Call::limited_teleport_assets { .. } => {
+                    return false;
+                }
+                pallet_xcm::Call::force_xcm_version { .. }
+                | pallet_xcm::Call::force_default_xcm_version { .. }
+                | pallet_xcm::Call::force_subscribe_version_notify { .. }
+                | pallet_xcm::Call::force_unsubscribe_version_notify { .. } => {
+                    return true;
+                }
+                pallet_xcm::Call::__Ignore { .. } => {
+                    unimplemented!()
+                }
+            }
+        }
+
+        true
     }
 }

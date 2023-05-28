@@ -1,10 +1,9 @@
 [package]
 name = "pallet-quantum-portal"
 version = "1.0.0-dev"
-authors = ["Ferrum Network"]
+authors = ['Ferrum Network <https://github.com/ferrumnet/ferrum-network>']
 edition = "2021"
 homepage = "https://ferrum.network/"
-license = "Unlicense"
 publish = false
 repository = "https://github.com/ferrum-network"
 description = "Quantum Portal Offline worker."

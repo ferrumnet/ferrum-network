@@ -1,0 +1,34 @@
+[package]
+name = "qp-multichain-staking"
+version = "0.1.0"
+authors = ["Ferrum Network"]
+edition = "2021"
+
+[dependencies]
+ethabi = { git = "https://github.com/akru/ethabi", default-features = false }
+hex-literal = "0.3"
+ink = { version = "4.0.0", default-features = false }
+
+scale = { package = "parity-scale-codec", version = "3", default-features = false, features = [
+	"derive",
+] }
+scale-info = { version = "2", default-features = false, features = [
+	"derive",
+], optional = true }
+
+xvm-environment = { gith = "https://github.com/AstarNetwork/ink-xvm-sdk", default-features = false }
+
+[lib]
+name = "qp_multichain_staking"
+path = "lib.rs"
+# This setting typically specifies that you'd like the compiler to
+# create a dynamic system library. For WebAssembly though it specifies
+# that the compiler should create a `*.wasm` without a start function.
+crate-type = [
+	"cdylib",
+]
+
+[features]
+default = ["std"]
+std = ["ink/std", "scale/std", "scale-info/std", "xvm-environment/std"]
+ink-as-dependency = []

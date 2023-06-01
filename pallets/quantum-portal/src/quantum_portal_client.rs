@@ -1,10 +1,25 @@
+// Copyright 2019-2023 Ferrum Inc.
+// This file is part of Ferrum.
+
+// Ferrum is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// Ferrum is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
 #![cfg_attr(not(feature = "std"), no_std)]
 use crate::{
     chain_queries::CallResponse,
     chain_utils::{ChainRequestError, ChainRequestResult, ChainUtils, TransactionCreationError},
     contract_client::{ContractClient, ContractClientSignature},
     eip_712_utils::EIP712Utils,
-    qp_types::{EIP712Config, QpLocalBlock, QpRemoteBlock, QpTransaction},
+    qp_types::{QpLocalBlock, QpRemoteBlock, QpTransaction},
     Config,
 };
 use ethabi_nostd::{decoder::decode, ParamKind, Token};
@@ -21,7 +36,6 @@ pub struct QuantumPortalClient<T: Config> {
     pub signer: ContractClientSignature,
     pub now: u64,
     pub block_number: u64,
-    pub eip_712_config: EIP712Config,
     _phantom: PhantomData<T>,
 }
 
@@ -155,48 +169,46 @@ impl<T: Config> QuantumPortalClient<T> {
         signer: ContractClientSignature,
         now: u64,
         block_number: u64,
-        eip_712_config: EIP712Config,
     ) -> Self {
         QuantumPortalClient {
             contract,
             signer,
             now,
             block_number,
-            eip_712_config,
             _phantom: Default::default(),
         }
     }
 
     pub fn is_local_block_ready(&self, chain_id: u64) -> ChainRequestResult<bool> {
         let signature = b"isLocalBlockReady(uint64)";
-        let res: Box<CallResponse> = self
-            .contract
-            .call(signature, &[Token::Uint(U256::from(chain_id))])?;
+        let res: Box<CallResponse> =
+            self.contract
+                .call(signature, &[Token::Uint(U256::from(chain_id))], None)?;
         let val = ChainUtils::hex_to_u256(&res.result)?;
         Ok(!val.is_zero())
     }
 
     pub fn last_remote_mined_block(&self, chain_id: u64) -> ChainRequestResult<QpLocalBlock> {
         let signature = b"lastRemoteMinedBlock(uint64)";
-        let res: Box<CallResponse> = self
-            .contract
-            .call(signature, &[Token::Uint(U256::from(chain_id))])?;
+        let res: Box<CallResponse> =
+            self.contract
+                .call(signature, &[Token::Uint(U256::from(chain_id))], None)?;
         self.decode_local_block(res.result.as_slice())
     }
 
     pub fn last_finalized_block(&self, chain_id: u64) -> ChainRequestResult<QpLocalBlock> {
         let signature = b"lastFinalizedBlock(uint256)";
-        let res: Box<CallResponse> = self
-            .contract
-            .call(signature, &[Token::Uint(U256::from(chain_id))])?;
+        let res: Box<CallResponse> =
+            self.contract
+                .call(signature, &[Token::Uint(U256::from(chain_id))], None)?;
         self.decode_local_block(res.result.as_slice())
     }
 
     pub fn last_local_block(&self, chain_id: u64) -> ChainRequestResult<QpLocalBlock> {
         let signature = b"lastLocalBlock(uint256)";
-        let res: Box<CallResponse> = self
-            .contract
-            .call(signature, &[Token::Uint(U256::from(chain_id))])?;
+        let res: Box<CallResponse> =
+            self.contract
+                .call(signature, &[Token::Uint(U256::from(chain_id))], None)?;
         self.decode_local_block(res.result.as_slice())
     }
 
@@ -212,6 +224,7 @@ impl<T: Config> QuantumPortalClient<T> {
                 Token::Uint(U256::from(chain_id)),
                 Token::Uint(U256::from(last_block_nonce)),
             ],
+            None,
         )?;
         decode_remote_block_and_txs(res.result.as_slice(), local_block_tuple(), |block| {
             log::info!("1-DECODING BLOCK {:?}", block);
@@ -234,6 +247,7 @@ impl<T: Config> QuantumPortalClient<T> {
                 Token::Uint(U256::from(chain_id)),
                 Token::Uint(U256::from(last_block_nonce)),
             ],
+            None,
         )?;
         let mined_block_tuple = ParamKind::Tuple(vec![
             // MinedBlock
@@ -280,12 +294,6 @@ impl<T: Config> QuantumPortalClient<T> {
         let method_signature =
             b"finalizeSingleSigner(uint256,uint256,bytes32,address[],bytes32,uint64,bytes)";
 
-        // generate randomness for salt
-        // let (random_hash, _) = T::PalletRandomness::random_seed();
-
-        // let random_hash = ChainUtils::keccack(b"test1");
-        // log::info!("random_hash {:?}", random_hash);
-
         let salt = Token::FixedBytes(block_details.block_hash.as_ref().to_vec());
         let finalizer_hash = Token::FixedBytes(block_details.block_hash.as_ref().to_vec());
 
@@ -320,15 +328,18 @@ impl<T: Config> QuantumPortalClient<T> {
             Token::Bytes(multi_sig),
         ];
 
+        let recipient_address = self.contract.get_ledger_manager_address()?;
+
         let res = self.contract.send(
             method_signature,
             &inputs,
             None, //Some(U256::from(1000000 as u64)), // None,
-            None, // Some(U256::from(10000000000 as u64)), // None,
+            None, //Some(U256::from(10000000000 as u64)), // None,
             U256::zero(),
             None,
             self.signer.from,
             &self.signer,
+            recipient_address,
         )?;
         Ok(res)
     }
@@ -347,12 +358,17 @@ impl<T: Config> QuantumPortalClient<T> {
         salt: Token,
         expiry: Token,
     ) -> Result<Vec<u8>, TransactionCreationError> {
+        let (verifying_contract_address, verifying_contract_version, verifying_contract_name) =
+            &self
+                .contract
+                .get_authority_manager_address()
+                .map_err(|_| TransactionCreationError::CannotFindContractAddress)?;
         // Generate the domain seperator hash, the hash is generated from the given arguments
         let domain_seperator_hash = EIP712Utils::generate_eip_712_domain_seperator_hash(
-            &self.eip_712_config.contract_name,     // ContractName
-            &self.eip_712_config.contract_version,  // ContractVersion
-            self.contract.chain_id,                 // ChainId
-            &self.eip_712_config.verifying_address, // VerifyingAddress
+            verifying_contract_name,     // ContractName
+            verifying_contract_version,  // ContractVersion
+            self.contract.chain_id,      // ChainId
+            *verifying_contract_address, // VerifyingAddress
         );
         log::info!("domain_seperator_hash {:?}", domain_seperator_hash);
 
@@ -403,7 +419,7 @@ impl<T: Config> QuantumPortalClient<T> {
         log::info!("EIP712 Hash {:?}", eip_712_hash);
 
         // Sign the eip message, we only consider a single signer here since we only expect a single key in the keystore
-        // TODO : Add the ability for multiple signers
+
         let multi_sig_bytes = self.signer.signer(&eip_712_hash)?;
 
         // Compute multisig format
@@ -425,25 +441,24 @@ impl<T: Config> QuantumPortalClient<T> {
         Ok(multisig_compressed)
     }
 
+    #[allow(clippy::ptr_arg)]
     pub fn create_mine_transaction(
         &self,
         remote_chain_id: u64,
         block_nonce: u64,
         txs: &Vec<QpTransaction>,
+        source_block: QpLocalBlock,
     ) -> ChainRequestResult<H256> {
         let method_signature = b"mineRemoteBlock(uint64,uint64,(uint64,address,address,address,address,uint256,bytes,uint256)[],bytes32,uint64,bytes)";
 
-        let salt = Token::FixedBytes(vec![
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 1,
-        ]);
-        let expiry = Token::Uint(U256::from(2147483647));
-        let multi_sig = Token::Bytes(vec![
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 1, 1,
-        ]);
+        // set timestamp 1hr from now
+        let current_timestamp = source_block.timestamp;
+        let expiry_buffer = core::time::Duration::from_secs(3600u64);
+        let expiry_time = current_timestamp.saturating_add(expiry_buffer.as_secs());
+        let expiry = Token::Uint(U256::from(expiry_time));
+        let salt = Token::FixedBytes(vec![0u8, 0u8]);
 
-        let tx_vec = txs
+        let tx_vec: Vec<Token> = txs
             .iter()
             .map(|t| {
                 Token::Tuple(vec![
@@ -459,6 +474,22 @@ impl<T: Config> QuantumPortalClient<T> {
             })
             .collect();
 
+        let multi_sig = self.generate_miner_signature(
+            remote_chain_id,
+            block_nonce,
+            tx_vec.clone(),
+            salt.clone(),
+            expiry.clone(),
+        )?;
+
+        log::info!(
+            "Encoded Miner Signature generated : {:?}",
+            sp_std::str::from_utf8(ChainUtils::bytes_to_hex(multi_sig.as_slice()).as_slice())
+                .unwrap()
+        );
+
+        let recipient_address = self.contract.get_ledger_manager_address()?;
+
         let res = self.contract.send(
             method_signature,
             &[
@@ -467,16 +498,102 @@ impl<T: Config> QuantumPortalClient<T> {
                 Token::Array(tx_vec),
                 salt,
                 expiry,
-                multi_sig,
+                Token::Bytes(multi_sig),
             ],
-            None, // Some(U256::from(1000000 as u32)), // None,
-            None, // Some(U256::from(60000000000 as u64)), // None,
+            None, //Some(U256::from(1000000 as u32)), // None,
+            None, //Some(U256::from(60000000000 as u64)), // None,
             U256::zero(),
             None,
             self.signer.from,
             &self.signer,
+            recipient_address,
         )?;
         Ok(res)
+    }
+
+    /// Returns the Signature to sign mine transactions
+    /// The function will
+    /// 1. Generate the domain seperator values, encoded and hashed
+    /// 2. Generate the message hash from the (chainId, nonce, txs) and encoded it to the signature
+    /// 3. Generate the eip_712 type hash for the MinerSignature function
+    pub fn generate_miner_signature(
+        &self,
+        remote_chain_id: u64,
+        block_nonce: u64,
+        txs: Vec<Token>,
+        salt: Token,
+        expiry: Token,
+    ) -> Result<Vec<u8>, TransactionCreationError> {
+        let (verifying_contract_address, _verifying_contract_version, _verifying_contract_name) =
+            &self
+                .contract
+                .get_miner_manager_address()
+                .map_err(|_| TransactionCreationError::CannotFindContractAddress)?;
+
+        // Generate the domain seperator hash, the hash is generated from the given arguments
+        let domain_seperator_hash = EIP712Utils::generate_eip_712_domain_seperator_hash(
+            b"FERRUM_QUANTUM_PORTAL_MINER_MGR", // ContractName
+            b"000.010",                         // ContractVersion
+            self.contract.chain_id,             // ChainId
+            *verifying_contract_address,        // VerifyingAddress
+        );
+        log::info!("domain_seperator_hash {:?}", domain_seperator_hash);
+
+        // Generate the finalize method sigature to encode the finalize call
+        let miner_method_signature = b"MinerSignature(bytes32 msgHash,uint64 expiry,bytes32 salt)";
+        let miner_method_signature_hash = ChainUtils::keccack(miner_method_signature);
+        log::info!(
+            "miner_method_signature_hash {:?}",
+            miner_method_signature_hash
+        );
+
+        log::info!("remote_chain_id {:?}", remote_chain_id);
+        log::info!("block_nonce {:?}", block_nonce);
+        log::info!("txs {:?}", txs);
+        log::info!("salt {:?}", salt);
+        log::info!("expiry {:?}", expiry);
+
+        // encode the finalize call to the expected format
+        let encoded_message_hash = EIP712Utils::get_encoded_hash(vec![
+            Token::Uint(U256::from(remote_chain_id)), // remote chain id
+            Token::Uint(U256::from(block_nonce)),     // block nonce
+            Token::Array(txs),                        // transactions
+        ]);
+        log::info!("encoded_message_hash {:?}", encoded_message_hash);
+
+        // Generate the encoded eip message
+        let eip_args_hash = EIP712Utils::get_encoded_hash(vec![
+            Token::FixedBytes(Vec::from(miner_method_signature_hash.as_bytes())), // method hash
+            Token::FixedBytes(Vec::from(encoded_message_hash.as_bytes())),        // msgHash
+            expiry,                                                               // expiry
+            salt,                                                                 // salt
+        ]);
+        log::info!("eip_args_hash {:?}", eip_args_hash);
+
+        let eip_712_hash =
+            EIP712Utils::generate_eip_712_hash(&domain_seperator_hash[..], &eip_args_hash[..]);
+        log::info!("EIP712 Hash {:?}", eip_712_hash);
+
+        // Sign the eip message, we only consider a single signer here since we only expect a single key in the keystore
+        let multi_sig_bytes = self.signer.signer(&eip_712_hash)?;
+
+        // Compute multisig format
+        // This computation makes it match the implementation we have in qp smart contracts repo
+        // refer https://github.com/ferrumnet/quantum-portal-smart-contracts/blob/326341cdfcb55052437393228f1d58e014c90f7b/test/common/Eip712Utils.ts#L93
+        let mut multisig_compressed: Vec<u8> = multi_sig_bytes.0[0..64].to_vec();
+        multisig_compressed.extend([28u8]);
+        multisig_compressed.extend([0u8; 31]);
+
+        log::info!(
+            "Extended signature of size {}: {}",
+            multisig_compressed.len(),
+            sp_std::str::from_utf8(
+                ChainUtils::bytes_to_hex(multisig_compressed.as_slice()).as_slice()
+            )
+            .unwrap()
+        );
+
+        Ok(multisig_compressed)
     }
 
     pub fn finalize(&self, chain_id: u64) -> ChainRequestResult<Option<H256>> {
@@ -529,7 +646,8 @@ impl<T: Config> QuantumPortalClient<T> {
             return Err(ChainRequestError::RemoteBlockAlreadyMined);
         }
         log::info!("Getting source block?");
-        let source_block = remote_client.local_block_by_nonce(local_chain, last_block.nonce)?;
+        let source_block = remote_client
+            .local_block_by_nonce(local_chain, last_mined_block.nonce.saturating_add(1))?;
         let default_qp_transaction = QpTransaction::default();
         log::info!(
             "Source block is GOT\n{:?}\n{:?}",
@@ -550,6 +668,7 @@ impl<T: Config> QuantumPortalClient<T> {
             remote_chain,
             source_block.0.nonce,
             &txs,
+            source_block.0,
         )?))
     }
 

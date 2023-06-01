@@ -1,3 +1,18 @@
+// Copyright 2019-2023 Ferrum Inc.
+// This file is part of Ferrum.
+
+// Ferrum is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// Ferrum is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
 use crate::{
     chain_queries::{fetch_json_rpc, CallResponse, JsonRpcRequest},
     chain_utils::{ChainRequestError, ChainUtils, JsonSer, TransactionCreationError},
@@ -19,8 +34,11 @@ use sp_std::{
 #[derive(Debug, Clone)]
 pub struct ContractClient {
     pub http_api: Vec<u8>,
-    pub contract_address: Address,
+    pub gateway_contract_address: Address,
     pub chain_id: u64,
+    pub ledger_manager_address: Option<Address>,
+    pub authority_manager_address: Option<Address>,
+    pub miner_manager_address: Option<Address>,
 }
 
 // #[derive(Clone)]
@@ -38,6 +56,7 @@ impl ContractClientSignature {
     }
 
     pub fn signer(&self, hash: &H256) -> Result<ecdsa::Signature, TransactionCreationError> {
+        log::info!("Signer address is : {:?}", self.from);
         // TODO : We should handle this properly, if the signing is not possible maybe propogate the error upstream
         let signed: Result<ecdsa::Signature, TransactionCreationError> =
             crypto::ecdsa_sign_prehashed(OFFCHAIN_SIGNER_KEY_TYPE, &self._signer, &hash.0)
@@ -75,18 +94,82 @@ impl From<ecdsa::Public> for ContractClientSignature {
 }
 
 impl ContractClient {
-    pub fn new(http_api: Vec<u8>, contract_address: &Address, chain_id: u64) -> Self {
+    pub fn new(http_api: Vec<u8>, gateway_contract_address: &Address, chain_id: u64) -> Self {
         ContractClient {
             http_api,
-            contract_address: *contract_address,
+            gateway_contract_address: *gateway_contract_address,
             chain_id,
+            ledger_manager_address: None,
+            authority_manager_address: None,
+            miner_manager_address: None,
         }
+    }
+
+    pub fn get_ledger_manager_address(&self) -> Result<H160, ChainRequestError> {
+        // no cache, we fetch from the gateway contract
+        let signature = b"quantumPortalLedgerMgr()";
+        let res: Box<CallResponse> =
+            self.call(signature, &[], Some(self.gateway_contract_address))?;
+        log::info!("Ledger manager response is : {:?}", res);
+        let address = ChainUtils::decode_address_response(res.result.as_slice());
+        log::info!("Ledger manager address is : {:?}", address);
+
+        Ok(address)
+    }
+
+    pub fn get_miner_manager_address(&self) -> Result<(H160, Vec<u8>, Vec<u8>), ChainRequestError> {
+        let ledger_manager_address = self.get_ledger_manager_address()?;
+
+        // no cache, we fetch from the gateway contract
+        let signature = b"minerMgr()";
+        let res: Box<CallResponse> = self.call(signature, &[], Some(ledger_manager_address))?;
+        log::info!("Miner manager response is : {:?}", res);
+        let address = ChainUtils::decode_address_response(res.result.as_slice());
+        log::info!("Miner manager address is : {:?}", address);
+
+        let signature = b"VERSION()";
+        let res: Box<CallResponse> = self.call(signature, &[], Some(address))?;
+        let version = &res.result.as_slice();
+        log::info!("Miner manager version is : {:?}", version);
+
+        let signature = b"NAME()";
+        let res: Box<CallResponse> = self.call(signature, &[], Some(address))?;
+        let name = &res.result.as_slice();
+        log::info!("Miner manager name is : {:?}", name);
+
+        Ok((address, version.to_vec(), name.to_vec()))
+    }
+
+    pub fn get_authority_manager_address(
+        &self,
+    ) -> Result<(H160, Vec<u8>, Vec<u8>), ChainRequestError> {
+        let ledger_manager_address = self.get_ledger_manager_address()?;
+
+        // no cache, we fetch from the gateway contract
+        let signature = b"authorityMgr()";
+        let res: Box<CallResponse> = self.call(signature, &[], Some(ledger_manager_address))?;
+        log::info!("Authority manager response is : {:?}", res);
+        let address = ChainUtils::decode_address_response(res.result.as_slice());
+        log::info!("Authority manager address is : {:?}", address);
+
+        let signature = b"VERSION()";
+        let res: Box<CallResponse> = self.call(signature, &[], Some(address))?;
+        let version = &res.result.as_slice();
+        log::info!("Authority manager version is : {:?}", version);
+
+        let signature = b"NAME()";
+        let res: Box<CallResponse> = self.call(signature, &[], Some(address))?;
+        let name = &res.result.as_slice();
+        log::info!("Authority manager name is : {:?}", name);
+
+        Ok((address, version.to_vec(), name.to_vec()))
     }
 
     pub fn call<T>(
         &self,
         method_signature: &[u8],
         inputs: &[Token],
+        address: Option<Address>,
     ) -> Result<Box<T>, ChainRequestError>
     where
         T: for<'de> Deserialize<'de>,
@@ -97,19 +180,25 @@ impl ContractClient {
         let encoded_bytes_0x = ChainUtils::bytes_to_hex(encoded_bytes.as_slice());
         let encoded_bytes_slice = encoded_bytes_0x.as_slice();
         let encoded_bytes_slice = ChainUtils::hex_add_0x(encoded_bytes_slice);
+
         let encoded = str::from_utf8(encoded_bytes_slice.as_slice()).unwrap();
         log::info!("encoded {}", encoded);
+        let contract_address = if let Some(address) = address {
+            address
+        } else {
+            self.get_ledger_manager_address()?
+        };
+
         log::info!(
             "contract address is {}",
-            str::from_utf8(ChainUtils::address_to_hex(self.contract_address).as_slice()).unwrap()
+            str::from_utf8(ChainUtils::address_to_hex(contract_address).as_slice()).unwrap()
         );
         let call_json = JsonSer::new()
             .start()
             .string("data", encoded)
             .string(
                 "to",
-                str::from_utf8(ChainUtils::address_to_hex(self.contract_address).as_slice())
-                    .unwrap(),
+                str::from_utf8(ChainUtils::address_to_hex(contract_address).as_slice()).unwrap(),
             )
             .end()
             .to_vec();
@@ -128,6 +217,7 @@ impl ContractClient {
         fetch_json_rpc(http_api, &req)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn send(
         &self,
         method_signature: &[u8],
@@ -139,6 +229,7 @@ impl ContractClient {
         from: Address,
         // encoded_bytes: Vec<u8>,
         signing: &ContractClientSignature,
+        recipient_address: Address,
     ) -> Result<H256, ChainRequestError> {
         let encoded_bytes = encoder::encode_function_u8(method_signature, inputs);
         let encoded_bytes_0x = ChainUtils::bytes_to_hex(encoded_bytes.as_slice());
@@ -150,7 +241,12 @@ impl ContractClient {
             Some(v) => v,
         };
         let gas_limit_val = match gas_limit {
-            None => self.estimate_gas(encoded_bytes_slice.as_slice(), &value, from)?,
+            None => self.estimate_gas(
+                encoded_bytes_slice.as_slice(),
+                &value,
+                from,
+                recipient_address,
+            )?,
             Some(v) => v,
         };
         let gas_price_val = match gas_price {
@@ -164,7 +260,7 @@ impl ContractClient {
             nonce: nonce_val,
             gas_price: gas_price_val,
             gas_limit: gas_limit_val,
-            action: TransactionAction::Call(self.contract_address),
+            action: TransactionAction::Call(recipient_address),
             value,
             input: encoded_bytes,
             signature: ChainUtils::empty_signature(),
@@ -224,6 +320,7 @@ impl ContractClient {
         encoded: &[u8],
         value: &U256,
         from: Address,
+        recipient_address: Address,
     ) -> Result<U256, ChainRequestError> {
         let call_json = JsonSer::new()
             .start()
@@ -234,8 +331,7 @@ impl ContractClient {
             )
             .string(
                 "to",
-                str::from_utf8(ChainUtils::address_to_hex(self.contract_address).as_slice())
-                    .unwrap(),
+                str::from_utf8(ChainUtils::address_to_hex(recipient_address).as_slice()).unwrap(),
             )
             .string(
                 "value",

@@ -1,3 +1,18 @@
+// Copyright 2019-2023 Ferrum Inc.
+// This file is part of Ferrum.
+
+// Ferrum is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// Ferrum is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
 use ethabi_nostd::Address;
 use parity_scale_codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
@@ -48,7 +63,6 @@ pub struct QpConfig {
     pub network_vec: Vec<QpNetworkItem>,
     pub pair_vec: Vec<(u64, u64)>,
     pub signer_public_key: Vec<u8>,
-    pub eip_712_config: EIP712Config,
     pub role: Role,
 }
 
@@ -59,26 +73,8 @@ pub struct QpNetworkItem {
     // #[serde(with = "serde_bytes")]
     pub url: Vec<u8>,
     // #[serde(with = "serde_bytes")]
-    pub ledger_manager: Vec<u8>,
+    pub gateway_contract_address: Vec<u8>,
     pub id: u64,
-}
-
-#[derive(
-    Clone,
-    Eq,
-    PartialEq,
-    Decode,
-    Encode,
-    Debug,
-    Serialize,
-    Deserialize,
-    scale_info::TypeInfo,
-    Default,
-)]
-pub struct EIP712Config {
-    pub contract_name: Vec<u8>,
-    pub contract_version: Vec<u8>,
-    pub verifying_address: Vec<u8>,
 }
 
 #[allow(non_camel_case_types)]

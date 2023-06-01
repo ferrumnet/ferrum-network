@@ -5,7 +5,7 @@
 // Licensed under the Apache License, Version 2.0 <LICENSE or
 // http://www.apache.org/licenses/LICENSE-2.0>. This file may not be
 // copied, modified, or distributed except according to those terms.
-
+#![allow(clippy::all)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(not(feature = "std"))]

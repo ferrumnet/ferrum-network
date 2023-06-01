@@ -1,3 +1,18 @@
+// Copyright 2019-2023 Ferrum Inc.
+// This file is part of Ferrum.
+
+// Ferrum is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// Ferrum is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
 use crate::{
     chain_queries::{ChainQueries, TransactionStatus},
     chain_utils::{ChainRequestResult, ChainUtils},
@@ -13,18 +28,13 @@ use sp_std::{marker::PhantomData, prelude::*, str};
 
 const TIMEOUT: u64 = 3600 * 1000;
 
-#[derive(Debug, Encode, Decode, Clone, PartialEq, MaxEncodedLen, scale_info::TypeInfo)]
+#[derive(Debug, Encode, Decode, Clone, PartialEq, MaxEncodedLen, scale_info::TypeInfo, Default)]
 pub enum PendingTransaction {
     // MineTransaction(chain, remote_chain, timestamp, tx_id)
     MineTransaction(u64, u64, u64, H256),
     FinalizeTransaction(u64, u64, H256),
+    #[default]
     None,
-}
-
-impl Default for PendingTransaction {
-    fn default() -> Self {
-        PendingTransaction::None
-    }
 }
 
 pub struct QuantumPortalService<T: Config> {
@@ -142,7 +152,7 @@ impl<T: Config> QuantumPortalService<T> {
         &self,
         remote_chain: u64,
         local_chain: u64,
-        role: Role,
+        _role: Role,
     ) -> ChainRequestResult<()> {
         // Processes between two chains.
         // If there is an existing pending tx, for this pair, it will wait until the pending is
@@ -172,31 +182,31 @@ impl<T: Config> QuantumPortalService<T> {
         );
         let now = local_client.now;
 
-        // mine if role is miner
-        if role == Role::QP_MINER {
-            let mine_tx = local_client.mine(remote_client)?;
-            if mine_tx.is_some() {
-                self.save_tx(PendingTransaction::MineTransaction(
-                    local_chain,
-                    remote_chain,
-                    now,
-                    mine_tx.unwrap(),
-                ))?
-            }
+        // // mine if role is miner
+        // if role == Role::QP_MINER {
+        let mine_tx = local_client.mine(remote_client)?;
+        if mine_tx.is_some() {
+            self.save_tx(PendingTransaction::MineTransaction(
+                local_chain,
+                remote_chain,
+                now,
+                mine_tx.unwrap(),
+            ))?
         }
+        //}
         // finalize if role is finalizer
-        if role == Role::QP_FINALIZER {
-            let fin_tx = local_client.finalize(remote_chain)?;
-            if fin_tx.is_some() {
-                // Save tx
-                // MineTransaction(chain, remote_chain, timestamp, tx_id)
-                self.save_tx(PendingTransaction::FinalizeTransaction(
-                    local_chain,
-                    now,
-                    fin_tx.unwrap(),
-                ))?
-            }
+        //if role == Role::QP_FINALIZER {
+        let fin_tx = local_client.finalize(remote_chain)?;
+        if fin_tx.is_some() {
+            // Save tx
+            // MineTransaction(chain, remote_chain, timestamp, tx_id)
+            self.save_tx(PendingTransaction::FinalizeTransaction(
+                local_chain,
+                now,
+                fin_tx.unwrap(),
+            ))?
         }
+        //}
 
         self.remove_lock()?;
         Ok(())

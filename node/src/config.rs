@@ -1,8 +1,21 @@
-use std::{fs::File, io::BufReader, path::Path};
+// Copyright 2019-2023 Ferrum Inc.
+// This file is part of Ferrum.
 
+// Ferrum is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// Ferrum is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
+use pallet_quantum_portal::qp_types::{QpConfig, QpNetworkItem};
 use serde::{Deserialize, Serialize};
-
-use pallet_quantum_portal::qp_types::{EIP712Config, QpConfig, QpNetworkItem};
+use std::{fs::File, io::BufReader, path::Path};
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
@@ -14,9 +27,9 @@ pub struct NetworkItem {
     /// The rpc url for this network
     #[serde(with = "serde_bytes")]
     pub url: Vec<u8>,
-    /// The ledger_manager contract address for this network
+    /// The gateway_contract_address contract address for this network
     #[serde(with = "serde_bytes")]
-    pub ledger_manager: Vec<u8>,
+    pub gateway_contract_address: Vec<u8>,
     /// The ChainId for this network
     pub id: u64,
 }
@@ -30,13 +43,6 @@ pub struct NetworkConfig {
     // The public key for the signer account
     #[serde(with = "serde_bytes")]
     pub signer_public_key: Vec<u8>,
-    // EIP712 config
-    #[serde(with = "serde_bytes")]
-    pub authority_manager_contract_name: Vec<u8>,
-    #[serde(with = "serde_bytes")]
-    pub authority_manager_contract_version: Vec<u8>,
-    #[serde(with = "serde_bytes")]
-    pub authority_manager_contract_address: Vec<u8>,
     /// The role of this node
     #[serde(with = "serde_bytes")]
     pub role: Vec<u8>,
@@ -50,17 +56,12 @@ pub fn convert(network_config: NetworkConfig) -> QpConfig {
             .into_iter()
             .map(|network_item| QpNetworkItem {
                 url: network_item.url,
-                ledger_manager: network_item.ledger_manager,
+                gateway_contract_address: network_item.gateway_contract_address,
                 id: network_item.id,
             })
             .collect(),
         pair_vec: network_config.pair_vec,
         signer_public_key: network_config.signer_public_key,
-        eip_712_config: EIP712Config {
-            contract_name: network_config.authority_manager_contract_name,
-            contract_version: network_config.authority_manager_contract_version,
-            verifying_address: network_config.authority_manager_contract_address,
-        },
         role: role_as_bytes.into(),
     }
 }

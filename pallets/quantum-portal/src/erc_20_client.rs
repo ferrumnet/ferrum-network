@@ -1,3 +1,18 @@
+// Copyright 2019-2023 Ferrum Inc.
+// This file is part of Ferrum.
+
+// Ferrum is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// Ferrum is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use crate::{
@@ -25,9 +40,9 @@ impl Erc20Client {
         Erc20Client { contract: client }
     }
 
-    pub fn total_supply(&self) -> Result<U256, ChainRequestError> {
+    pub fn total_supply(&mut self) -> Result<U256, ChainRequestError> {
         let signature = b"totalSupply()";
-        let mut res: Box<TotalSupplyResponse> = self.contract.call(signature, &[])?;
+        let mut res: Box<TotalSupplyResponse> = self.contract.call(signature, &[], None)?;
         res.result.remove(0);
         res.result.remove(0);
         let res_str = str::from_utf8(res.result.as_slice()).unwrap();

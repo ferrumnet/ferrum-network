@@ -1,3 +1,18 @@
+// Copyright 2019-2023 Ferrum Inc.
+// This file is part of Ferrum.
+
+// Ferrum is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// Ferrum is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use pallet::*;
@@ -18,14 +33,13 @@ pub mod pallet {
         chain_utils::{ChainRequestError, ChainUtils},
         contract_client::{ContractClient, ContractClientSignature},
         qp_types,
-        qp_types::{EIP712Config, QpConfig, QpNetworkItem, Role},
+        qp_types::{QpConfig, QpNetworkItem, Role},
         quantum_portal_client::QuantumPortalClient,
         quantum_portal_service::{PendingTransaction, QuantumPortalService},
     };
     use core::convert::TryInto;
     use ferrum_primitives::{OFFCHAIN_SIGNER_CONFIG_KEY, OFFCHAIN_SIGNER_CONFIG_PREFIX};
     use frame_support::pallet_prelude::*;
-    use frame_support::traits::Randomness;
     use frame_support::traits::UnixTime;
     use frame_system::{
         offchain::{SignedPayload, SigningTypes},
@@ -80,8 +94,6 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// The overarching dispatch call type.
         type RuntimeCall: From<frame_system::Call<Self>>;
-        /// Randomeness generator for the runtime
-        type PalletRandomness: Randomness<Self::Hash, Self::BlockNumber>;
         /// Onchain timestamp for the runtime
         type Timestamp: UnixTime;
     }
@@ -137,20 +149,19 @@ pub mod pallet {
             block_number: u64,
             network_item: QpNetworkItem,
             signer_public_key: Vec<u8>,
-            eip_712_config: EIP712Config,
         ) -> QuantumPortalClient<T> {
             let rpc_endpoint = network_item.url;
             let id = network_item.id;
 
             let signer = ChainUtils::hex_to_ecdsa_pub_key(&signer_public_key[..]);
-            let lgr_mgr = ChainUtils::hex_to_address(&network_item.ledger_manager[..]);
-            let client = ContractClient::new(rpc_endpoint, &lgr_mgr, id);
+            let gateway_contract =
+                ChainUtils::hex_to_address(&network_item.gateway_contract_address[..]);
+            let client = ContractClient::new(rpc_endpoint, &gateway_contract, id);
             QuantumPortalClient::new(
                 client,
                 ContractClientSignature::from(signer),
                 sp_io::offchain::timestamp().unix_millis(),
                 block_number,
-                eip_712_config,
             )
         }
 
@@ -166,7 +177,6 @@ pub mod pallet {
                         block_number,
                         item,
                         qp_config_item.signer_public_key.clone(),
-                        qp_config_item.eip_712_config.clone(),
                     )
                 })
                 .collect();

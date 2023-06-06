@@ -28,6 +28,7 @@ pub struct QpTransaction {
     pub source_beneficiary: Address,
     pub token: Address,
     pub amount: U256,
+    pub fixed_fee: U256,
     pub method: Vec<u8>,
     pub gas: u64,
 }

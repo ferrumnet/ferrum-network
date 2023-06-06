@@ -13,7 +13,7 @@
 
 // You should have received a copy of the GNU General Public License
 // along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
-#![allow(clippy::all)]
+#![allow(clippy::all, deprecated)]
 use std::path::PathBuf;
 
 /// Sub-commands supported by the collator.

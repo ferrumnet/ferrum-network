@@ -136,7 +136,7 @@ where
 
 fn decode_remote_transaction_from_tuple(dec: &[Token]) -> ChainRequestResult<QpTransaction> {
     match dec {
-        [timestamp, remote_contract, source_msg_sender, source_beneficiary, token, amount, method, gas] =>
+        [timestamp, remote_contract, source_msg_sender, source_beneficiary, token, fixed_fee, amount, method, gas] =>
         {
             let timestamp = timestamp.clone().to_uint().unwrap().as_u64();
             let remote_contract = remote_contract.clone().to_address().unwrap();
@@ -144,6 +144,7 @@ fn decode_remote_transaction_from_tuple(dec: &[Token]) -> ChainRequestResult<QpT
             let source_beneficiary = source_beneficiary.clone().to_address().unwrap();
             let token = token.clone().to_address().unwrap();
             let amount = amount.clone().to_uint().unwrap();
+            let fixed_fee = fixed_fee.clone().to_uint().unwrap();
             let method = method.clone().to_bytes().unwrap();
             let gas = gas.clone().to_uint().unwrap().as_u64();
             Ok(QpTransaction {
@@ -153,6 +154,7 @@ fn decode_remote_transaction_from_tuple(dec: &[Token]) -> ChainRequestResult<QpT
                 source_beneficiary,
                 token,
                 amount,
+                fixed_fee,
                 method,
                 gas,
             })

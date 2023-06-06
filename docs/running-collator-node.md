@@ -50,7 +50,7 @@ ferrum-network \
 --collator \
 --config-file-path=/var/lib/node-config.json
 -- \
---chain ./chainspecs/ferrum-testnet-relaychain.json
+--chain ./chainspecs/testnet-relaychain.json
 ```
 Once the node has started, your output should look similar to this
 
@@ -118,13 +118,13 @@ cargo build --release
 ```bash
 ./target/release/ferrum-network \
 --base-path <PATH_TO_CHAIN_STORAGE> \
---chain ./chainspecs/ferrum-alpha-testnet.json \
+--chain ./chainspecs/testnet-alpha.json \
 --name "YOUR-NODE-NAME" \
 --collator \
 --config-file-path <PATH_TO_YOUR_NODE_CONFIG> \
 --execution=wasm \
 -- \
---chain ./chainspecs/ferrum-testnet-relaychain.json
+--chain ./chainspecs/testnet-relaychain.json
 ```
 
 Once the node has started, your output should look similar to this

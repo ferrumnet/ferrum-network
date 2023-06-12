@@ -1,3 +1,18 @@
+// Copyright 2019-2023 Ferrum Inc.
+// This file is part of Ferrum.
+
+// Ferrum is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// Ferrum is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
 #![cfg_attr(not(feature = "std"), no_std)]
 use crate::{
     chain_queries::CallResponse,
@@ -121,7 +136,7 @@ where
 
 fn decode_remote_transaction_from_tuple(dec: &[Token]) -> ChainRequestResult<QpTransaction> {
     match dec {
-        [timestamp, remote_contract, source_msg_sender, source_beneficiary, token, amount, method, gas] =>
+        [timestamp, remote_contract, source_msg_sender, source_beneficiary, token, fixed_fee, amount, method, gas] =>
         {
             let timestamp = timestamp.clone().to_uint().unwrap().as_u64();
             let remote_contract = remote_contract.clone().to_address().unwrap();
@@ -129,6 +144,7 @@ fn decode_remote_transaction_from_tuple(dec: &[Token]) -> ChainRequestResult<QpT
             let source_beneficiary = source_beneficiary.clone().to_address().unwrap();
             let token = token.clone().to_address().unwrap();
             let amount = amount.clone().to_uint().unwrap();
+            let fixed_fee = fixed_fee.clone().to_uint().unwrap();
             let method = method.clone().to_bytes().unwrap();
             let gas = gas.clone().to_uint().unwrap().as_u64();
             Ok(QpTransaction {
@@ -138,6 +154,7 @@ fn decode_remote_transaction_from_tuple(dec: &[Token]) -> ChainRequestResult<QpT
                 source_beneficiary,
                 token,
                 amount,
+                fixed_fee,
                 method,
                 gas,
             })

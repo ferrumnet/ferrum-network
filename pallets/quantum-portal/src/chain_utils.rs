@@ -33,6 +33,7 @@ pub enum ChainRequestError {
     RemoteBlockAlreadyMined,
     JsonRpcError(Vec<u8>),
     InvalidHexCharacter,
+    SlotNotAvailable
 }
 
 #[derive(Debug, PartialEq)]

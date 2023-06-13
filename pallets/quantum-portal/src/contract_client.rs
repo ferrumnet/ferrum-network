@@ -165,6 +165,32 @@ impl ContractClient {
         Ok((address, version.to_vec(), name.to_vec()))
     }
 
+    pub fn get_miner_for_block(
+        &self,
+        block_hash: H256,
+        block_timestamp: u64,
+        chain_timestamp: u64,
+    ) -> Result<Address, ChainRequestError> {
+        let miner_manager_address = self.get_miner_manager_address()?;
+
+        // no cache, we fetch from the gateway contract
+        let signature = b"findMinerAtTime(bytes32,uint256,uint256)";
+        let res: Box<CallResponse> = self.call(
+            signature,
+            &[
+                Token::FixedBytes(block_hash.as_ref().to_vec()),
+                Token::Uint(U256::from(block_timestamp)),
+                Token::Uint(U256::from(chain_timestamp)),
+            ],
+            Some(miner_manager_address.0),
+        )?;
+        log::info!("Miner manager response is : {:?}", res);
+        let address = ChainUtils::decode_address_response(res.result.as_slice());
+        log::info!("Selected miner address is : {:?}", address);
+
+        Ok((address))
+    }
+
     pub fn call<T>(
         &self,
         method_signature: &[u8],

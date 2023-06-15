@@ -603,8 +603,16 @@ impl<T: Config> QuantumPortalClient<T> {
         let block = self.last_remote_mined_block(chain_id)?;
         log::info!("finalize-last_remote_mined_block({:?})", &block);
         let last_fin = self.last_finalized_block(chain_id)?;
+
         log::info!("finalize-last_finalized_block({:?})", &last_fin);
         if block.nonce > last_fin.nonce {
+
+            log::info!("Preparing to finalize, verifying mined block ({}, {})", chain_id, block.nonce);
+            let (mined_block, mined_txs) = self.mined_block_by_nonce(chain_id, block.nonce)?;
+            let (source_block, source_txs) = self.local_block_by_nonce(chain_id, block.nonce)?;
+            // verify data before finalization
+            Self::compare_and_verify_mined_block(source_block, &source_txs, mined_block, &mined_txs)?;
+
             log::info!("Calling mgr.finalize({}, {})", chain_id, block.nonce);
             Ok(Some(self.create_finalize_transaction(
                 chain_id,
@@ -669,9 +677,9 @@ impl<T: Config> QuantumPortalClient<T> {
         );
 
         let assigned_miner = self.contract.get_miner_for_block(
-            source_block.0.hash(), // block hash from txs
-            source_block.0.timestamp, // block timestamp
-            sp_io::offchain::timestamp().unix_millis() // chain timestamp
+            source_block.0.hash(),                      // block hash from txs
+            source_block.0.timestamp,                   // block timestamp
+            sp_io::offchain::timestamp().unix_millis(), // chain timestamp
         )?;
 
         if ChainUtils::address_to_hex(assigned_miner) != self.signer.get_signer_address() {
@@ -681,7 +689,7 @@ impl<T: Config> QuantumPortalClient<T> {
                 self.signer.get_signer_address()
             );
 
-            return Err(ChainRequestError::SlotNotAvailable)
+            return Err(ChainRequestError::SlotNotAvailable);
         }
 
         log::info!(
@@ -759,5 +767,29 @@ impl<T: Config> QuantumPortalClient<T> {
                 .as_slice()
                 .into()),
         }
+    }
+
+    fn compare_and_verify_mined_block(
+        source_block: QpLocalBlock,
+        source_txs: &[QpTransaction],
+        mined_block: QpRemoteBlock,
+        mined_txs: &[QpTransaction],
+    ) -> Result<(), ChainRequestError> {
+        
+        // sanity check, ensure the source and mined transactions are the same
+        if source_txs.len() != mined_txs.len() {
+            log::info!("Transaction count mismatch, source block has {:?} txs, mined block has {:?} txs", source_txs.len(), mined_txs.len());
+            return Err(ChainRequestError::MinedBlockVerificationError);
+        }
+
+        // ensure the transaction content is the same
+        for transaction in source_txs.iter() {
+            if !mined_txs.contains(&transaction) {
+                log::info!("Transaction content mismatch between source and mined txs");
+                return Err(ChainRequestError::MinedBlockVerificationError);
+            }
+        }
+
+        Ok(())
     }
 }

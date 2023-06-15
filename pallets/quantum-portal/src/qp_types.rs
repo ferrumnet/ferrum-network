@@ -17,6 +17,7 @@ use ethabi_nostd::Address;
 use parity_scale_codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use sp_core::{H256, U256};
+use ethabi_nostd::Token;
 use sp_std::{prelude::*, str};
 
 #[derive(Debug, Default)]
@@ -38,6 +39,19 @@ pub struct QpLocalBlock {
     pub chain_id: u64,
     pub nonce: u64,
     pub timestamp: u64,
+}
+
+impl QpLocalBlock {
+    // generate a hash from the data in the local block
+    pub fn hash(&self) -> H256 {
+        let mut data_to_hash: Vec<Token> = vec![
+            Token::Uint(U256::from(self.chain_id)),
+            Token::Uint(U256::from(self.chain_id)),
+            Token::Uint(U256::from(self.chain_id)),
+        ];
+
+        crate::chain_utils::ChainUtils::keccack(&ethabi_nostd::encode(&data_to_hash))
+    }
 }
 
 pub struct QpRemoteBlock {

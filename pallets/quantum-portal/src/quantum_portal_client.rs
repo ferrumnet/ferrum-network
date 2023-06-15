@@ -661,6 +661,29 @@ impl<T: Config> QuantumPortalClient<T> {
             }
         );
         let txs = source_block.1;
+
+        log::info!(
+            "Checking if the slot to mine block on chain is assigned to us {}:{}",
+            source_block.0.nonce,
+            remote_chain,
+        );
+
+        let assigned_miner = self.contract.get_miner_for_block(
+            source_block.0.hash(), // block hash from txs
+            source_block.0.timestamp, // block timestamp
+            sp_io::offchain::timestamp().unix_millis() // chain timestamp
+        )?;
+
+        if ChainUtils::address_to_hex(assigned_miner) != self.signer.get_signer_address() {
+            log::info!(
+                "Not our slot to mine, Assigned miner is {:?} our address is {:?}",
+                assigned_miner,
+                self.signer.get_signer_address()
+            );
+
+            return Err(ChainRequestError::SlotNotAvailable)
+        }
+
         log::info!(
             "About to mine block {}:{}",
             remote_chain,

@@ -28,7 +28,7 @@ pub fn kusama_local_config() -> KusamaChainSpec {
         "Quantum Portal Network Local",
         // ID
         "quantum_portal_network_local",
-        ChainType::Local,
+        ChainType::Live,
         move || {
             generate_genesis(
                 vec![
@@ -47,10 +47,10 @@ pub fn kusama_local_config() -> KusamaChainSpec {
                         .unwrap(),
                     ),
                 ],
-                // Endowed Accounts
-                vec![AccountId::from_str("87C064f565414399Da9b7a94209378F33B17af94").unwrap()],
+                 // Endowed Accounts
+                vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
                 // Sudo Key
-                AccountId::from_str("6Edb3705bFFcA48af7c0aA816Ac004C2d1c48F7e").unwrap(),
+                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
                 1000.into(),
             )
         },

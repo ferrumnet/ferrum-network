@@ -606,12 +606,20 @@ impl<T: Config> QuantumPortalClient<T> {
 
         log::info!("finalize-last_finalized_block({:?})", &last_fin);
         if block.nonce > last_fin.nonce {
-
-            log::info!("Preparing to finalize, verifying mined block ({}, {})", chain_id, block.nonce);
+            log::info!(
+                "Preparing to finalize, verifying mined block ({}, {})",
+                chain_id,
+                block.nonce
+            );
             let (mined_block, mined_txs) = self.mined_block_by_nonce(chain_id, block.nonce)?;
             let (source_block, source_txs) = self.local_block_by_nonce(chain_id, block.nonce)?;
             // verify data before finalization
-            Self::compare_and_verify_mined_block(source_block, &source_txs, mined_block, &mined_txs)?;
+            Self::compare_and_verify_mined_block(
+                source_block,
+                &source_txs,
+                mined_block,
+                &mined_txs,
+            )?;
 
             log::info!("Calling mgr.finalize({}, {})", chain_id, block.nonce);
             Ok(Some(self.create_finalize_transaction(
@@ -775,10 +783,13 @@ impl<T: Config> QuantumPortalClient<T> {
         mined_block: QpRemoteBlock,
         mined_txs: &[QpTransaction],
     ) -> Result<(), ChainRequestError> {
-        
         // sanity check, ensure the source and mined transactions are the same
         if source_txs.len() != mined_txs.len() {
-            log::info!("Transaction count mismatch, source block has {:?} txs, mined block has {:?} txs", source_txs.len(), mined_txs.len());
+            log::info!(
+                "Transaction count mismatch, source block has {:?} txs, mined block has {:?} txs",
+                source_txs.len(),
+                mined_txs.len()
+            );
             return Err(ChainRequestError::MinedBlockVerificationError);
         }
 

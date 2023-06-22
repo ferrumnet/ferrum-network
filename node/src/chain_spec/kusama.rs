@@ -1,20 +1,13 @@
 use super::*;
 use cumulus_primitives_core::ParaId;
 use ferrum_runtime::{AccountId, AuraId, EXISTENTIAL_DEPOSIT};
-
+use hex_literal::hex;
 use sc_service::ChainType;
-
+use sp_application_crypto::ByteArray;
 use std::str::FromStr;
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type KusamaChainSpec = sc_service::GenericChainSpec<ferrum_runtime::GenesisConfig, Extensions>;
-
-/// Generate collator keys from seed.
-///
-/// This function's return type must always match the session keys of the chain in tuple format.
-pub fn get_collator_keys_from_seed(s: &str) -> AuraId {
-    get_from_seed::<AuraId>(s)
-}
 
 /// Generate the session keys from individual elements.
 ///
@@ -38,21 +31,26 @@ pub fn kusama_local_config() -> KusamaChainSpec {
         ChainType::Local,
         move || {
             generate_genesis(
-                // TODO : Configure initial accounts
                 vec![
                     (
-                        AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
-                        get_collator_keys_from_seed("Alice"),
+                        AccountId::from_str("3b4b630c64C104E4514aA3643490b8AACA9CF8ED").unwrap(),
+                        AuraId::from_slice(&hex!(
+                            "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+                        ))
+                        .unwrap(),
                     ),
                     (
-                        AccountId::from_str("0x25451A4de12dcCc2D166922fA938E900fCc4ED24").unwrap(),
-                        get_collator_keys_from_seed("Bob"),
+                        AccountId::from_str("9Ab9804Ff30EB824b5410FC14231C1cA47A879E8").unwrap(),
+                        AuraId::from_slice(&hex!(
+                            "8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48"
+                        ))
+                        .unwrap(),
                     ),
                 ],
                 // Endowed Accounts
-                vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
+                vec![AccountId::from_str("87C064f565414399Da9b7a94209378F33B17af94").unwrap()],
                 // Sudo Key
-                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
+                AccountId::from_str("6Edb3705bFFcA48af7c0aA816Ac004C2d1c48F7e").unwrap(),
                 1000.into(),
             )
         },
@@ -89,22 +87,27 @@ pub fn kusama_config() -> KusamaChainSpec {
         ChainType::Live,
         move || {
             generate_genesis(
-                // initial collators.
                 vec![
                     (
-                        AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
-                        get_collator_keys_from_seed("Alice"),
+                        AccountId::from_str("3b4b630c64C104E4514aA3643490b8AACA9CF8ED").unwrap(),
+                        AuraId::from_slice(&hex!(
+                            "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+                        ))
+                        .unwrap(),
                     ),
                     (
-                        AccountId::from_str("0x25451A4de12dcCc2D166922fA938E900fCc4ED24").unwrap(),
-                        get_collator_keys_from_seed("Bob"),
+                        AccountId::from_str("9Ab9804Ff30EB824b5410FC14231C1cA47A879E8").unwrap(),
+                        AuraId::from_slice(&hex!(
+                            "8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48"
+                        ))
+                        .unwrap(),
                     ),
                 ],
                 // Endowed Accounts
-                vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
+                vec![AccountId::from_str("87C064f565414399Da9b7a94209378F33B17af94").unwrap()],
                 // Sudo Key
-                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
-                1000.into(),
+                AccountId::from_str("6Edb3705bFFcA48af7c0aA816Ac004C2d1c48F7e").unwrap(),
+                2274.into(),
             )
         },
         // Bootnodes
@@ -120,7 +123,7 @@ pub fn kusama_config() -> KusamaChainSpec {
         // Extensions
         Extensions {
             relay_chain: "kusama".into(),
-            para_id: 1000, // TODO : Set this after we reserve slot
+            para_id: 2274, // TODO : Set this after we reserve slot
         },
     )
 }

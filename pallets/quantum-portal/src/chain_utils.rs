@@ -34,7 +34,7 @@ pub enum ChainRequestError {
     JsonRpcError(Vec<u8>),
     InvalidHexCharacter,
     SlotNotAvailable,
-    MinedBlockVerificationError
+    MinedBlockVerificationError,
 }
 
 #[derive(Debug, PartialEq)]

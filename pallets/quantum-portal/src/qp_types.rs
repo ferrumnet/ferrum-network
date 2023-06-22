@@ -20,7 +20,6 @@ use serde::{Deserialize, Serialize};
 use sp_core::{H256, U256};
 use sp_std::{prelude::*, str};
 
-
 #[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct QpTransaction {

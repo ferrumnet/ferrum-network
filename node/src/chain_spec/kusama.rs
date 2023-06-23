@@ -48,9 +48,9 @@ pub fn kusama_local_config() -> KusamaChainSpec {
                     ),
                 ],
                  // Endowed Accounts
-                vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
+                vec![AccountId::from_str("8097c3C354652CB1EEed3E5B65fBa2576470678A").unwrap()],
                 // Sudo Key
-                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
+                AccountId::from_str("8097c3C354652CB1EEed3E5B65fBa2576470678A").unwrap(),
                 1000.into(),
             )
         },

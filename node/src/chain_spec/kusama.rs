@@ -33,16 +33,16 @@ pub fn kusama_local_config() -> KusamaChainSpec {
             generate_genesis(
                 vec![
                     (
-                        AccountId::from_str("3b4b630c64C104E4514aA3643490b8AACA9CF8ED").unwrap(),
+                        AccountId::from_str("229FEf7f74a51590FaB754BDD927bA287b7F46cd").unwrap(),
                         AuraId::from_slice(&hex!(
-                            "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+                            "00d9eb842ad7b599d5eb1aefa8d2ef48e418dfc62c98f6925fb03853a82bda4a"
                         ))
                         .unwrap(),
                     ),
                     (
-                        AccountId::from_str("9Ab9804Ff30EB824b5410FC14231C1cA47A879E8").unwrap(),
+                        AccountId::from_str("850642c3b288d67A5dA39351569c0b0c4DE8210A").unwrap(),
                         AuraId::from_slice(&hex!(
-                            "8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48"
+                            "743d69b340f9fc9f019329ff1470cc6a738baf384a47af6023bed62ff8383e69"
                         ))
                         .unwrap(),
                     ),
@@ -89,16 +89,16 @@ pub fn kusama_config() -> KusamaChainSpec {
             generate_genesis(
                 vec![
                     (
-                        AccountId::from_str("3b4b630c64C104E4514aA3643490b8AACA9CF8ED").unwrap(),
+                        AccountId::from_str("229FEf7f74a51590FaB754BDD927bA287b7F46cd").unwrap(),
                         AuraId::from_slice(&hex!(
-                            "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"
+                            "00d9eb842ad7b599d5eb1aefa8d2ef48e418dfc62c98f6925fb03853a82bda4a"
                         ))
                         .unwrap(),
                     ),
                     (
-                        AccountId::from_str("9Ab9804Ff30EB824b5410FC14231C1cA47A879E8").unwrap(),
+                        AccountId::from_str("850642c3b288d67A5dA39351569c0b0c4DE8210A").unwrap(),
                         AuraId::from_slice(&hex!(
-                            "8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48"
+                            "743d69b340f9fc9f019329ff1470cc6a738baf384a47af6023bed62ff8383e69"
                         ))
                         .unwrap(),
                     ),
@@ -123,7 +123,7 @@ pub fn kusama_config() -> KusamaChainSpec {
         // Extensions
         Extensions {
             relay_chain: "kusama".into(),
-            para_id: 2274, // TODO : Set this after we reserve slot
+            para_id: 2274,
         },
     )
 }

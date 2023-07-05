@@ -48,6 +48,11 @@ sp-session = { git = "https://github.com/paritytech/substrate", default-features
 sp-std = { git = "https://github.com/paritytech/substrate", default-features = false, "branch" = "polkadot-v0.9.39" }
 sp-transaction-pool = { git = "https://github.com/paritytech/substrate", default-features = false, "branch" = "polkadot-v0.9.39" }
 sp-version = { git = "https://github.com/paritytech/substrate", default-features = false, "branch" = "polkadot-v0.9.39" }
+pallet-democracy = { git = "https://github.com/paritytech/substrate", default-features = false, "branch" = "polkadot-v0.9.39" }
+pallet-multisig = { git = "https://github.com/paritytech/substrate", default-features = false, "branch" = "polkadot-v0.9.39" }
+pallet-collective = { git = "https://github.com/paritytech/substrate", default-features = false, "branch" = "polkadot-v0.9.39" }
+pallet-preimage = { git = "https://github.com/paritytech/substrate", default-features = false, "branch" = "polkadot-v0.9.39" }
+pallet-scheduler = { git = "https://github.com/paritytech/substrate", default-features = false, "branch" = "polkadot-v0.9.39" }
 
 # Polkadot
 pallet-xcm = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.39" }
@@ -146,6 +151,11 @@ std = [
 	"fp-self-contained/std",
 	"pallet-quantum-portal/std",
 	"ferrum-primitives/std",
+	"pallet-democracy/std",
+	"pallet-multisig/std",
+	"pallet-preimage/std",
+	"pallet-collective/std",
+	"pallet-scheduler/std",
 ]
 
 runtime-benchmarks = [

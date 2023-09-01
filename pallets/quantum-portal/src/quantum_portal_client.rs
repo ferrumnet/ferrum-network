@@ -95,6 +95,7 @@ where
                 Box::new(ParamKind::Uint(256)), // amount
                 Box::new(ParamKind::Bytes),     // method
                 Box::new(ParamKind::Uint(256)), // gas
+                Box::new(ParamKind::Uint(256)), // fixedFee
             ]))),
         ],
         ChainUtils::hex_to_bytes(data)?.as_slice(),
@@ -136,7 +137,7 @@ where
 
 fn decode_remote_transaction_from_tuple(dec: &[Token]) -> ChainRequestResult<QpTransaction> {
     match dec {
-        [timestamp, remote_contract, source_msg_sender, source_beneficiary, token, fixed_fee, amount, method, gas] =>
+        [timestamp, remote_contract, source_msg_sender, source_beneficiary, token, amount, method, gas, fixed_fee] =>
         {
             let timestamp = timestamp.clone().to_uint().unwrap().as_u64();
             let remote_contract = remote_contract.clone().to_address().unwrap();
@@ -144,9 +145,9 @@ fn decode_remote_transaction_from_tuple(dec: &[Token]) -> ChainRequestResult<QpT
             let source_beneficiary = source_beneficiary.clone().to_address().unwrap();
             let token = token.clone().to_address().unwrap();
             let amount = amount.clone().to_uint().unwrap();
-            let fixed_fee = fixed_fee.clone().to_uint().unwrap();
             let method = method.clone().to_bytes().unwrap();
-            let gas = gas.clone().to_uint().unwrap().as_u64();
+            let gas = gas.clone().to_uint().unwrap();
+            let fixed_fee = fixed_fee.clone().to_uint().unwrap();
             Ok(QpTransaction {
                 timestamp,
                 remote_contract,
@@ -154,9 +155,9 @@ fn decode_remote_transaction_from_tuple(dec: &[Token]) -> ChainRequestResult<QpT
                 source_beneficiary,
                 token,
                 amount,
-                fixed_fee,
                 method,
                 gas,
+                fixed_fee,
             })
         }
         _ => Err(b"Unexpected output. Could not decode remote transaction"
@@ -199,18 +200,20 @@ impl<T: Config> QuantumPortalClient<T> {
     }
 
     pub fn last_finalized_block(&self, chain_id: u64) -> ChainRequestResult<QpLocalBlock> {
-        let signature = b"lastFinalizedBlock(uint256)";
+        let signature = b"getLastFinalizedBlock(uint256)";
+        let state_contract_address = self.contract.get_state_contract_address()?;
         let res: Box<CallResponse> =
             self.contract
-                .call(signature, &[Token::Uint(U256::from(chain_id))], None)?;
+                .call(signature, &[Token::Uint(U256::from(chain_id))], Some(state_contract_address))?;
         self.decode_local_block(res.result.as_slice())
     }
 
     pub fn last_local_block(&self, chain_id: u64) -> ChainRequestResult<QpLocalBlock> {
-        let signature = b"lastLocalBlock(uint256)";
+        let signature = b"getLastLocalBlock(uint256)";
+        let state_contract_address = self.contract.get_state_contract_address()?;
         let res: Box<CallResponse> =
             self.contract
-                .call(signature, &[Token::Uint(U256::from(chain_id))], None)?;
+                .call(signature, &[Token::Uint(U256::from(chain_id))], Some(state_contract_address))?;
         self.decode_local_block(res.result.as_slice())
     }
 
@@ -451,11 +454,11 @@ impl<T: Config> QuantumPortalClient<T> {
         txs: &Vec<QpTransaction>,
         source_block: QpLocalBlock,
     ) -> ChainRequestResult<H256> {
-        let method_signature = b"mineRemoteBlock(uint64,uint64,(uint64,address,address,address,address,uint256,bytes,uint256)[],bytes32,uint64,bytes)";
+        let method_signature = b"mineRemoteBlock(uint64,uint64,(uint64,address,address,address,address,uint256,bytes,uint256,uint256)[],bytes32,uint64,bytes)";
 
         // set timestamp 1hr from now
         let current_timestamp = source_block.timestamp;
-        let expiry_buffer = core::time::Duration::from_secs(3600u64);
+        let expiry_buffer = core::time::Duration::from_secs(360000u64);
         let expiry_time = current_timestamp.saturating_add(expiry_buffer.as_secs());
         let expiry = Token::Uint(U256::from(expiry_time));
         let salt = Token::FixedBytes(vec![0u8, 0u8]);
@@ -472,6 +475,7 @@ impl<T: Config> QuantumPortalClient<T> {
                     Token::Uint(t.amount),
                     Token::Bytes(t.method.clone()),
                     Token::Uint(U256::from(t.gas)),
+                    Token::Uint(U256::from(t.fixed_fee)),
                 ])
             })
             .collect();
@@ -502,8 +506,8 @@ impl<T: Config> QuantumPortalClient<T> {
                 expiry,
                 Token::Bytes(multi_sig),
             ],
-            None, //Some(U256::from(1000000 as u32)), // None,
-            None, //Some(U256::from(60000000000 as u64)), // None,
+            Some(U256::from(1000000 as u32)), // None,
+            None, // Some(U256::from(60000000000 as u64)), // None,
             U256::zero(),
             None,
             self.signer.from,
@@ -690,15 +694,15 @@ impl<T: Config> QuantumPortalClient<T> {
             sp_io::offchain::timestamp().unix_millis(), // chain timestamp
         )?;
 
-        if ChainUtils::address_to_hex(assigned_miner) != self.signer.get_signer_address() {
-            log::info!(
-                "Not our slot to mine, Assigned miner is {:?} our address is {:?}",
-                assigned_miner,
-                self.signer.get_signer_address()
-            );
+        // if ChainUtils::address_to_hex(assigned_miner) != self.signer.get_signer_address() {
+        //     log::info!(
+        //         "Not our slot to mine, Assigned miner is {:?} our address is {:?}",
+        //         ChainUtils::address_to_hex(assigned_miner),
+        //         self.signer.get_signer_address()
+        //     );
 
-            return Err(ChainRequestError::SlotNotAvailable);
-        }
+        //     return Err(ChainRequestError::SlotNotAvailable);
+        // }
 
         log::info!(
             "About to mine block {}:{}",

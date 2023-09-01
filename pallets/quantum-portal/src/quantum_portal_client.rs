@@ -258,6 +258,7 @@ impl<T: Config> QuantumPortalClient<T> {
             // MinedBlock
             Box::new(ParamKind::FixedBytes(32)), // blockHash
             Box::new(ParamKind::Address),        // miner
+            Box::new(ParamKind::Uint(256)),          // invalid block
             Box::new(ParamKind::Uint(256)),      // stake
             Box::new(ParamKind::Uint(256)),      // totalValue
             Box::new(local_block_tuple()),
@@ -297,7 +298,7 @@ impl<T: Config> QuantumPortalClient<T> {
         let (block_details, _) = self.mined_block_by_nonce(remote_chain_id, block_nonce)?;
 
         let method_signature =
-            b"finalizeSingleSigner(uint256,uint256,bytes32,address[],bytes32,uint64,bytes)";
+            b"finalizeSingleSigner(uint256,uint256,uint256[],bytes32,address[],bytes32,uint64,bytes)";
 
         let salt = Token::FixedBytes(block_details.block_hash.as_ref().to_vec());
         let finalizer_hash = Token::FixedBytes(block_details.block_hash.as_ref().to_vec());
@@ -326,6 +327,7 @@ impl<T: Config> QuantumPortalClient<T> {
         let inputs = [
             Token::Uint(U256::from(remote_chain_id)),
             Token::Uint(U256::from(block_nonce)),
+            Token::Array(vec![]),
             finalizer_hash,
             Token::Array(finalizer_list),
             salt,

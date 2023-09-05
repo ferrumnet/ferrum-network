@@ -282,6 +282,7 @@ impl<T: Config> QuantumPortalClient<T> {
         block_nonce: u64,
         _finalizer_hash: H256,
         _finalizers: &[Vec<u8>],
+        verification_result: bool
     ) -> ChainRequestResult<H256> {
         // because of sp_std, so here are the alternatives:
         // - Manually construct the function call as [u8].
@@ -324,10 +325,17 @@ impl<T: Config> QuantumPortalClient<T> {
                 .unwrap()
         );
 
+        // set this block nonce as invalid if verification failed
+        let invalid_block : Vec<Token> = if !verification_result {
+            vec![Token::Uint(U256::from(block_nonce))]
+        } else {
+            vec![]
+        };
+
         let inputs = [
             Token::Uint(U256::from(remote_chain_id)),
             Token::Uint(U256::from(block_nonce)),
-            Token::Array(vec![]),
+            Token::Array(invalid_block), 
             finalizer_hash,
             Token::Array(finalizer_list),
             salt,
@@ -620,12 +628,12 @@ impl<T: Config> QuantumPortalClient<T> {
             let (mined_block, mined_txs) = self.mined_block_by_nonce(chain_id, block.nonce)?;
             let (source_block, source_txs) = self.local_block_by_nonce(chain_id, block.nonce)?;
             // verify data before finalization
-            Self::compare_and_verify_mined_block(
+            let verification_result = Self::is_mined_block_same_as_source_block(
                 source_block,
                 &source_txs,
                 mined_block,
                 &mined_txs,
-            )?;
+            );
 
             log::info!("Calling mgr.finalize({}, {})", chain_id, block.nonce);
             Ok(Some(self.create_finalize_transaction(
@@ -633,6 +641,7 @@ impl<T: Config> QuantumPortalClient<T> {
                 block.nonce,
                 H256::zero(),
                 &[self.signer.get_signer_address()],
+                verification_result
             )?))
         } else {
             log::info!("Nothing to finalize for ({})", chain_id);
@@ -783,12 +792,13 @@ impl<T: Config> QuantumPortalClient<T> {
         }
     }
 
-    fn compare_and_verify_mined_block(
+    // returns true if the block passes verification
+    fn is_mined_block_same_as_source_block(
         source_block: QpLocalBlock,
         source_txs: &[QpTransaction],
         mined_block: QpRemoteBlock,
         mined_txs: &[QpTransaction],
-    ) -> Result<(), ChainRequestError> {
+    ) -> bool {
         // sanity check, ensure the source and mined transactions are the same
         if source_txs.len() != mined_txs.len() {
             log::info!(
@@ -796,17 +806,17 @@ impl<T: Config> QuantumPortalClient<T> {
                 source_txs.len(),
                 mined_txs.len()
             );
-            return Err(ChainRequestError::MinedBlockVerificationError);
+            return false;
         }
 
         // ensure the transaction content is the same
         for transaction in source_txs.iter() {
             if !mined_txs.contains(&transaction) {
                 log::info!("Transaction content mismatch between source and mined txs");
-                return Err(ChainRequestError::MinedBlockVerificationError);
+                return false;
             }
         }
 
-        Ok(())
+       return true;
     }
 }

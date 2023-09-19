@@ -23,4 +23,4 @@ Currency : tFRM
 
 ## Example 
 
-![alt text](./ferrum-metamask.png "metamask-example")
+![alt text](../images/ferrum-metamask.png "metamask-example")

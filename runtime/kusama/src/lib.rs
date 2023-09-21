@@ -616,11 +616,6 @@ parameter_types! {
     pub const MaxProposals: u32 = 100;
 }
 
-type EnsureRootOrHalfCouncil = EitherOfDiverse<
-    EnsureRoot<AccountId>,
-    pallet_collective::EnsureProportionMoreThan<AccountId, CouncilInstance, 1, 2>,
->;
-
 impl pallet_democracy::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;

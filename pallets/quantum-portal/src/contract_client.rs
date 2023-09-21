@@ -188,7 +188,7 @@ impl ContractClient {
         let address = ChainUtils::decode_address_response(res.result.as_slice());
         log::info!("Selected miner address is : {:?}", address);
 
-        Ok((address))
+        Ok(address)
     }
 
     pub fn call<T>(

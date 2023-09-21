@@ -34,16 +34,16 @@ use sp_core::offchain::KeyTypeId;
 use sp_core::{ecdsa, H160, H256};
 use sp_runtime::{
     generic,
-    traits::{BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
+    traits::{BlakeTwo256, IdentifyAccount, Verify},
     Perbill,
 };
 
 #[cfg(feature = "std")]
 pub use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-pub mod accountId20;
+pub mod account_id20;
 pub mod xcm_primitives;
-pub use accountId20::*;
+pub use account_id20::*;
 
 /// Type of block number.
 pub type BlockNumber = u32;

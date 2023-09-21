@@ -194,6 +194,7 @@ impl<T: Config> QuantumPortalService<T> {
                 ))?
             }
         }
+
         // finalize if role is finalizer
         if role == Role::QP_FINALIZER {
             let fin_tx = local_client.finalize(remote_chain)?;

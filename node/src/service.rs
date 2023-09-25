@@ -514,6 +514,22 @@ where
         prometheus_registry.clone(),
     ));
 
+    let ethapi_cmd = rpc_config.ethapi.clone();
+	let tracing_requesters =
+		if ethapi_cmd.contains(&EthApi::Debug) || ethapi_cmd.contains(&EthApi::Trace) {
+			crate::rpc::tracing::spawn_tracing_tasks(
+				&task_manager,
+				client.clone(),
+				backend.clone(),
+				frontier_backend.clone(),
+				overrides.clone(),
+				&rpc_config,
+				prometheus_registry.clone(),
+			)
+		} else {
+			crate::rpc::tracing::RpcRequesters { debug: None, trace: None }
+		};
+
     let rpc_extensions_builder = {
         let client = client.clone();
         let network = network.clone();
@@ -534,6 +550,9 @@ where
                 block_data_cache: block_data_cache.clone(),
                 overrides: overrides.clone(),
                 enable_evm_rpc,
+                tracing_config: Some(crate::rpc::eth::TracingConfig {
+                    tracing_requesters: tracing_requesters.clone(),
+                    trace_filter_max_count: rpc_config.ethapi_trace_max_count,
             };
 
             crate::rpc::create_full(deps, subscription).map_err(Into::into)

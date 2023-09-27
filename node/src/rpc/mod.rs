@@ -42,6 +42,8 @@ use sp_runtime::traits::BlakeTwo256;
 use std::sync::Arc;
 use substrate_frame_rpc_system::{System, SystemApiServer};
 
+pub mod tracing;
+
 // TODO This is copied from frontier. It should be imported instead after
 // https://github.com/paritytech/frontier/issues/333 is solved
 pub fn open_frontier_backend<C>(
@@ -69,6 +71,12 @@ where
             },
         },
     )?))
+}
+
+#[derive(Clone)]
+pub struct TracingConfig {
+	pub tracing_requesters: crate::rpc::tracing::RpcRequesters,
+	pub trace_filter_max_count: u32,
 }
 
 /// Full client dependencies
@@ -99,6 +107,8 @@ pub struct FullDeps<C, P, A: ChainApi> {
     pub block_data_cache: Arc<EthBlockDataCacheTask<Block>>,
     /// Enable EVM RPC servers
     pub enable_evm_rpc: bool,
+    /// Optional tracing config.
+	pub tracing_config: Option<TracingConfig>,
 }
 
 /// Instantiate all RPC extensions.

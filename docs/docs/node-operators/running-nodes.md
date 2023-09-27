@@ -1,16 +1,5 @@
 # Run a Ferrum Testnet Node
 
-## Table of Contents:
-
-* [Introduction](#introduction)
-* [Types of Nodes](#types-of-nodes)
-* [How Quantum Portal Works](#how-quantum-portal-works)
-* [What is QP Mining](#what-is-quantum-portal-mining)
-* [What is QP Finalisation](#what-is-quantum-portal-finalisation)
-* [System Requirements](#system-requirements)
-* [Account Requirements](#account-requirements)
-* [Node Prerequisites](#node-prerequisites)
-
 ## Introduction
 
 Collators/collators are members of the network that maintain the parachains they take part in. They run a full node (for both their particular parachain and the relay chain), and they produce the state transition proof for relay chain collators.
@@ -27,8 +16,8 @@ The different types of nodes of ferrum network:
 
 
 2. **Miner Node (QP Miner)**
-
-   A miner node is responsible for mining cross chain transactions, these nodes will observe the qp chain pairs and mine blocks on each other chains. This type of node can be run in conjunction with a collator node or indepdently to mine the block on the pair chain. Do note that running this node requires a minimum amount of tokens to pay for transaction costs on the pair chains.
+    
+    A miner node is responsible for mining cross chain transactions, these nodes will observe the qp chain pairs and mine blocks on each other chains. This type of node can be run in conjunction with a collator node or indepdently to mine the block on the pair chain. Do note that running this node requires a minimum amount of tokens to pay for transaction costs on the pair chains.
 
 
 3. **Finalizer Node (QP Finalizer)**
@@ -39,31 +28,6 @@ The different types of nodes of ferrum network:
 
     The archive node is the simplest type of node, the node will sync and update the latest block on the ferrum chain. This type of node is useful to run an indexer or explorer.
 
-
-## How Quantum Portal works
-
-Quantum Portal is part of the Ferrum Runtime Node. When you deploy the Ferrum Network node you can configure it to mine or validate Quantum Portal transactions of Ferrum Network transactions as a collator on the network.
-
-### Overview
-
-Quantum Portal is part of the Ferrum Runtime Node. When you deploy the Ferrum Network node you can configure it to mine or validate Quantum Portal transactions of Ferrum Network transactions as a collator on the network.
-
-Quantum Portal includes the following core components:
-
-1. QP Smart Contract
-2. QP Miner
-3. QP Finalizer
-
-![alt text](./images/qp-overview.png "Title")
-
-### What is Quantum Portal Mining?
-
-The QP Miners take turns based on an algorithm to create and relay these blocks from the sourceChain to the destinationChain. QP Miners do this by running the Ferrum Node as a QP Miner (QP Node). Once configured, this QP Node monitors the transactions on the network that they have set up to be miners and staked tokens on. The QP Node monitors transactions on the sourceChain and if new data is available, it creates a block every 15 seconds. After creating a block, the QP Node calls the mineRemoteBlock on the destinationChain in order to execute the transaction and mine the QP Block. It is considered a mined block after the transaction executes on the destinationChain
-
-### What is Quantum Portal Finalisation?
-
-The QP collators take turns based on an algorithm to pick the pending (mined but not finalized) Quantum Portal Blocks from the Quantum Portal Mined Block mempool. QP collators do this by running the Ferrum Node as a QP collator (QP Node). Once configured, this QP Node monitors the Quantum Portal Mined Block mempool for mined Quantum Portal Blocks, If new data is available, it creates a finalized block every 15 seconds. After creating a finalized block, the QP Node calls the finalizeRemoteBlock on the destinationChain in order to record the block as finalized and execute any remote transactions if applicable. The QP Block. It is considered a finalized block after the finalizeRemoteBlock transaction executes on the destinationChain
-Once mined QP Blocks are finalized, the record of the finalized mined blocks and the finalized block itself is added to the destinationChains.
 
 ## System Requirements
 

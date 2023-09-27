@@ -12,7 +12,7 @@ To deploy to ferrum testnet using Hardhat, use the following config below
 ```json
     ferrum_testnet: {
       chainId: 26100,
-      url: "http://testnet.dev.svcs.ferrumnetwork.io:8545",
+      url: "https://testnet.dev.svcs.ferrumnetwork.io/rpc",
       allowUnlimitedContractSize: true,
       gas: 10000000,
     },

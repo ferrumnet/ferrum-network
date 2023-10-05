@@ -25,11 +25,97 @@ Developers can use Quantum Portal to build cross-chain functionalities and integ
 - The `msgSender` function retrieves information about the current context, including the source network, message sender, and beneficiary.
 
 
-### Your First Contract
+### Demo QP Contract
+
+Below is an example of a dummy QP contract that can send an receive messages crosschain from a source chain to target chain. This example walkthrough should give you a grasp of how to write solidity contracts that take advantage of cross chain communications.
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+// Importing Quantum Portal contracts
+import "../QuantumPortalPoc.sol";
+import "../QuantumPortalLedgerMgr.sol";
+
+// Importing external libraries for safe operations
+import "foundry-contracts/contracts/common/SafeAmount.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+// Importing Hardhat console for logging
+import "hardhat/console.sol";
+
+// Interface for the remote contract
+interface IDummyMultiChainApp {
+    function receiveCall() external;
+}
+
+/**
+ * @notice Dummy contract for testing. Run any configuration
+ *   Send tokens to each contract
+ */
+contract DummyMultiChainApp is IDummyMultiChainApp {
+  using SafeERC20 for IERC20;
+    
+    // Instance of Quantum Portal contracts
+    QuantumPortalPoc public portal;
+    QuantumPortalLedgerMgr public mgr;
+
+    // Address of the fee token
+    address public feeToken;
+
+    // Constructor to initialize the contract with Quantum Portal addresses and fee token address
+    constructor(address _portal, address _mgr, address _feeToken) {
+        portal = QuantumPortalPoc(_portal);
+        mgr = QuantumPortalLedgerMgr(_mgr);
+        feeToken = _feeToken;
+    }
+
+    // Function to call a remote contract on a different chain
+    function callOnRemote(uint256 remoteChainId, address remoteContract, address beneficiary, address token, uint256 amount) external {
+        // Encode the function selector for `receiveCall` in ABI-encoded format
+        bytes memory method = abi.encodeWithSelector(IDummyMultiChainApp.receiveCall.selector);
+
+        // Pay fee...
+        uint fixedFee = mgr.calculateFixedFee(remoteChainId, method.length);
+        // This estimate fee will work becaue the remote contract code and local ones are identical. In real world scenarios
+        // there is no way for the local contract to calculate the var tx fee. Only the offchain application can do this by
+        // calling the estimateGasForRemoteTransaction method on the remote QP ledger manager.
+        console.log("Estimating gas...");
+        uint gasFrom = gasleft();
+        portal.estimateGasForRemoteTransaction(
+            remoteChainId,
+            address(this),
+            address(this), 
+            beneficiary,
+            method,
+            token,
+            amount);
+        uint varFee = gasFrom - gasleft();
+        console.log("Estimating gas... Done.");
+        IERC20(feeToken).safeTransfer(portal.feeTarget(), fixedFee + varFee);
+        console.log("Sent fee: ", fixedFee + varFee);
+
+        // Send the value and run the remote tx...
+        IERC20(token).safeTransfer(address(portal), amount);
+        console.log("Sent amount: ", amount);
+        portal.runWithValue(
+            uint64(remoteChainId), remoteContract, beneficiary, token, method);
+        console.log("Remote run...");
+    }
+
+    function receiveCall() external override {
+        (uint netId, address sourceMsgSender, address beneficiary) = portal.msgSender();
+        console.log("DummyMultiChainApp: Remote msg called", netId, sourceMsgSender, beneficiary);
+    }
+}
+```
+
+
+### Ping Pong Contract
 
 For the fist example lets build a simple ping-pong contract, the contract will send a ping message to a remote contract deployed on another network and the pong contract will receive the ping message and send a pong message back to the caller.
 
-<img src="./images/ping_pong.png"  width="600" height="400">
+![alt text](../images/ping_pong.png "metamask-example")
 
 ## Pong Contract
 

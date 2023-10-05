@@ -15,7 +15,7 @@ Ferrum network is available at [testnet.dev.svcs.ferrumnetwork.io](https://polka
 
 You should be able to view the network like below : 
 
-![Explorer](./images/explorer-example.png "metamask-example")
+![alt text](../images/explorer-example.png "metamask-example")
 
 ### 2. Using Metamask
 
@@ -33,7 +33,7 @@ Currency : tFRM
 
 The config should look like this :
 
-<img src="./images/ferrum-metamask.png"  width="300" height="400">
+![alt text](../images/ferrum-metamask.png "metamask-example")
 
 ## Requesting Testnet tokens
 
@@ -47,11 +47,11 @@ Ferrum network parachain supports all evm transactions, so transferring tFRM tok
 
 To transfer tFRM token on the Ferrum network, switch your metamask to `Ferrum Testnet`
 
-<img src="./images/transfer_tokens_1.png"  width="250" height="400">
+![alt text](../images/transfer_tokens_1.png "metamask-example")
 
 Enter the destination address and amount and confirm the transfer
 
-<img src="./images/transfer_tokens_2.png"  width="250" height="400">
+![alt text](../images/transfer_tokens_2.png "metamask-example")
 
 
 ## Verifying transactions
@@ -60,8 +60,8 @@ All transactions (both substrate and evm transactions) can be seen on the ferrum
 
 In the above case, if you navigate to the explorer, you should see the transfer events on the network tab like below :
 
-<img src="./images/events_summary.png"  width="650" height="200">
+![alt text](../images/events_summary.png "metamask-example")
 
 If you click on any event, you should see the details of that event :
 
-<img src="./images/events_details.png"  width="650" height="600">
+![alt text](../images/events_details.png "metamask-example")

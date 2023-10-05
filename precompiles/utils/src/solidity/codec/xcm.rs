@@ -1,13 +1,31 @@
+// Copyright 2019-2022 PureStake Inc.
+// This file is part of Moonbeam.
+
+// Moonbeam is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// Moonbeam is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
+
 //! Encoding of XCM types for solidity
 
 use {
-    crate::{
-        data::{BoundedBytes, EvmData, EvmDataReader, EvmDataWriter, UnboundedBytes},
-        revert::{InjectBacktrace, MayRevert, RevertReason},
+    crate::solidity::{
+        codec::{bytes::*, Codec, Reader, Writer},
+        revert::{BacktraceExt, InjectBacktrace, MayRevert, RevertReason},
     },
     alloc::string::String,
     frame_support::{ensure, traits::ConstU32},
+    sp_core::H256,
     sp_std::vec::Vec,
+    sp_weights::Weight,
     xcm::latest::{Junction, Junctions, MultiLocation, NetworkId},
 };
 
@@ -97,7 +115,7 @@ pub(crate) fn network_id_from_bytes(encoded_bytes: Vec<u8>) -> MayRevert<Option<
         encoded_bytes.len() > 0,
         RevertReason::custom("Junctions cannot be empty")
     );
-    let mut encoded_network_id = EvmDataReader::new(&encoded_bytes);
+    let mut encoded_network_id = Reader::new(&encoded_bytes);
 
     let network_selector = encoded_network_id
         .read_raw_bytes(1)
@@ -144,8 +162,8 @@ pub(crate) fn network_id_from_bytes(encoded_bytes: Vec<u8>) -> MayRevert<Option<
     }
 }
 
-impl EvmData for Junction {
-    fn read(reader: &mut EvmDataReader) -> MayRevert<Self> {
+impl Codec for Junction {
+    fn read(reader: &mut Reader) -> MayRevert<Self> {
         let junction = reader.read::<BoundedBytes<ConstU32<JUNCTION_SIZE_LIMIT>>>()?;
         let junction_bytes: Vec<_> = junction.into();
 
@@ -155,7 +173,7 @@ impl EvmData for Junction {
         );
 
         // For simplicity we use an EvmReader here
-        let mut encoded_junction = EvmDataReader::new(&junction_bytes);
+        let mut encoded_junction = Reader::new(&junction_bytes);
 
         // We take the first byte
         let enum_selector = encoded_junction
@@ -214,27 +232,29 @@ impl EvmData for Junction {
                 Ok(Junction::GeneralIndex(u128::from_be_bytes(general_index)))
             }
             6 => {
-                let mut length: [u8; 1] = Default::default();
-                length.copy_from_slice(
-                    encoded_junction
-                        .read_raw_bytes(1)
-                        .map_err(|_| RevertReason::read_out_of_bounds("General Key length"))?,
-                );
+                let length = encoded_junction
+                    .read_raw_bytes(1)
+                    .map_err(|_| RevertReason::read_out_of_bounds("General Key length"))?[0];
 
-                let mut data: [u8; 32] = Default::default();
-                data.copy_from_slice(&encoded_junction.read_till_end()?);
+                let data = encoded_junction.read::<H256>().in_field("data")?.into();
 
-                Ok(Junction::GeneralKey {
-                    length: u8::from_be_bytes(length),
-                    data,
-                })
+                Ok(Junction::GeneralKey { length, data })
             }
             7 => Ok(Junction::OnlyChild),
+            8 => Err(RevertReason::custom("Junction::Plurality not supported yet").into()),
+            9 => {
+                let network = encoded_junction.read_till_end()?.to_vec();
+                if let Some(network_id) = network_id_from_bytes(network)? {
+                    Ok(Junction::GlobalConsensus(network_id))
+                } else {
+                    Err(RevertReason::custom("Unknown NetworkId").into())
+                }
+            }
             _ => Err(RevertReason::custom("Unknown Junction variant").into()),
         }
     }
 
-    fn write(writer: &mut EvmDataWriter, value: Self) {
+    fn write(writer: &mut Writer, value: Self) {
         let mut encoded: Vec<u8> = Vec::new();
         let encoded_bytes: UnboundedBytes = match value {
             Junction::Parachain(para_id) => {
@@ -280,24 +300,29 @@ impl EvmData for Junction {
                 encoded.push(7u8);
                 encoded.as_slice().into()
             }
+            Junction::GlobalConsensus(network_id) => {
+                encoded.push(9u8);
+                encoded.append(&mut network_id_to_bytes(Some(network_id)));
+                encoded.as_slice().into()
+            }
             // TODO: The only missing item here is Junciton::Plurality. This is a complex encoded
             // type that we need to evaluate how to support
             _ => unreachable!("Junction::Plurality not supported yet"),
         };
-        EvmData::write(writer, encoded_bytes);
+        Codec::write(writer, encoded_bytes);
     }
 
     fn has_static_size() -> bool {
         false
     }
 
-    fn solidity_type() -> String {
-        UnboundedBytes::solidity_type()
+    fn signature() -> String {
+        UnboundedBytes::signature()
     }
 }
 
-impl EvmData for Junctions {
-    fn read(reader: &mut EvmDataReader) -> MayRevert<Self> {
+impl Codec for Junctions {
+    fn read(reader: &mut Reader) -> MayRevert<Self> {
         let junctions_bytes: Vec<Junction> = reader.read()?;
         let mut junctions = Junctions::Here;
         for item in junctions_bytes {
@@ -309,35 +334,59 @@ impl EvmData for Junctions {
         Ok(junctions)
     }
 
-    fn write(writer: &mut EvmDataWriter, value: Self) {
+    fn write(writer: &mut Writer, value: Self) {
         let encoded: Vec<Junction> = value.iter().map(|junction| junction.clone()).collect();
-        EvmData::write(writer, encoded);
+        Codec::write(writer, encoded);
     }
 
     fn has_static_size() -> bool {
         false
     }
 
-    fn solidity_type() -> String {
-        Vec::<Junction>::solidity_type()
+    fn signature() -> String {
+        Vec::<Junction>::signature()
     }
 }
 
-impl EvmData for MultiLocation {
-    fn read(reader: &mut EvmDataReader) -> MayRevert<Self> {
-        crate::read_struct!(reader, {parents: u8, interior: Junctions});
+// Cannot used derive macro since it is a foreign struct.
+impl Codec for MultiLocation {
+    fn read(reader: &mut Reader) -> MayRevert<Self> {
+        let (parents, interior) = reader
+            .read()
+            .map_in_tuple_to_field(&["parents", "interior"])?;
         Ok(MultiLocation { parents, interior })
     }
 
-    fn write(writer: &mut EvmDataWriter, value: Self) {
-        EvmData::write(writer, (value.parents, value.interior));
+    fn write(writer: &mut Writer, value: Self) {
+        Codec::write(writer, (value.parents, value.interior));
     }
 
     fn has_static_size() -> bool {
         <(u8, Junctions)>::has_static_size()
     }
 
-    fn solidity_type() -> String {
-        <(u8, Junctions)>::solidity_type()
+    fn signature() -> String {
+        <(u8, Junctions)>::signature()
+    }
+}
+
+impl Codec for Weight {
+    fn read(reader: &mut Reader) -> MayRevert<Self> {
+        let (ref_time, proof_size) = reader
+            .read()
+            .map_in_tuple_to_field(&["ref_time", "proof_size"])?;
+        Ok(Weight::from_parts(ref_time, proof_size))
+    }
+
+    fn write(writer: &mut Writer, value: Self) {
+        Codec::write(writer, (value.ref_time(), value.proof_size()));
+    }
+
+    fn has_static_size() -> bool {
+        <(u64, u64)>::has_static_size()
+    }
+
+    fn signature() -> String {
+        <(u64, u64)>::signature()
     }
 }

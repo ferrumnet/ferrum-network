@@ -1,20 +1,3 @@
-// Copyright 2019-2023 Ferrum Inc.
-// This file is part of Ferrum.
-
-// Ferrum is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// Ferrum is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
-// This file is based on the following GNU-licensed codebase:
-
 // Copyright 2019-2022 PureStake Inc.
 // This file is part of Moonbeam.
 
@@ -35,18 +18,25 @@
 //! - Substrate call dispatch.
 //! - Substrate DB read and write costs
 
+use sp_runtime::traits::Dispatchable;
+
 use {
-    crate::revert,
+    crate::{evm::handle::using_precompile_handle, solidity::revert::revert},
     core::marker::PhantomData,
     fp_evm::{ExitError, PrecompileFailure, PrecompileHandle},
     frame_support::{
-        dispatch::{Dispatchable, GetDispatchInfo, PostDispatchInfo},
-        pallet_prelude::DispatchError,
+        dispatch::{GetDispatchInfo, PostDispatchInfo},
+        pallet_prelude::*,
         traits::Get,
     },
     pallet_evm::GasWeightMapping,
 };
 
+/// System account size in bytes = Pallet_Name_Hash (16) + Storage_name_hash (16) +
+/// Blake2_128Concat (16) + AccountId (20) + AccountInfo (4 + 12 + AccountData (4* 16)) = 148
+pub const SYSTEM_ACCOUNT_SIZE: u64 = 148;
+
+#[derive(Debug)]
 pub enum TryDispatchError {
     Evm(ExitError),
     Substrate(DispatchError),
@@ -73,6 +63,44 @@ where
     Runtime: pallet_evm::Config,
     Runtime::RuntimeCall: Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
 {
+    #[inline(always)]
+    pub fn reocrd_external_cost(
+        handle: &mut impl PrecompileHandle,
+        weight: Weight,
+        storage_growth: u64,
+    ) -> Result<(), ExitError> {
+        // Make sure there is enough gas.
+        let remaining_gas = handle.remaining_gas();
+        let required_gas = Runtime::GasWeightMapping::weight_to_gas(weight);
+        if required_gas > remaining_gas {
+            return Err(ExitError::OutOfGas);
+        }
+
+        // Make sure there is enough remaining weight
+        // TODO: record ref time when precompile will be benchmarked
+        handle.record_external_cost(None, Some(weight.proof_size()))
+    }
+
+    #[inline(always)]
+    pub fn refund_weight_v2_cost(
+        handle: &mut impl PrecompileHandle,
+        weight: Weight,
+        maybe_actual_weight: Option<Weight>,
+    ) -> Result<u64, ExitError> {
+        // Refund weights and compute used weight them record used gas
+        // TODO: refund ref time when precompile will be benchmarked
+        let used_weight = if let Some(actual_weight) = maybe_actual_weight {
+            let refund_weight = weight.checked_sub(&actual_weight).unwrap_or_default();
+            handle.refund_external_cost(None, Some(refund_weight.proof_size()));
+            actual_weight
+        } else {
+            weight
+        };
+        let used_gas = Runtime::GasWeightMapping::weight_to_gas(used_weight);
+        handle.record_cost(used_gas)?;
+        Ok(used_gas)
+    }
+
     /// Try to dispatch a Substrate call.
     /// Return an error if there are not enough gas, or if the call fails.
     /// If successful returns the used gas using the Runtime GasWeightMapping.
@@ -80,6 +108,7 @@ where
         handle: &mut impl PrecompileHandle,
         origin: <Runtime::RuntimeCall as Dispatchable>::RuntimeOrigin,
         call: Call,
+        storage_growth: u64,
     ) -> Result<PostDispatchInfo, TryDispatchError>
     where
         Runtime::RuntimeCall: From<Call>,
@@ -87,30 +116,23 @@ where
         let call = Runtime::RuntimeCall::from(call);
         let dispatch_info = call.get_dispatch_info();
 
-        // Make sure there is enough gas.
-        let remaining_gas = handle.remaining_gas();
-        let required_gas = Runtime::GasWeightMapping::weight_to_gas(dispatch_info.weight);
-        if required_gas > remaining_gas {
-            return Err(TryDispatchError::Evm(ExitError::OutOfGas));
-        }
+        Self::reocrd_external_cost(handle, dispatch_info.weight, storage_growth)
+            .map_err(|e| TryDispatchError::Evm(e))?;
 
         // Dispatch call.
         // It may be possible to not record gas cost if the call returns Pays::No.
         // However while Substrate handle checking weight while not making the sender pay for it,
         // the EVM doesn't. It seems this safer to always record the costs to avoid unmetered
         // computations.
-        let post_dispatch_info = call
-            .dispatch(origin)
+        let post_dispatch_info = using_precompile_handle(handle, || call.dispatch(origin))
             .map_err(|e| TryDispatchError::Substrate(e.error))?;
 
-        let used_weight = post_dispatch_info.actual_weight;
-
-        let used_gas =
-            Runtime::GasWeightMapping::weight_to_gas(used_weight.unwrap_or(dispatch_info.weight));
-
-        handle
-            .record_cost(used_gas)
-            .map_err(|e| TryDispatchError::Evm(e))?;
+        Self::refund_weight_v2_cost(
+            handle,
+            dispatch_info.weight,
+            post_dispatch_info.actual_weight,
+        )
+        .map_err(|e| TryDispatchError::Evm(e))?;
 
         Ok(post_dispatch_info)
     }

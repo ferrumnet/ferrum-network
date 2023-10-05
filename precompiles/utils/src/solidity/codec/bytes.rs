@@ -1,4 +1,22 @@
+// Copyright 2019-2022 PureStake Inc.
+// This file is part of Moonbeam.
+
+// Moonbeam is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// Moonbeam is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
+
 use super::*;
+use alloc::borrow::ToOwned;
+use sp_core::{ConstU32, Get};
 
 type ConstU32Max = ConstU32<{ u32::MAX }>;
 
@@ -9,14 +27,14 @@ pub type UnboundedString = BoundedBytesString<StringKind, ConstU32Max>;
 pub type BoundedString<S> = BoundedBytesString<StringKind, S>;
 
 trait Kind {
-    fn solidity_type() -> String;
+    fn signature() -> String;
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BytesKind;
 
 impl Kind for BytesKind {
-    fn solidity_type() -> String {
+    fn signature() -> String {
         String::from("bytes")
     }
 }
@@ -25,7 +43,7 @@ impl Kind for BytesKind {
 pub struct StringKind;
 
 impl Kind for StringKind {
-    fn solidity_type() -> String {
+    fn signature() -> String {
         String::from("string")
     }
 }
@@ -37,6 +55,12 @@ impl Kind for StringKind {
 pub struct BoundedBytesString<K, S> {
     data: Vec<u8>,
     _phantom: PhantomData<(K, S)>,
+}
+
+impl<K, S> Default for BoundedBytesString<K, S> {
+    fn default() -> Self {
+        Vec::default().into()
+    }
 }
 
 impl<K: Kind, S: Get<u32>> Clone for BoundedBytesString<K, S> {
@@ -66,8 +90,8 @@ impl<K, S: Get<u32>> BoundedBytesString<K, S> {
     }
 }
 
-impl<K: Kind, S: Get<u32>> EvmData for BoundedBytesString<K, S> {
-    fn read(reader: &mut EvmDataReader) -> MayRevert<Self> {
+impl<K: Kind, S: Get<u32>> Codec for BoundedBytesString<K, S> {
+    fn read(reader: &mut Reader) -> MayRevert<Self> {
         let mut inner_reader = reader.read_pointer()?;
 
         // Read bytes/string size.
@@ -87,7 +111,7 @@ impl<K: Kind, S: Get<u32>> EvmData for BoundedBytesString<K, S> {
         let data = inner_reader
             .input
             .get(range)
-            .ok_or_else(|| RevertReason::read_out_of_bounds(K::solidity_type()))?;
+            .ok_or_else(|| RevertReason::read_out_of_bounds(K::signature()))?;
 
         let bytes = Self {
             data: data.to_owned(),
@@ -97,7 +121,7 @@ impl<K: Kind, S: Get<u32>> EvmData for BoundedBytesString<K, S> {
         Ok(bytes)
     }
 
-    fn write(writer: &mut EvmDataWriter, value: Self) {
+    fn write(writer: &mut Writer, value: Self) {
         let value: Vec<_> = value.into();
         let length = value.len();
 
@@ -114,7 +138,7 @@ impl<K: Kind, S: Get<u32>> EvmData for BoundedBytesString<K, S> {
         value.resize(padded_size, 0);
 
         writer.write_pointer(
-            EvmDataWriter::new()
+            Writer::new()
                 .write(U256::from(length))
                 .write_raw_bytes(&value)
                 .build(),
@@ -125,8 +149,8 @@ impl<K: Kind, S: Get<u32>> EvmData for BoundedBytesString<K, S> {
         false
     }
 
-    fn solidity_type() -> String {
-        K::solidity_type()
+    fn signature() -> String {
+        K::signature()
     }
 }
 

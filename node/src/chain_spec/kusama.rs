@@ -181,5 +181,7 @@ fn generate_genesis(
         ethereum: ferrum_runtime::EthereumConfig {},
         dynamic_fee: Default::default(),
         base_fee: Default::default(),
+        council_collective: Default::default(),
+        democracy: Default::default(),
     }
 }

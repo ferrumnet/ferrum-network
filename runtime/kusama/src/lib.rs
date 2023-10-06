@@ -7,7 +7,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 pub mod impls;
-
+use crate::currency::*;
 mod weights;
 pub mod xcm_config;
 use codec::Encode;
@@ -16,6 +16,8 @@ use ferrum_primitives::currency::deposit;
 pub use ferrum_primitives::*;
 use fp_rpc::TransactionStatus;
 use frame_support::pallet_prelude::TransactionValidityError;
+use frame_support::traits::EitherOfDiverse;
+use frame_support::traits::EqualPrivilegeOnly;
 use frame_support::{
     construct_runtime,
     dispatch::DispatchClass,
@@ -755,9 +757,9 @@ construct_runtime!(
         AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config} = 24,
         Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 25,
         Democracy: pallet_democracy::{Pallet, Call, Config<T>, Storage, Event<T>} = 26,
-        Scheduler: pallet_scheduler::{Pallet, Call, Config<T>, Storage, Event<T>} = 27,
-        Preimage: pallet_perimage::{Pallet, Call, Config<T>, Storage, Event<T>} = 28,
-        Council: pallet_collective::<Instance1>::{Pallet, Call, Config<T>, Storage, Event<T>} = 29,
+        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 27,
+        Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>} = 28,
+        CouncilCollective: pallet_collective::<Instance1>::{Pallet, Call, Config<T>, Storage, Event<T>, Origin<T>} = 29,
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 51,
 
         // XCM helpers.

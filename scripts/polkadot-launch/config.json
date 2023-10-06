@@ -26,6 +26,7 @@
 					"rpcPort": 8545,
 					"name": "alice",
 					"port": 31200,
+					"chain": "dev",
 					"basePath": "./chain/alice",
 					"flags": [
 						"--config-file-path=./example_config/alice_node_config.json",

@@ -3,7 +3,7 @@
 rm -rf ./chain
 
 # # generate chain spec
-./target/release/ferrum-network build-spec --disable-default-bootnode > ferrum-local-testnet.json
+./target/release/ferrum-network build-spec --chain dev --disable-default-bootnode > ferrum-local-testnet.json
 
 # # insert the signing keys for alice
 ./target/release/ferrum-network key insert --key-type ofsg --scheme ecdsa --base-path ./chain/alice --chain ferrum-local-testnet.json --suri //Alice

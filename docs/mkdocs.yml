@@ -1,0 +1,41 @@
+site_name: Ferrum Network Docs
+theme:
+  name: material
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+     # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default 
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+nav:
+  - Home: index.md
+  - "Builders":
+    - 'Getting Started': './builders/getting-started.md'
+    - 'Metamask Config': './builders/connect-metamask.md'
+    - 'Develop with QP': './builders/develop-with-qp.md'
+    - 'Write Solidity Contracts': './builders/deploy-evm-contracts.md'
+    - 'Write ink! Contracts': './builders/deploy-wasm-contracts.md'
+  - "Node Operators":
+    - 'Prerequisites': './node-operators/running-nodes.md'
+    - 'Run a Miner': './node-operators/running-miner-node.md'
+    - 'Run a Finaliser': './node-operators/running-finalizer-node.md'
+    - 'Run an Collator': './node-operators/running-collator-node.md'
+    - 'Run an Archive Node': './node-operators/running-archive-node.md'
+  - "Learn":
+    - 'Learn': 'learn.md'
+    - 'Quantum Portal': './learn/quantum-portal.md'
+    - 'Roles': './learn/roles.md'
+  - FAQ : faq.md

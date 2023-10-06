@@ -1,0 +1,41 @@
+name: Publish Binary
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Publish binaries
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install toolchain
+      id: toolchain
+      uses: actions-rs/toolchain@master
+      with:
+        profile: minimal
+        toolchain: nightly
+        target: wasm32-unknown-unknown
+
+    - name: Rust Cache
+      uses: Swatinem/rust-cache@v1.3.0
+
+    - name: Install Protobuf
+      run: sudo apt-get install protobuf-compiler
+
+    - name: Build binary
+      run: cargo build --release --locked
+    
+    - name: Upload regular binary to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: ./target/release/ferrum-network
+        asset_name: ferrum-network-linux-amd64
+        tag: ${{ github.ref }}
+        overwrite: true

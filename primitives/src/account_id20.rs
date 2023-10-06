@@ -1,9 +1,6 @@
 //! The Ethereum Signature implementation.
 //!
 //! It includes the Verify and IdentifyAccount traits for the AccountId20
-
-#![cfg_attr(not(feature = "std"), no_std)]
-
 use super::*;
 
 /// Defines application identifier for crypto keys for the offchain signer

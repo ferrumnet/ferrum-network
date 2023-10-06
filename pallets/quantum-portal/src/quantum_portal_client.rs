@@ -434,7 +434,6 @@ impl<T: Config> QuantumPortalClient<T> {
         log::info!("EIP712 Hash {:?}", eip_712_hash);
 
         // Sign the eip message, we only consider a single signer here since we only expect a single key in the keystore
-
         let multi_sig_bytes = self.signer.signer(&eip_712_hash)?;
 
         // Compute multisig format
@@ -540,7 +539,7 @@ impl<T: Config> QuantumPortalClient<T> {
         salt: Token,
         expiry: Token,
     ) -> Result<Vec<u8>, TransactionCreationError> {
-        let (verifying_contract_address, _verifying_contract_version, _verifying_contract_name) =
+        let (verifying_contract_address, verifying_contract_version, verifying_contract_name) =
             &self
                 .contract
                 .get_miner_manager_address()
@@ -548,10 +547,10 @@ impl<T: Config> QuantumPortalClient<T> {
 
         // Generate the domain seperator hash, the hash is generated from the given arguments
         let domain_seperator_hash = EIP712Utils::generate_eip_712_domain_seperator_hash(
-            b"FERRUM_QUANTUM_PORTAL_MINER_MGR", // ContractName
-            b"000.010",                         // ContractVersion
-            self.contract.chain_id,             // ChainId
-            *verifying_contract_address,        // VerifyingAddress
+            verifying_contract_name,     // ContractName
+            verifying_contract_version,  // ContractVersion
+            self.contract.chain_id,      // ChainId
+            *verifying_contract_address, // VerifyingAddress
         );
         log::info!("domain_seperator_hash {:?}", domain_seperator_hash);
 
@@ -625,15 +624,10 @@ impl<T: Config> QuantumPortalClient<T> {
                 chain_id,
                 block.nonce
             );
-            let (mined_block, mined_txs) = self.mined_block_by_nonce(chain_id, block.nonce)?;
-            let (source_block, source_txs) = self.local_block_by_nonce(chain_id, block.nonce)?;
+            let (_mined_block, mined_txs) = self.mined_block_by_nonce(chain_id, block.nonce)?;
+            let (_source_block, source_txs) = self.local_block_by_nonce(chain_id, block.nonce)?;
             // verify data before finalization
-            let verification_result = Self::is_mined_block_same_as_source_block(
-                source_block,
-                &source_txs,
-                mined_block,
-                &mined_txs,
-            );
+            Self::compare_and_verify_mined_block(&source_txs, &mined_txs)?;
 
             log::info!("Calling mgr.finalize({}, {})", chain_id, block.nonce);
             Ok(Some(self.create_finalize_transaction(
@@ -792,11 +786,8 @@ impl<T: Config> QuantumPortalClient<T> {
         }
     }
 
-    // returns true if the block passes verification
-    fn is_mined_block_same_as_source_block(
-        source_block: QpLocalBlock,
+    fn compare_and_verify_mined_block(
         source_txs: &[QpTransaction],
-        mined_block: QpRemoteBlock,
         mined_txs: &[QpTransaction],
     ) -> bool {
         // sanity check, ensure the source and mined transactions are the same

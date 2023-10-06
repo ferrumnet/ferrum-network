@@ -17,8 +17,7 @@ use ethereum::{LegacyTransaction, LegacyTransactionMessage, TransactionSignature
 use parity_scale_codec::Encode;
 
 pub struct ChainUtils;
-// use crate::OFFCHAIN_SIGNER_KEY_TYPE;
-use ethabi_nostd::{Address, H256, U256}; //vec::{Vec};
+use ethabi_nostd::{Address, H256, U256};
 
 use numtoa::NumToA;
 use sp_std::{prelude::*, str};
@@ -239,16 +238,6 @@ impl ChainUtils {
         TransactionSignature::new(28, LOWER, LOWER).unwrap()
     }
 
-    // pub fn sign_transaction_hash(
-    //     key_pair: &ecdsa::Public,
-    //     hash: &H256,
-    // ) -> ChainRequestResult<Vec<u8>> {
-    //     let sig: ecdsa::Signature =
-    //         crypto::ecdsa_sign_prehashed(OFFCHAIN_SIGNER_KEY_TYPE, key_pair, &hash.0).unwrap();
-    //     let sig_bytes: &[u8] = &sig.0;
-    //     Ok(Vec::from(sig_bytes))
-    // }
-
     pub fn tx_hash_to_sign(tx: &LegacyTransaction, chain_id: u64) -> H256 {
         let mut msg: LegacyTransactionMessage = tx.clone().into();
         msg.chain_id = Some(chain_id);
@@ -302,13 +291,6 @@ impl ChainUtils {
         sponge.finalize(&mut buf);
         H256::from(buf)
     }
-
-    // /// Generate a crypto pair from seed.
-    // pub fn get_from_seed(seed: &str) -> ecdsa::Public {
-    //     ecdsa::Pair::from_string(&format!("//{}", seed), None)
-    //         .expect("static values are valid; qed")
-    //         .public()
-    // }
 }
 
 pub struct JsonSer {

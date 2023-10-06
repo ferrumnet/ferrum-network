@@ -1,100 +1,56 @@
 // Copyright 2019-2023 Ferrum Inc.
 // This file is part of Ferrum.
-
 // Ferrum is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-
 // Ferrum is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-
 // You should have received a copy of the GNU General Public License
 // along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use pallet::*;
-
 mod chain_queries;
 mod chain_utils;
 mod contract_client;
 mod eip_712_utils;
-mod erc_20_client;
 pub mod qp_types;
 mod quantum_portal_client;
 pub mod quantum_portal_service;
 
 #[frame_support::pallet]
 pub mod pallet {
-    //! A demonstration of an offchain worker that sends onchain callbacks
+    // Re-import necessary modules for pallet.
     use crate::{
         chain_utils::{ChainRequestError, ChainUtils},
         contract_client::{ContractClient, ContractClientSignature},
         qp_types,
         qp_types::{QpConfig, QpNetworkItem, Role},
         quantum_portal_client::QuantumPortalClient,
-        quantum_portal_service::{PendingTransaction, QuantumPortalService},
+        quantum_portal_service::QuantumPortalService,
     };
+    // Re-import necessary items from core and other external crates.
+    use crate::qp_types::MAX_PAIRS_TO_MINE;
     use core::convert::TryInto;
     use ferrum_primitives::{OFFCHAIN_SIGNER_CONFIG_KEY, OFFCHAIN_SIGNER_CONFIG_PREFIX};
     use frame_support::pallet_prelude::*;
     use frame_support::traits::UnixTime;
-    use frame_system::{
-        offchain::{SignedPayload, SigningTypes},
-        pallet_prelude::*,
-    };
-    use serde::{Deserialize, Deserializer};
+    use frame_system::pallet_prelude::*;
     use sp_runtime::offchain::storage::StorageValueRef;
     use sp_runtime::offchain::storage_lock::StorageLock;
     use sp_runtime::offchain::storage_lock::Time;
-    use sp_runtime::RuntimeDebug;
     use sp_std::{prelude::*, str};
-
-    #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
-    pub struct Payload<Public> {
-        number: u64,
-        public: Public,
-    }
-
-    impl<T: SigningTypes> SignedPayload<T> for Payload<T::Public> {
-        fn public(&self) -> T::Public {
-            self.public.clone()
-        }
-    }
-
-    // ref: https://serde.rs/container-attrs.html#crate
-    #[derive(Deserialize, Encode, Decode, Default, RuntimeDebug, scale_info::TypeInfo)]
-    struct SnapshotInfo {
-        // Specify our own deserializing function to convert JSON string to vector of bytes
-        #[serde(deserialize_with = "de_string_to_bytes")]
-        icon_address: Vec<u8>,
-        amount: u32,
-        defi_user: bool,
-        vesting_percentage: u32,
-    }
-
-    #[derive(Debug, Deserialize, Encode, Decode, Default)]
-    struct IndexingData(Vec<u8>, u64);
-
-    pub fn de_string_to_bytes<'de, D>(de: D) -> Result<Vec<u8>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s: &str = Deserialize::deserialize(de)?;
-        Ok(s.as_bytes().to_vec())
-    }
 
     #[pallet::config]
     pub trait Config:
         frame_system::offchain::CreateSignedTransaction<Call<Self>> + frame_system::Config
     {
-        /// The overarching event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-        /// The overarching dispatch call type.
         type RuntimeCall: From<frame_system::Call<Self>>;
-        /// Onchain timestamp for the runtime
         type Timestamp: UnixTime;
     }
 
@@ -103,31 +59,12 @@ pub mod pallet {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
-    // The pallet's runtime storage items.
-    // https://substrate.dev/docs/en/knowledgebase/runtime/storage
-    #[pallet::storage]
-    // Learn more about declaring storage items:
-    // https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-i&tems
-    #[pallet::getter(fn numbers)]
-    pub(super) type Numbers<T> = StorageValue<_, u64, ValueQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn pending_transactions)]
-    pub(super) type PendingTransactions<T: Config> =
-        StorageMap<_, Identity, u64, PendingTransaction, ValueQuery>;
-
     #[pallet::event]
-    // #[pallet::generate_deposit(pub(super) fn deposit_event)]
-    pub enum Event<T: Config> {
-        NewNumber(Option<T::AccountId>, u64),
-    }
+    pub enum Event<T: Config> {}
 
-    // Errors inform users that something went wrong.
     #[pallet::error]
     pub enum Error<T> {}
 
-    /// Error which may occur while executing the off-chain code.
-    #[cfg_attr(test, derive(PartialEq))]
     pub enum OffchainErr {
         RPCError(ChainRequestError),
         FailedSigning,
@@ -180,6 +117,7 @@ pub mod pallet {
                     )
                 })
                 .collect();
+
             let svc = QuantumPortalService::<T>::new(client_vec);
             let _res: Vec<_> = qp_config_item
                 .pair_vec
@@ -206,40 +144,44 @@ pub mod pallet {
             log::info!("Reading configuration from storage");
 
             let mut lock = StorageLock::<Time>::new(OFFCHAIN_SIGNER_CONFIG_PREFIX);
-            {
-                if let Ok(_guard) = lock.try_lock() {
-                    let network_config = StorageValueRef::persistent(OFFCHAIN_SIGNER_CONFIG_KEY);
-                    //log::info!("Netweork config is {:?}", network_config);
-                    let decoded_config = network_config.get::<QpConfig>();
-                    log::info!("Decoded config is {:?}", decoded_config);
+            if let Ok(_guard) = lock.try_lock() {
+                let network_config = StorageValueRef::persistent(OFFCHAIN_SIGNER_CONFIG_KEY);
 
-                    if let Err(_e) = decoded_config {
-                        log::info!("Error reading configuration, exiting offchain worker");
+                let decoded_config = network_config.get::<QpConfig>();
+                log::info!("Decoded config is {:?}", decoded_config);
+
+                if let Err(_e) = decoded_config {
+                    log::info!("Error reading configuration, exiting offchain worker");
+                    return;
+                }
+
+                if let Ok(None) = decoded_config {
+                    log::info!("Configuration not found, exiting offchain worker");
+                    return;
+                }
+
+                if let Ok(Some(config)) = decoded_config {
+                    let expected_role = config.role.clone();
+
+                    if expected_role == Role::None {
+                        log::info!("Not a miner or finalizer, exiting offchain worker");
                         return;
                     }
 
-                    if let Ok(None) = decoded_config {
-                        log::info!("Configuration not found, exiting offchain worker");
+                    // ensure pairs configured are within limit
+                    if config.pair_vec.len() > MAX_PAIRS_TO_MINE {
+                        log::info!("Too many pairs configured, this may lead to performance issues, maximum allowed is {:?}, Exiting", MAX_PAIRS_TO_MINE);
                         return;
                     }
 
-                    if let Ok(Some(config)) = decoded_config {
-                        let expected_role = config.role.clone();
-
-                        if expected_role == Role::None {
-                            log::info!("Not a miner or finalizer, exiting offchain worker");
-                            return;
-                        }
-
-                        let now = block_number.try_into().map_or(0_u64, |f| f);
-                        log::info!("Current block: {:?}", block_number);
-                        if let Err(e) = Self::test_qp(now, config) {
-                            log::warn!(
-                                "Offchain worker failed to execute at block {:?} with error : {:?}",
-                                now,
-                                e,
-                            )
-                        }
+                    let now = block_number.try_into().map_or(0_u64, |f| f);
+                    log::info!("Current block: {:?}", block_number);
+                    if let Err(e) = Self::test_qp(now, config) {
+                        log::warn!(
+                            "Offchain worker failed to execute at block {:?} with error : {:?}",
+                            now,
+                            e,
+                        )
                     }
                 }
             }

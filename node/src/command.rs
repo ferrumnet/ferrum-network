@@ -83,7 +83,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn ChainSpec>, String> {
         "qpn-local" => Box::new(chain_spec::kusama::kusama_local_config()),
         "qpn" => Box::new(chain_spec::kusama::kusama_config()),
 
-        "" | "local" => Box::new(chain_spec::testnet::local_testnet_config()),
+        "" | "local" => Box::new(chain_spec::testnet::development_config()),
         path => {
             let chain_spec = chain_spec::TestnetChainSpec::from_json_file(path.into())?;
             if chain_spec.is_kusama() {

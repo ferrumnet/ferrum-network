@@ -17,8 +17,8 @@
 #![allow(clippy::unused_unit)]
 
 use frame_support::{
-    dispatch::{CallMetadata, GetCallMetadata},
     pallet_prelude::*,
+    traits::{CallMetadata, GetCallMetadata},
     traits::{Contains, PalletInfoAccess},
     transactional,
 };
@@ -83,7 +83,7 @@ pub mod module {
     pub struct Pallet<T>(_);
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {

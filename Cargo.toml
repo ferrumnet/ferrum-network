@@ -5,6 +5,6 @@ panic = 'unwind'
 members = [
 	'node',
 	'pallets/quantum-portal',
-	'runtime',
+	'runtime/*',
 	'precompiles/*',
 ]

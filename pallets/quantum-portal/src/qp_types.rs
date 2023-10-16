@@ -20,6 +20,10 @@ use serde::{Deserialize, Serialize};
 use sp_core::{H256, U256};
 use sp_std::{prelude::*, str};
 
+// Limit on how many pairs to mine,
+// The current limit is 6, means mining both ways on 3 seperate chains
+pub const MAX_PAIRS_TO_MINE: usize = 6;
+
 #[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct QpTransaction {
@@ -29,9 +33,9 @@ pub struct QpTransaction {
     pub source_beneficiary: Address,
     pub token: Address,
     pub amount: U256,
-    pub fixed_fee: U256,
     pub method: Vec<u8>,
-    pub gas: u64,
+    pub gas: U256,
+    pub fixed_fee: U256,
 }
 
 #[derive(Debug)]
@@ -44,7 +48,7 @@ pub struct QpLocalBlock {
 impl QpLocalBlock {
     // generate a hash from the data in the local block
     pub fn hash(&self) -> H256 {
-        let mut data_to_hash: Vec<Token> = vec![
+        let data_to_hash: Vec<Token> = vec![
             Token::Uint(U256::from(self.chain_id)),
             Token::Uint(U256::from(self.chain_id)),
             Token::Uint(U256::from(self.chain_id)),

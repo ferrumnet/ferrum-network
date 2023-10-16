@@ -84,6 +84,7 @@ pub fn development_config() -> TestnetChainSpec {
     )
 }
 
+#[allow(dead_code)]
 pub fn local_testnet_config() -> TestnetChainSpec {
     // Give your base currency a tFRM name and decimal places
     let mut properties = sc_chain_spec::Properties::new();

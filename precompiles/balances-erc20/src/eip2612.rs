@@ -1,20 +1,3 @@
-// Copyright 2019-2023 Ferrum Inc.
-// This file is part of Ferrum.
-
-// Ferrum is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// Ferrum is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
-// This file is based on the following GNU-licensed codebase:
-
 // Copyright 2019-2022 PureStake Inc.
 // This file is part of Moonbeam.
 
@@ -30,6 +13,7 @@
 
 // You should have received a copy of the GNU General Public License
 // along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
+
 use super::*;
 use frame_support::{ensure, traits::Get};
 use sp_core::H256;
@@ -61,20 +45,18 @@ where
 {
     pub fn compute_domain_separator(address: H160) -> [u8; 32] {
         let name: H256 = keccak_256(Metadata::name().as_bytes()).into();
-
         let version: H256 = keccak256!("1").into();
-
         let chain_id: U256 = Runtime::ChainId::get().into();
 
-        let domain_separator_inner = EvmDataWriter::new()
-            .write(H256::from(PERMIT_DOMAIN))
-            .write(name)
-            .write(version)
-            .write(chain_id)
-            .write(Address(address))
-            .build();
+        let domain_separator_inner = solidity::encode_arguments((
+            H256::from(PERMIT_DOMAIN),
+            name,
+            version,
+            chain_id,
+            Address(address),
+        ));
 
-        keccak_256(&domain_separator_inner)
+        keccak_256(&domain_separator_inner).into()
     }
 
     pub fn generate_permit(
@@ -87,14 +69,14 @@ where
     ) -> [u8; 32] {
         let domain_separator = Self::compute_domain_separator(address);
 
-        let permit_content = EvmDataWriter::new()
-            .write(H256::from(PERMIT_TYPEHASH))
-            .write(Address(owner))
-            .write(Address(spender))
-            .write(value)
-            .write(nonce)
-            .write(deadline)
-            .build();
+        let permit_content = solidity::encode_arguments((
+            H256::from(PERMIT_TYPEHASH),
+            Address(owner),
+            Address(spender),
+            value,
+            nonce,
+            deadline,
+        ));
         let permit_content = keccak_256(&permit_content);
 
         let mut pre_digest = Vec::with_capacity(2 + 32 + 32);
@@ -116,7 +98,8 @@ where
         r: H256,
         s: H256,
     ) -> EvmResult {
-        handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+        // NoncesStorage: Blake2_128(16) + contract(20) + Blake2_128(16) + owner(20) + nonce(32)
+        handle.record_db_read::<Runtime>(104)?;
 
         let owner: H160 = owner.into();
         let spender: H160 = spender.into();
@@ -138,8 +121,8 @@ where
         );
 
         let mut sig = [0u8; 65];
-        sig[0..32].copy_from_slice(r.as_bytes());
-        sig[32..64].copy_from_slice(s.as_bytes());
+        sig[0..32].copy_from_slice(&r.as_bytes());
+        sig[32..64].copy_from_slice(&s.as_bytes());
         sig[64] = v;
 
         let signer = sp_io::crypto::secp256k1_ecdsa_recover(&sig, &permit)
@@ -168,7 +151,7 @@ where
             SELECTOR_LOG_APPROVAL,
             owner,
             spender,
-            EvmDataWriter::new().write(value).build(),
+            solidity::encode_event_data(value),
         )
         .record(handle)?;
 
@@ -176,7 +159,8 @@ where
     }
 
     pub(crate) fn nonces(handle: &mut impl PrecompileHandle, owner: Address) -> EvmResult<U256> {
-        handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+        // NoncesStorage: Blake2_128(16) + contract(20) + Blake2_128(16) + owner(20) + nonce(32)
+        handle.record_db_read::<Runtime>(104)?;
 
         let owner: H160 = owner.into();
 
@@ -184,7 +168,8 @@ where
     }
 
     pub(crate) fn domain_separator(handle: &mut impl PrecompileHandle) -> EvmResult<H256> {
-        handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+        // ChainId
+        handle.record_db_read::<Runtime>(8)?;
 
         Ok(Self::compute_domain_separator(handle.context().address).into())
     }

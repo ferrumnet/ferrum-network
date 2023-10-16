@@ -19,7 +19,7 @@ use frame_support::{
     construct_runtime,
     dispatch::DispatchClass,
     parameter_types,
-    traits::{ConstU32, ConstU64, ConstU8, Everything, FindAuthor},
+    traits::{ConstU32, ConstU64, ConstU8, FindAuthor},
     weights::{ConstantMultiplier, Weight},
     ConsensusEngineId, PalletId,
 };

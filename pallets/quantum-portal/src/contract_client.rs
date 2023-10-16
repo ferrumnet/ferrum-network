@@ -140,6 +140,19 @@ impl ContractClient {
         Ok((address, version.to_vec(), name.to_vec()))
     }
 
+    pub fn get_state_contract_address(&self) -> Result<H160, ChainRequestError> {
+        let ledger_manager_address = self.get_ledger_manager_address()?;
+
+        // no cache, we fetch from the gateway contract
+        let signature = b"state()";
+        let res: Box<CallResponse> = self.call(signature, &[], Some(ledger_manager_address))?;
+        log::info!("State contract response is : {:?}", res);
+        let address = ChainUtils::decode_address_response(res.result.as_slice());
+        log::info!("State contract address is : {:?}", address);
+
+        Ok(address)
+    }
+
     pub fn get_authority_manager_address(
         &self,
     ) -> Result<(H160, Vec<u8>, Vec<u8>), ChainRequestError> {
@@ -172,6 +185,10 @@ impl ContractClient {
         chain_timestamp: u64,
     ) -> Result<Address, ChainRequestError> {
         let miner_manager_address = self.get_miner_manager_address()?;
+        
+        log::info!("get_miner_for_block : block hash is : {:?}", block_hash);
+        log::info!("get_miner_for_block : block_timestamp is : {:?}", block_timestamp);
+        log::info!("get_miner_for_block : chain_timestamp is : {:?}", chain_timestamp);
 
         // no cache, we fetch from the gateway contract
         let signature = b"findMinerAtTime(bytes32,uint256,uint256)";
@@ -188,7 +205,7 @@ impl ContractClient {
         let address = ChainUtils::decode_address_response(res.result.as_slice());
         log::info!("Selected miner address is : {:?}", address);
 
-        Ok((address))
+        Ok(address)
     }
 
     pub fn call<T>(

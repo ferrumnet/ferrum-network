@@ -95,6 +95,7 @@ where
                 Box::new(ParamKind::Uint(256)), // amount
                 Box::new(ParamKind::Array(ParamKind::Bytes)),     // method
                 Box::new(ParamKind::Uint(256)), // gas
+                Box::new(ParamKind::Uint(256)), // fixedFee
             ]))),
         ],
         ChainUtils::hex_to_bytes(data)?.as_slice(),
@@ -136,7 +137,7 @@ where
 
 fn decode_remote_transaction_from_tuple(dec: &[Token]) -> ChainRequestResult<QpTransaction> {
     match dec {
-        [timestamp, remote_contract, source_msg_sender, source_beneficiary, token, fixed_fee, amount, method, gas] =>
+        [timestamp, remote_contract, source_msg_sender, source_beneficiary, token, amount, method, gas, fixed_fee] =>
         {
             let timestamp = timestamp.clone().to_uint().unwrap().as_u64();
             let remote_contract = remote_contract.clone().to_address().unwrap();
@@ -154,9 +155,9 @@ fn decode_remote_transaction_from_tuple(dec: &[Token]) -> ChainRequestResult<QpT
                 source_beneficiary,
                 token,
                 amount,
-                fixed_fee,
                 method,
                 gas,
+                fixed_fee,
             })
         }
         _ => Err(b"Unexpected output. Could not decode remote transaction"
@@ -199,18 +200,20 @@ impl<T: Config> QuantumPortalClient<T> {
     }
 
     pub fn last_finalized_block(&self, chain_id: u64) -> ChainRequestResult<QpLocalBlock> {
-        let signature = b"lastFinalizedBlock(uint256)";
+        let signature = b"getLastFinalizedBlock(uint256)";
+        let state_contract_address = self.contract.get_state_contract_address()?;
         let res: Box<CallResponse> =
             self.contract
-                .call(signature, &[Token::Uint(U256::from(chain_id))], None)?;
+                .call(signature, &[Token::Uint(U256::from(chain_id))], Some(state_contract_address))?;
         self.decode_local_block(res.result.as_slice())
     }
 
     pub fn last_local_block(&self, chain_id: u64) -> ChainRequestResult<QpLocalBlock> {
-        let signature = b"lastLocalBlock(uint256)";
+        let signature = b"getLastLocalBlock(uint256)";
+        let state_contract_address = self.contract.get_state_contract_address()?;
         let res: Box<CallResponse> =
             self.contract
-                .call(signature, &[Token::Uint(U256::from(chain_id))], None)?;
+                .call(signature, &[Token::Uint(U256::from(chain_id))], Some(state_contract_address))?;
         self.decode_local_block(res.result.as_slice())
     }
 
@@ -255,6 +258,7 @@ impl<T: Config> QuantumPortalClient<T> {
             // MinedBlock
             Box::new(ParamKind::FixedBytes(32)), // blockHash
             Box::new(ParamKind::Address),        // miner
+            Box::new(ParamKind::Uint(256)),          // invalid block
             Box::new(ParamKind::Uint(256)),      // stake
             Box::new(ParamKind::Uint(256)),      // totalValue
             Box::new(local_block_tuple()),
@@ -278,6 +282,7 @@ impl<T: Config> QuantumPortalClient<T> {
         block_nonce: u64,
         _finalizer_hash: H256,
         _finalizers: &[Vec<u8>],
+        verification_result: bool
     ) -> ChainRequestResult<H256> {
         // because of sp_std, so here are the alternatives:
         // - Manually construct the function call as [u8].
@@ -294,7 +299,7 @@ impl<T: Config> QuantumPortalClient<T> {
         let (block_details, _) = self.mined_block_by_nonce(remote_chain_id, block_nonce)?;
 
         let method_signature =
-            b"finalizeSingleSigner(uint256,uint256,bytes32,address[],bytes32,uint64,bytes)";
+            b"finalizeSingleSigner(uint256,uint256,uint256[],bytes32,address[],bytes32,uint64,bytes)";
 
         let salt = Token::FixedBytes(block_details.block_hash.as_ref().to_vec());
         let finalizer_hash = Token::FixedBytes(block_details.block_hash.as_ref().to_vec());
@@ -320,9 +325,17 @@ impl<T: Config> QuantumPortalClient<T> {
                 .unwrap()
         );
 
+        // set this block nonce as invalid if verification failed
+        let invalid_block : Vec<Token> = if !verification_result {
+            vec![Token::Uint(U256::from(block_nonce))]
+        } else {
+            vec![]
+        };
+
         let inputs = [
             Token::Uint(U256::from(remote_chain_id)),
             Token::Uint(U256::from(block_nonce)),
+            Token::Array(invalid_block), 
             finalizer_hash,
             Token::Array(finalizer_list),
             salt,
@@ -421,7 +434,6 @@ impl<T: Config> QuantumPortalClient<T> {
         log::info!("EIP712 Hash {:?}", eip_712_hash);
 
         // Sign the eip message, we only consider a single signer here since we only expect a single key in the keystore
-
         let multi_sig_bytes = self.signer.signer(&eip_712_hash)?;
 
         // Compute multisig format
@@ -451,11 +463,11 @@ impl<T: Config> QuantumPortalClient<T> {
         txs: &Vec<QpTransaction>,
         source_block: QpLocalBlock,
     ) -> ChainRequestResult<H256> {
-        let method_signature = b"mineRemoteBlock(uint64,uint64,(uint64,address,address,address,address,uint256,bytes,uint256)[],bytes32,uint64,bytes)";
+        let method_signature = b"mineRemoteBlock(uint64,uint64,(uint64,address,address,address,address,uint256,bytes,uint256,uint256)[],bytes32,uint64,bytes)";
 
         // set timestamp 1hr from now
         let current_timestamp = source_block.timestamp;
-        let expiry_buffer = core::time::Duration::from_secs(3600u64);
+        let expiry_buffer = core::time::Duration::from_secs(360000u64);
         let expiry_time = current_timestamp.saturating_add(expiry_buffer.as_secs());
         let expiry = Token::Uint(U256::from(expiry_time));
         let salt = Token::FixedBytes(vec![0u8, 0u8]);
@@ -472,6 +484,7 @@ impl<T: Config> QuantumPortalClient<T> {
                     Token::Uint(t.amount),
                     Token::Array(vec![Token::Bytes(t.method.clone())]),
                     Token::Uint(U256::from(t.gas)),
+                    Token::Uint(U256::from(t.fixed_fee)),
                 ])
             })
             .collect();
@@ -502,8 +515,8 @@ impl<T: Config> QuantumPortalClient<T> {
                 expiry,
                 Token::Bytes(multi_sig),
             ],
-            None, //Some(U256::from(1000000 as u32)), // None,
-            None, //Some(U256::from(60000000000 as u64)), // None,
+            Some(U256::from(1000000 as u32)), // None,
+            None, // Some(U256::from(60000000000 as u64)), // None,
             U256::zero(),
             None,
             self.signer.from,
@@ -526,7 +539,7 @@ impl<T: Config> QuantumPortalClient<T> {
         salt: Token,
         expiry: Token,
     ) -> Result<Vec<u8>, TransactionCreationError> {
-        let (verifying_contract_address, _verifying_contract_version, _verifying_contract_name) =
+        let (verifying_contract_address, verifying_contract_version, verifying_contract_name) =
             &self
                 .contract
                 .get_miner_manager_address()
@@ -534,10 +547,10 @@ impl<T: Config> QuantumPortalClient<T> {
 
         // Generate the domain seperator hash, the hash is generated from the given arguments
         let domain_seperator_hash = EIP712Utils::generate_eip_712_domain_seperator_hash(
-            b"FERRUM_QUANTUM_PORTAL_MINER_MGR", // ContractName
-            b"000.010",                         // ContractVersion
-            self.contract.chain_id,             // ChainId
-            *verifying_contract_address,        // VerifyingAddress
+            verifying_contract_name,     // ContractName
+            verifying_contract_version,  // ContractVersion
+            self.contract.chain_id,      // ChainId
+            *verifying_contract_address, // VerifyingAddress
         );
         log::info!("domain_seperator_hash {:?}", domain_seperator_hash);
 
@@ -611,15 +624,10 @@ impl<T: Config> QuantumPortalClient<T> {
                 chain_id,
                 block.nonce
             );
-            let (mined_block, mined_txs) = self.mined_block_by_nonce(chain_id, block.nonce)?;
-            let (source_block, source_txs) = self.local_block_by_nonce(chain_id, block.nonce)?;
+            let (_mined_block, mined_txs) = self.mined_block_by_nonce(chain_id, block.nonce)?;
+            let (_source_block, source_txs) = self.local_block_by_nonce(chain_id, block.nonce)?;
             // verify data before finalization
-            Self::compare_and_verify_mined_block(
-                source_block,
-                &source_txs,
-                mined_block,
-                &mined_txs,
-            )?;
+            Self::compare_and_verify_mined_block(&source_txs, &mined_txs)?;
 
             log::info!("Calling mgr.finalize({}, {})", chain_id, block.nonce);
             Ok(Some(self.create_finalize_transaction(
@@ -627,6 +635,7 @@ impl<T: Config> QuantumPortalClient<T> {
                 block.nonce,
                 H256::zero(),
                 &[self.signer.get_signer_address()],
+                verification_result
             )?))
         } else {
             log::info!("Nothing to finalize for ({})", chain_id);
@@ -690,15 +699,15 @@ impl<T: Config> QuantumPortalClient<T> {
             sp_io::offchain::timestamp().unix_millis(), // chain timestamp
         )?;
 
-        if ChainUtils::address_to_hex(assigned_miner) != self.signer.get_signer_address() {
-            log::info!(
-                "Not our slot to mine, Assigned miner is {:?} our address is {:?}",
-                assigned_miner,
-                self.signer.get_signer_address()
-            );
+        // if ChainUtils::address_to_hex(assigned_miner) != self.signer.get_signer_address() {
+        //     log::info!(
+        //         "Not our slot to mine, Assigned miner is {:?} our address is {:?}",
+        //         ChainUtils::address_to_hex(assigned_miner),
+        //         self.signer.get_signer_address()
+        //     );
 
-            return Err(ChainRequestError::SlotNotAvailable);
-        }
+        //     return Err(ChainRequestError::SlotNotAvailable);
+        // }
 
         log::info!(
             "About to mine block {}:{}",
@@ -778,11 +787,9 @@ impl<T: Config> QuantumPortalClient<T> {
     }
 
     fn compare_and_verify_mined_block(
-        source_block: QpLocalBlock,
         source_txs: &[QpTransaction],
-        mined_block: QpRemoteBlock,
         mined_txs: &[QpTransaction],
-    ) -> Result<(), ChainRequestError> {
+    ) -> bool {
         // sanity check, ensure the source and mined transactions are the same
         if source_txs.len() != mined_txs.len() {
             log::info!(
@@ -790,17 +797,17 @@ impl<T: Config> QuantumPortalClient<T> {
                 source_txs.len(),
                 mined_txs.len()
             );
-            return Err(ChainRequestError::MinedBlockVerificationError);
+            return false;
         }
 
         // ensure the transaction content is the same
         for transaction in source_txs.iter() {
             if !mined_txs.contains(&transaction) {
                 log::info!("Transaction content mismatch between source and mined txs");
-                return Err(ChainRequestError::MinedBlockVerificationError);
+                return false;
             }
         }
 
-        Ok(())
+       return true;
     }
 }

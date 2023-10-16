@@ -1,20 +1,3 @@
-// Copyright 2019-2023 Ferrum Inc.
-// This file is part of Ferrum.
-
-// Ferrum is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// Ferrum is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
-// This file is based on the following GNU-licensed codebase:
-
 // Copyright 2019-2022 PureStake Inc.
 // This file is part of Moonbeam.
 
@@ -32,13 +15,13 @@
 // along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Precompile to interact with pallet_balances instances using the ERC20 interface standard.
+
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(test, feature(assert_matches))]
-#![allow(clippy::too_many_arguments)]
+
 use fp_evm::PrecompileHandle;
 use frame_support::{
-    dispatch::{Dispatchable, GetDispatchInfo, PostDispatchInfo},
-    sp_runtime::traits::{Bounded, CheckedSub, StaticLookup},
+    dispatch::{GetDispatchInfo, PostDispatchInfo},
+    sp_runtime::traits::{Bounded, CheckedSub, Dispatchable, StaticLookup},
     storage::types::{StorageDoubleMap, StorageMap, ValueQuery},
     traits::StorageInstance,
     Blake2_128Concat,
@@ -58,10 +41,10 @@ use sp_std::{
 mod eip2612;
 use eip2612::Eip2612;
 
-// #[cfg(test)]
-// mod mock;
-// #[cfg(test)]
-// mod tests;
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod tests;
 
 /// Solidity selector of the Transfer log, which is the Keccak of the Log signature.
 pub const SELECTOR_LOG_TRANSFER: [u8; 32] = keccak256!("Transfer(address,address,uint256)");
@@ -209,7 +192,8 @@ where
     #[precompile::public("totalSupply()")]
     #[precompile::view]
     fn total_supply(handle: &mut impl PrecompileHandle) -> EvmResult<U256> {
-        handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+        // TotalIssuance: Balance(16)
+        handle.record_db_read::<Runtime>(16)?;
 
         Ok(pallet_balances::Pallet::<Runtime, Instance>::total_issuance().into())
     }
@@ -217,7 +201,9 @@ where
     #[precompile::public("balanceOf(address)")]
     #[precompile::view]
     fn balance_of(handle: &mut impl PrecompileHandle, owner: Address) -> EvmResult<U256> {
-        handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+        // frame_system::Account:
+        // Blake2128(16) + AccountId(20) + AccountInfo ((4 * 4) + AccountData(16 * 4))
+        handle.record_db_read::<Runtime>(116)?;
 
         let owner: H160 = owner.into();
         let owner: Runtime::AccountId = Runtime::AddressMapping::into_account_id(owner);
@@ -232,7 +218,9 @@ where
         owner: Address,
         spender: Address,
     ) -> EvmResult<U256> {
-        handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+        // frame_system::ApprovesStorage:
+        // (2 * (Blake2128(16) + AccountId(20)) + Balanceof(16)
+        handle.record_db_read::<Runtime>(88)?;
 
         let owner: H160 = owner.into();
         let spender: H160 = spender.into();
@@ -272,7 +260,7 @@ where
             SELECTOR_LOG_APPROVAL,
             handle.context().caller,
             spender,
-            EvmDataWriter::new().write(value).build(),
+            solidity::encode_event_data(value),
         )
         .record(handle)?;
 
@@ -298,8 +286,9 @@ where
                 Some(origin).into(),
                 pallet_balances::Call::<Runtime, Instance>::transfer {
                     dest: Runtime::Lookup::unlookup(to),
-                    value,
+                    value: value,
                 },
+                SYSTEM_ACCOUNT_SIZE,
             )?;
         }
 
@@ -308,7 +297,7 @@ where
             SELECTOR_LOG_TRANSFER,
             handle.context().caller,
             to,
-            EvmDataWriter::new().write(value).build(),
+            solidity::encode_event_data(value),
         )
         .record(handle)?;
 
@@ -322,7 +311,9 @@ where
         to: Address,
         value: U256,
     ) -> EvmResult<bool> {
-        handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+        // frame_system::ApprovesStorage:
+        // (2 * (Blake2128(16) + AccountId(20)) + Balanceof(16)
+        handle.record_db_read::<Runtime>(88)?;
         handle.record_cost(RuntimeHelper::<Runtime>::db_write_gas_cost())?;
         handle.record_log_costs_manual(3, 32)?;
 
@@ -361,8 +352,9 @@ where
                 Some(from).into(),
                 pallet_balances::Call::<Runtime, Instance>::transfer {
                     dest: Runtime::Lookup::unlookup(to),
-                    value,
+                    value: value,
                 },
+                SYSTEM_ACCOUNT_SIZE,
             )?;
         }
 
@@ -371,7 +363,7 @@ where
             SELECTOR_LOG_TRANSFER,
             from,
             to,
-            EvmDataWriter::new().write(value).build(),
+            solidity::encode_event_data(value),
         )
         .record(handle)?;
 
@@ -424,15 +416,14 @@ where
                 dest: Runtime::Lookup::unlookup(caller),
                 value: amount,
             },
+            SYSTEM_ACCOUNT_SIZE,
         )?;
 
         log2(
             handle.context().address,
             SELECTOR_LOG_DEPOSIT,
             handle.context().caller,
-            EvmDataWriter::new()
-                .write(handle.context().apparent_value)
-                .build(),
+            solidity::encode_event_data(handle.context().apparent_value),
         )
         .record(handle)?;
 
@@ -462,7 +453,7 @@ where
             handle.context().address,
             SELECTOR_LOG_WITHDRAWAL,
             handle.context().caller,
-            EvmDataWriter::new().write(value).build(),
+            solidity::encode_event_data(value),
         )
         .record(handle)?;
 

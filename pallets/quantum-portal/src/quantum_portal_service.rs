@@ -20,8 +20,8 @@ use crate::{
     quantum_portal_client::QuantumPortalClient,
     Config,
 };
-use frame_support::codec::{Decode, Encode};
 use parity_scale_codec::MaxEncodedLen;
+use parity_scale_codec::{Decode, Encode};
 use sp_core::H256;
 use sp_runtime::offchain::storage::StorageValueRef;
 use sp_std::{marker::PhantomData, prelude::*, str};
@@ -194,6 +194,7 @@ impl<T: Config> QuantumPortalService<T> {
                 ))?
             }
         }
+
         // finalize if role is finalizer
         if role == Role::QP_FINALIZER {
             let fin_tx = local_client.finalize(remote_chain)?;

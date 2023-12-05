@@ -10,6 +10,7 @@ use frame_support::{
     traits::{ConstU32, Everything, Nothing},
     weights::Weight,
 };
+use sp_runtime::traits::Convert;
 use log::log;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
@@ -29,7 +30,7 @@ pub struct SignedToAccountId20<Origin, AccountId, Network>(
     sp_std::marker::PhantomData<(Origin, AccountId, Network)>,
 );
 impl<Origin: OriginTrait + Clone, AccountId: Into<[u8; 20]>, Network: Get<Option<NetworkId>>>
-    xcm_executor::traits::Convert<Origin, MultiLocation>
+    Convert<Origin, MultiLocation>
     for SignedToAccountId20<Origin, AccountId, Network>
 where
     Origin::PalletsOrigin: From<frame_system::RawOrigin<AccountId>>

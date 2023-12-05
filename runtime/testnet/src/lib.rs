@@ -620,7 +620,7 @@ construct_runtime!(
             Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned,
         } = 1,
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 2,
-        ParachainInfo: parachain_info::{Pallet, Storage, Config} = 3,
+        ParachainInfo: parachain_info::{Pallet, Storage, Config<T>} = 3,
 
         // Monetary stuff.
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
@@ -641,8 +641,8 @@ construct_runtime!(
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
 
         // Frontier pallets
-        Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Config, Origin} = 40,
-        EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>}= 41,
+        Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Config<T>, Origin} = 40,
+        EVM: pallet_evm::{Pallet, Config<T>, Call, Storage, Event<T>}= 41,
         DynamicFee: pallet_dynamic_fee::{Pallet, Call, Storage, Config, Inherent}= 42,
         BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event}= 43,
         QuantumPortal: pallet_quantum_portal::{Pallet, Call, Storage, Event<T>/*, ValidateUnsigned*/}= 44,

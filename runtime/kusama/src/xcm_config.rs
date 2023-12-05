@@ -6,10 +6,11 @@ use core::marker::PhantomData;
 use frame_support::pallet_prelude::Get;
 use frame_support::traits::OriginTrait;
 use frame_support::{
-    log, match_types, parameter_types,
+    match_types, parameter_types,
     traits::{ConstU32, Everything, Nothing},
     weights::Weight,
 };
+use log::log;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 

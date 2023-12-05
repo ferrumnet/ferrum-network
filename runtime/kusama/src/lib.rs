@@ -593,8 +593,8 @@ parameter_types! {
     pub const CouncilMaxMembers: u32 = 100;
 }
 
-type CouncilCollective = pallet_collective::Instance1;
-impl pallet_collective::Config<CouncilCollective> for Runtime {
+type CouncilInstance = pallet_collective::Instance1;
+impl pallet_collective::Config<CouncilInstance> for Runtime {
     type RuntimeOrigin = RuntimeOrigin;
     type Proposal = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
@@ -619,7 +619,7 @@ parameter_types! {
 
 type EnsureRootOrHalfCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,
-    pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>,
+    pallet_collective::EnsureProportionMoreThan<AccountId, CouncilInstance, 1, 2>,
 >;
 
 impl pallet_democracy::Config for Runtime {
@@ -632,17 +632,17 @@ impl pallet_democracy::Config for Runtime {
     type MinimumDeposit = MinimumDeposit;
     /// A straight majority of the council can decide what their next motion is.
     type ExternalOrigin =
-        pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>;
+        pallet_collective::EnsureProportionAtLeast<AccountId, CouncilInstance, 1, 2>;
     /// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
     type ExternalMajorityOrigin =
-        pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 4>;
+        pallet_collective::EnsureProportionAtLeast<AccountId, CouncilInstance, 3, 4>;
     /// A unanimous council can have the next scheduled referendum be a straight default-carries
     /// (NTB) vote.
     type ExternalDefaultOrigin =
-        pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 1>;
+        pallet_collective::EnsureProportionAtLeast<AccountId, CouncilInstance, 1, 1>;
     // we need a majority vote of the council to submit a new proposal to democracy
     type SubmitOrigin =
-        pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>;
+        pallet_collective::EnsureProportionAtLeast<AccountId, CouncilInstance, 1, 2>;
     /// Two thirds of the technical committee can have an ExternalMajority/ExternalDefault vote
     /// be tabled immediately and with a shorter voting/enactment period.
     type FastTrackOrigin =
@@ -653,7 +653,7 @@ impl pallet_democracy::Config for Runtime {
     type FastTrackVotingPeriod = FastTrackVotingPeriod;
     // To cancel a proposal which has been passed, 2/3 of the council must agree to it.
     type CancellationOrigin =
-        pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>;
+        pallet_collective::EnsureProportionAtLeast<AccountId, CouncilInstance, 2, 3>;
     // To cancel a proposal before it has been passed, the technical committee must be unanimous or
     // Root must agree.
     type CancelProposalOrigin = EitherOfDiverse<

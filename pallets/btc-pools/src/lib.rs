@@ -21,9 +21,10 @@ pub use weights::*;
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use frame_support::{dispatch::Vec, pallet_prelude::*};
+    use frame_support::{pallet_prelude::*};
     use frame_system::pallet_prelude::*;
     use scale_info::prelude::vec;
+    use scale_info::prelude::vec::Vec;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -57,6 +58,10 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn pending_withdrawals)]
     pub type PendingWithdrawals<T> = StorageMap<_, Blake2_128Concat, Vec<u8>, u32>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn registered_validators)]
+    pub type RegisteredValidators<T> = StorageMap<_, Blake2_128Concat, <T as frame_system::Config>::AccountId, Vec<u8>>;
 
     /// Current pending transactions
     #[pallet::storage]
@@ -194,6 +199,20 @@ pub mod pallet {
 
                 Ok(())
             })
+        }
+
+        #[pallet::call_index(3)]
+        #[pallet::weight(T::WeightInfo::do_something())]
+        pub fn register_validator(
+            origin: OriginFor<T>,
+            btc_address: Vec<u8>,
+        ) -> DispatchResult {
+            // TODO : Ensure the caller is allowed to submit withdrawals
+            let who = ensure_signed(origin)?;
+
+            RegisteredValidators::<T>::insert(who, btc_address);
+
+            Ok(())
         }
     }
 }

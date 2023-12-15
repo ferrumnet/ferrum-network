@@ -1,261 +1,214 @@
-// No-std compatible client for bitcoin rpc
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::iter::FromIterator;
-use std::path::PathBuf;
-use std::{fmt, result};
-
-use crate::{bitcoin, deserialize_hex};
-use bitcoin::hex::DisplayHex;
-use jsonrpc;
-use serde;
-use serde_json;
-
-use crate::bitcoin::address::{NetworkUnchecked, NetworkChecked};
-use crate::bitcoin::hashes::hex::FromHex;
-use crate::bitcoin::secp256k1::ecdsa::Signature;
-use crate::bitcoin::{
-    Address, Amount, Block, OutPoint, PrivateKey, PublicKey, Script, Transaction,
+use bincode::config::LittleEndian;
+use bitcoin::{
+	bech32::FromBase32,
+	blockdata::{opcodes::all, script::Builder},
+	hashes::{
+		hex,
+		hex::{FromHex, ToHex},
+		sha256, Hash,
+	},
+	psbt::{serialize::Deserialize, Input, Output, PartiallySignedTransaction, TapTree},
+	schnorr::{TapTweak, TweakedKeyPair, TweakedPublicKey, UntweakedKeyPair},
+	secp256k1::{Message, Parity, Secp256k1, SecretKey, Signature},
+	util::{
+		bip32::ExtendedPrivKey,
+		sighash::{Prevouts, ScriptPath, SighashCache},
+		taproot::{
+			ControlBlock, LeafVersion, LeafVersion::TapScript, NodeInfo, TapBranchHash,
+			TapBranchTag, TapLeafHash, TapSighashHash, TaprootBuilder, TaprootMerkleBranch,
+			TaprootSpendInfo,
+		},
+	},
+	Address, AddressType, KeyPair, Network, OutPoint, PrivateKey, SchnorrSig, SchnorrSighashType,
+	Script, Transaction, TxIn, TxOut, Txid, Witness, XOnlyPublicKey,
 };
-use log::Level::{Debug, Trace, Warn};
-use reqwest::blocking::Client;
-use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
+use electrum_client::{Client, ElectrumApi};
+use miniscript::{
+	psbt::{PsbtExt, PsbtInputSatisfier},
+	Descriptor, DescriptorPublicKey, Miniscript, Tap, ToPublicKey,
+};
+use std::{collections::BTreeMap, str::FromStr};
+use bitcoin::Amount;
+use std::{env, thread, time};
 
-// Replace these values with your own
-const RPC_URL: &str = "http://127.0.0.1:8332";
-const RPC_USER: &str = "bitcoin";
-const RPC_PASSWORD: &str = "talk";
-
-use crate::error::*;
-use crate::json;
-use crate::queryable;
-
-/// Crate-specific Result type, shorthand for `std::result::Result` with our
-/// crate-specific Error type;
-pub type Result<T> = result::Result<T, Error>;
-
-/// Outpoint that serializes and deserializes as a map, instead of a string,
-/// for use as RPC arguments
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct JsonOutPoint {
-    pub txid: bitcoin::Txid,
-    pub vout: u32,
+#[derive(Debug, Clone)]
+pub struct BTCClient {
+    pub http_api: Vec<u8>,
 }
 
-impl From<OutPoint> for JsonOutPoint {
-    fn from(o: OutPoint) -> JsonOutPoint {
-        JsonOutPoint {
-            txid: o.txid,
-            vout: o.vout,
+impl BTCClient {
+    /// Generate taproot script from given threshold and authorities
+    fn generate_taproot_script(authorities : Vec<Vec<u8>>, threshold : u32) -> Vec<u8> {
+        debug_assert!(authorities.len() > 2);
+
+        // generate the taproot script
+        let mut wallet_script = Builder::new();
+
+        // the first authority signature is always required
+        wallet_script.push_x_only_key(&authorities[0].into())
+		wallet_script.push_opcode(all::OP_CHECKSIGVERIFY)
+
+        // add all the remaining authorities except last one
+        for authorities in authorities[1..=authorities.len() - 2] {
+            wallet_script.push_x_only_key(&authorities[0].into())
+		    wallet_script.push_opcode(all::OP_CHECKSIG)
         }
-    }
-}
 
-impl Into<OutPoint> for JsonOutPoint {
-    fn into(self) -> OutPoint {
-        OutPoint {
-            txid: self.txid,
-            vout: self.vout,
-        }
-    }
-}
+        // add the remaining authority
+        wallet_script.push_x_only_key(&authorities[authorities.len() - 1].into())
+		wallet_script.push_opcode(all::OP_CHECKSIGADD)
 
-/// Shorthand for converting a variable into a serde_json::Value.
-fn into_json<T>(val: T) -> Result<serde_json::Value>
-    where
-        T: serde::ser::Serialize,
-{
-    Ok(serde_json::to_value(val)?)
-}
-
-/// Shorthand for converting an Option into an Option<serde_json::Value>.
-fn opt_into_json<T>(opt: Option<T>) -> Result<serde_json::Value>
-    where
-        T: serde::ser::Serialize,
-{
-    match opt {
-        Some(val) => Ok(into_json(val)?),
-        None => Ok(serde_json::Value::Null),
-    }
-}
-
-/// Shorthand for `serde_json::Value::Null`.
-fn null() -> serde_json::Value {
-    serde_json::Value::Null
-}
-
-/// Shorthand for an empty serde_json::Value array.
-fn empty_arr() -> serde_json::Value {
-    serde_json::Value::Array(vec![])
-}
-
-/// Shorthand for an empty serde_json object.
-fn empty_obj() -> serde_json::Value {
-    serde_json::Value::Object(Default::default())
-}
-
-// Function to get a raw transaction by transaction ID
-fn get_raw_transaction(txid: &str) -> Result<String, reqwest::Error> {
-    // Create the RPC request URL
-    let url = format!("{}/{}", RPC_URL, "rest/tx/".to_owned() + txid + ".json");
-
-    // Create the RPC authorization header
-    let mut headers = HeaderMap::new();
-    let auth_value = format!(
-        "Basic {}",
-        base64::encode(format!("{}:{}", RPC_USER, RPC_PASSWORD))
-    );
-    headers.insert(AUTHORIZATION, HeaderValue::from_str(&auth_value).unwrap());
-
-    // Make the RPC request
-    let client = Client::new();
-    let response = client.get(&url).headers(headers).send()?;
-
-    // Check if the request was successful
-    if response.status().is_success() {
-        // Parse the JSON response to extract the raw transaction
-        let json: serde_json::Value = response.json()?;
-        if let Some(tx) = json.get("rawtx") {
-            if let Some(raw_transaction) = tx.as_str() {
-                return Ok(raw_transaction.to_string());
-            }
-        }
+        wallet_script.push_int(threshold)
+		wallet_script.push_opcode(all::OP_GREATERTHANOREQUAL)
+		wallet_script.into_script()
     }
 
-    Err(reqwest::Error::new(reqwest::StatusCode::INTERNAL_SERVER_ERROR, "Failed to get raw transaction"))
-}
 
-// Function to scan for UTXOs associated with a given address
-fn scan_for_utxos(address: &str) -> Result<Vec<Utxo>, reqwest::Error> {
-    // Create the RPC request URL
-    let url = format!("{}/{}", RPC_URL, "rest/scantxoutset/scan");
+    // generate a wallet address from given taproot script
+    fn generate_wallet_address(taproot_script : Vec<u8>) -> Vec<u8> {
+        println!("Script {:?}", taproot_script);
 
-    // Create the RPC request payload
-    let payload = format!(
-        r#"{{"action":"start","scanobjects":["addr({})"]}}"#,
+        // TODO : genreate random key and hash two times
+        let internal_secret =
+		SecretKey::from_str("1229101a0fcf2104e8808dab35661134aa5903867d44deb73ce1c7e4eb925be8")
+			.unwrap();
+
+        let internal = KeyPair::from_secret_key(&secp, &internal_secret);
+
+        let builder = TaprootBuilder::with_huffman_tree(vec![(1, taproot_script.clone())]).unwrap();
+        let tap_tree = TapTree::from_builder(builder).unwrap();
+        let tap_info = tap_tree.into_builder().finalize(&secp, internal.public_key().into()).unwrap();
+        let merkle_root = tap_info.merkle_root();
+        let tweak_key_pair = internal.tap_tweak(&secp, merkle_root).into_inner();
+
+        let address = Address::p2tr(
+            &secp,
+            tap_info.internal_key(),
+            tap_info.merkle_root(),
+            bitcoin::Network::Testnet,
+        );
+
+        println!("Taproot wallet address {:?}", address);
+
         address
-    );
-
-    // Create the RPC authorization header
-    let mut headers = HeaderMap::new();
-    let auth_value = format!(
-        "Basic {}",
-        base64::encode(format!("{}:{}", RPC_USER, RPC_PASSWORD))
-    );
-    headers.insert(AUTHORIZATION, HeaderValue::from_str(&auth_value).unwrap());
-
-    // Make the RPC request
-    let client = Client::new();
-    let response = client
-        .post(&url)
-        .headers(headers)
-        .body(payload)
-        .send()?;
-
-    // Check if the request was successful
-    if response.status().is_success() {
-        println!("Scan for UTXOs successful!");
-        let utxos = response.unwrap().unspents;
-	    println!("Fetched utxos {:?}", utxos);
-    } else {
-        eprintln!(
-            "Error scanning for UTXOs: {}",
-            response.text().unwrap_or_else(|_| String::from("Unknown error"))
-        );
     }
 
-    Ok(())
-}
+    // fetch utxos for the given address
+    fn fetch_utxos(address: Vec<u8>) -> Vec<Utxo> {
+        // fetch the utxos for the address
+        // TODO : Take address given by user config
+        let client = Client::new("ssl://electrum.blockstream.info:60002").unwrap();
+        let vec_tx_in = client
+            .script_list_unspent(&address.script_pubkey())
+            .unwrap()
+            .iter()
+            .map(|l| {
+                return TxIn {
+                    previous_output: OutPoint::new(l.tx_hash, l.tx_pos.try_into().unwrap()),
+                    script_sig: Script::new(),
+                    sequence: bitcoin::Sequence(0xFFFFFFFF),
+                    witness: Witness::default(),
+                }
+            })
+            .collect::<Vec<TxIn>>();
 
-fn test_mempool_accept(tx_hex: &str) -> Result<(), reqwest::Error> {
-    // Create the RPC request URL
-    let url = format!("{}/{}", RPC_URL, "rest/testmempoolaccept");
+        println!("Found UTXOS {:?}", vec_tx_in);
 
-    // Create the RPC request payload
-    let payload = format!(r#"{{"rawtx":"{}"}}"#, tx_hex);
-
-    // Create the RPC authorization header
-    let mut headers = HeaderMap::new();
-    let auth_value = format!(
-        "Basic {}",
-        base64::encode(format!("{}:{}", RPC_USER, RPC_PASSWORD))
-    );
-    headers.insert(AUTHORIZATION, HeaderValue::from_str(&auth_value).unwrap());
-
-    // Make the RPC request
-    let client = Client::new();
-    let response = client
-        .post(&url)
-        .headers(headers)
-        .body(payload)
-        .send()?;
-
-    // Check if the request was successful
-    if response.status().is_success() {
-        println!("Test mempool accept successful!");
-    } else {
-        eprintln!(
-            "Error sending test mempool accept: {}",
-            response.text().unwrap_or_else(|_| String::from("Unknown error"))
-        );
+        vec_tx_in
     }
 
-    Ok(())
+    fn generate_transaction(txins : Vex<Txin>, txouts : Vec<TxOut>) -> Vec<u8> {
+
+        let prev_tx = txins
+		.iter()
+		.map(|tx_id| client.transaction_get(&tx_id.previous_output.txid).unwrap())
+		.collect::<Vec<Transaction>>();
+
+        let mut tx = Transaction {
+            version: 2,
+            lock_time: bitcoin::PackedLockTime(0),
+            input: txins,
+            output: txous,
+        };
+
+        let binding = vec![prev_tx[0].output[0].clone()];
+	    let prevouts = Prevouts::All(&binding);
+
+        let sighash_sig = SighashCache::new(&mut tx.clone())
+            .taproot_script_spend_signature_hash(
+                0,
+                &prevouts,
+                ScriptPath::with_defaults(&wallet_script),
+                SchnorrSighashType::Default,
+            )
+            .unwrap();
+
+            println!("Sighash Sig {:?}", sighash_sig);
+
+            let msg = Message::from_slice(&sighash_sig).unwrap();
+    
+            println!("Msg {:?}", msg);
+    
+            msg
+    }
+
+    fn generate_signed_transaction(tx: Transaction, sigs : Vec<Vec<u8>>, wallet_script : Vec<u8>) -> Vec<u8> {
+        
+        let mut wit_vec = vec![];
+        for sig in sigs {
+            let sig = SchnorrSig { sig: sig, hash_ty: SchnorrSighashType::Default };
+            // (it's a stack, so this is Last In First Out, and will be consumed by the first CHECKSIGVERIFY)
+            wit_vec.push(sig)
+        }
+        let wit = Witness::from_vec(vec![
+            sigs,
+            wallet_script.to_bytes(),
+            actual_control.serialize(),
+        ]);
+
+        return wit.to_vec()
+
+    }
+        
+
 }
 
-// Function to generate a Bitcoin taproot transaction with multisig script
-fn generate_taproot_transaction(signer_key: PublicKey, utxos : Vec<Utxo>, amount : Amount, recipient: Address) -> Transaction {
-    // Bitcoin network
-    let network = Network::Testnet;
-
-    let out_point = OutPoint {
-        txid: Default::default(),
-        vout: 0,
-    };
-    let tx_in = TxIn {
-        previous_output: out_point,
-        script_sig: Default::default(),
-        sequence: 0xFFFFFFFF,
-        witness: Vec::new(),
-    };
-
-    // Transaction output (dummy values, replace with real values)
-    let script_pubkey = Builder::new().push_opcode(opcodes::all::OP_TRUE).into_script();
-    let tx_out = TxOut {
-        value: amount,
-        script_pubkey,
-    };
-
-    // Create a taproot transaction
-    let mut transaction = Transaction {
-        version: 2,
-        lock_time: 0,
-        input: vec![tx_in],
-        output: vec![tx_out],
-    };
-
-    // Add tapscript (multisig script) to witness
-    let secp = Secp256k1::new();
-    let witness_script = Builder::new()
-        .push_key(&signer1_key)
-        .push_key(&signer2_key)
-        .push_opcode(opcodes::all::OP_2)
-        .push_opcode(opcodes::all::OP_CHECKMULTISIG)
-        .into_script();
-    let mut witness_data = Vec::new();
-    witness_data.push(witness_script.to_bytes().unwrap());
-    transaction.input[0].witness = witness_data;
-
-    // Sign the transaction
-    let mut rng = OsRng::new().expect("Failed to create OS RNG");
-    let message = transaction.txid();
-    let sig1 = secp.sign_recoverable(&message, &signer1_key, &mut rng);
-    let sig2 = secp.sign_recoverable(&message, &signer2_key, &mut rng);
-
-    // Add signatures to witness
-    transaction.input[0].witness.push(serialize(&sig1).unwrap());
-    transaction.input[0].witness.push(serialize(&sig2).unwrap());
-
-    transaction
+// #[derive(Clone)]
+pub struct BTCClientSignature {
+    pub from: Address,
+    pub _signer: ecdsa::Public,
 }
+
+impl BTCClientSignature {
+    pub fn new(from: Address, signer: &[u8]) -> Self {
+        BTCClientSignature {
+            from,
+            _signer: ecdsa::Public::try_from(signer).unwrap(),
+        }
+    }
+
+    pub fn signer(&self, hash: &H256) -> Result<ecdsa::Signature, TransactionCreationError> {
+        log::info!("Signer address is : {:?}", self.from);
+        // TODO : We should handle this properly, if the signing is not possible maybe propogate the error upstream
+        let signed: Result<ecdsa::Signature, TransactionCreationError> =
+            crypto::ecdsa_sign_prehashed(OFFCHAIN_SIGNER_KEY_TYPE, &self._signer, &hash.0)
+                .ok_or(TransactionCreationError::SigningFailed);
+
+        if signed.is_ok() {
+            let sig_bytes = signed.as_ref().unwrap().encode();
+            log::info!(
+                "Got a signature of size {}: {}",
+                sig_bytes.len(),
+                str::from_utf8(ChainUtils::bytes_to_hex(sig_bytes.as_slice()).as_slice()).unwrap()
+            );
+        }
+
+        signed
+    }
+
+    pub fn get_signer_address(&self) -> Vec<u8> {
+        log::info!("Signer address is : {:?}", self.from);
+        self._signer.as_ref().to_vec()
+    }
+}
+

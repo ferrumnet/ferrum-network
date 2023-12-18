@@ -1,5 +1,7 @@
 use super::*;
 use cumulus_primitives_core::ParaId;
+use ferrum_runtime::EthereumConfig;
+use ferrum_runtime::ParachainInfoConfig;
 use ferrum_runtime::{AccountId, AuraId, EXISTENTIAL_DEPOSIT};
 use hex_literal::hex;
 use sc_service::ChainType;
@@ -139,6 +141,7 @@ fn generate_genesis(
             code: ferrum_runtime::WASM_BINARY
                 .expect("WASM binary was not build, please build it!")
                 .to_vec(),
+            ..Default::default()
         },
         balances: ferrum_runtime::BalancesConfig {
             balances: endowed_accounts
@@ -147,7 +150,10 @@ fn generate_genesis(
                 .map(|k| (k, EXISTENTIAL_DEPOSIT * 1000))
                 .collect(),
         },
-        parachain_info: ferrum_runtime::ParachainInfoConfig { parachain_id: id },
+        parachain_info: ferrum_runtime::ParachainInfoConfig {
+            parachain_id: id,
+            ..Default::default()
+        },
         collator_selection: ferrum_runtime::CollatorSelectionConfig {
             invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
             candidacy_bond: EXISTENTIAL_DEPOSIT * 16,
@@ -176,9 +182,12 @@ fn generate_genesis(
         },
         polkadot_xcm: ferrum_runtime::PolkadotXcmConfig {
             safe_xcm_version: Some(SAFE_XCM_VERSION),
+            ..Default::default()
         },
         evm: Default::default(),
-        ethereum: ferrum_runtime::EthereumConfig {},
+        ethereum: EthereumConfig {
+            ..Default::default()
+        },
         dynamic_fee: Default::default(),
         base_fee: Default::default(),
         council_collective: Default::default(),

@@ -185,10 +185,16 @@ impl ContractClient {
         chain_timestamp: u64,
     ) -> Result<Address, ChainRequestError> {
         let miner_manager_address = self.get_miner_manager_address()?;
-        
+
         log::info!("get_miner_for_block : block hash is : {:?}", block_hash);
-        log::info!("get_miner_for_block : block_timestamp is : {:?}", block_timestamp);
-        log::info!("get_miner_for_block : chain_timestamp is : {:?}", chain_timestamp);
+        log::info!(
+            "get_miner_for_block : block_timestamp is : {:?}",
+            block_timestamp
+        );
+        log::info!(
+            "get_miner_for_block : chain_timestamp is : {:?}",
+            chain_timestamp
+        );
 
         // no cache, we fetch from the gateway contract
         let signature = b"findMinerAtTime(bytes32,uint256,uint256)";

@@ -56,7 +56,7 @@ impl frame_system::Config for Runtime {
     type DbWeight = ();
     type RuntimeOrigin = RuntimeOrigin;
     type Index = u64;
-    type BlockNumber = BlockNumber;
+
     type RuntimeCall = RuntimeCall;
     type Hash = H256;
     type Hashing = BlakeTwo256;
@@ -102,6 +102,10 @@ impl pallet_balances::Config for Runtime {
     type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
+    type FreezeIdentifier = ();
+    type MaxFreezes = ConstU32<0>;
+    type RuntimeHoldReason = RuntimeHoldReason;
+    type MaxHolds = ConstU32<0>;
     type WeightInfo = ();
 }
 
@@ -112,10 +116,14 @@ pub type Precompiles<R> = PrecompileSetBuilder<
 
 pub type PCall = Erc20BalancesPrecompileCall<Runtime, NativeErc20Metadata, ()>;
 
+const BLOCK_GAS_LIMIT: u64 = 75_000_000;
+const MAX_POV_SIZE: u64 = 5 * 1024 * 1024;
+
 parameter_types! {
-        pub BlockGasLimit: U256 = U256::max_value();
-        pub PrecompilesValue: Precompiles<Runtime> = Precompiles::new();
-        pub const WeightPerGas: Weight = Weight::from_ref_time(1);
+    pub BlockGasLimit: U256 = U256::from(BLOCK_GAS_LIMIT);
+    pub const GasLimitPovSizeRatio: u64 = BLOCK_GAS_LIMIT.saturating_div(MAX_POV_SIZE);
+    pub PrecompilesValue: FrontierPrecompiles<Runtime> = FrontierPrecompiles::<_>::new();
+    pub WeightPerGas: Weight = Weight::from_parts(weight_per_gas(BLOCK_GAS_LIMIT, NORMAL_DISPATCH_RATIO, MILLISECS_PER_BLOCK), 0);
 }
 
 impl pallet_evm::Config for Runtime {

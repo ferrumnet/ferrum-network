@@ -175,7 +175,7 @@ impl ChainUtils {
         sp_core::ecdsa::Public::from_raw(addr_bytes)
     }
 
-    #[allow(clippy::clone_double_ref)]
+    #[allow(suspicious_double_ref_op)]
     pub fn hex_add_0x(s: &[u8]) -> Vec<u8> {
         if s.len() >= 2 && s[0] == b'0' && s[1] == b'x' {
             return Vec::from(s.clone());

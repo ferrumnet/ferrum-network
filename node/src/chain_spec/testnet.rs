@@ -15,10 +15,10 @@
 // along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
 use super::*;
 use cumulus_primitives_core::ParaId;
+use ferrum_testnet_runtime::EthereumConfig;
+use ferrum_testnet_runtime::ParachainInfoConfig;
 use ferrum_testnet_runtime::{AccountId, AuraId, EXISTENTIAL_DEPOSIT};
-
 use sc_service::ChainType;
-
 use std::str::FromStr;
 
 /// Specialized `TestnetChainSpec` for the normal parachain runtime.
@@ -198,6 +198,7 @@ fn testnet_genesis(
             code: ferrum_testnet_runtime::WASM_BINARY
                 .expect("WASM binary was not build, please build it!")
                 .to_vec(),
+            ..Default::default()
         },
         balances: ferrum_testnet_runtime::BalancesConfig {
             balances: endowed_accounts
@@ -206,7 +207,10 @@ fn testnet_genesis(
                 .map(|k| (k, 1 << 80))
                 .collect(),
         },
-        parachain_info: ferrum_testnet_runtime::ParachainInfoConfig { parachain_id: id },
+        parachain_info: ferrum_testnet_runtime::ParachainInfoConfig {
+            parachain_id: id,
+            ..Default::default()
+        },
         collator_selection: ferrum_testnet_runtime::CollatorSelectionConfig {
             invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
             candidacy_bond: EXISTENTIAL_DEPOSIT * 16,
@@ -235,17 +239,20 @@ fn testnet_genesis(
         },
         polkadot_xcm: ferrum_testnet_runtime::PolkadotXcmConfig {
             safe_xcm_version: Some(SAFE_XCM_VERSION),
+            ..Default::default()
         },
         evm: Default::default(),
-        ethereum: ferrum_testnet_runtime::EthereumConfig {},
+        ethereum: ferrum_testnet_runtime::EthereumConfig {
+            ..Default::default()
+        },
         dynamic_fee: Default::default(),
         base_fee: Default::default(),
-        technical_committee: ferrum_testnet_runtime::TechnicalCommitteeConfig {
-            members: vec![
-                AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
-                AccountId::from_str("977D8B2C924dB8a92340e9bb58e6C0d876de9D60").unwrap(),
-            ],
-            phantom: Default::default(),
-        },
+        // technical_committee: ferrum_testnet_runtime::TechnicalCommitteeConfig {
+        //     members: vec![
+        //         AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
+        //         AccountId::from_str("977D8B2C924dB8a92340e9bb58e6C0d876de9D60").unwrap(),
+        //     ],
+        //     phantom: Default::default(),
+        // },
     }
 }

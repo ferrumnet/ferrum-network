@@ -69,6 +69,7 @@ impl Contains<RuntimeCall> for FerrumCallFilter {
                 pallet_xcm::Call::force_xcm_version { .. }
                 | pallet_xcm::Call::force_default_xcm_version { .. }
                 | pallet_xcm::Call::force_subscribe_version_notify { .. }
+                | pallet_xcm::Call::force_suspension { .. }
                 | pallet_xcm::Call::force_unsubscribe_version_notify { .. } => {
                     return true;
                 }

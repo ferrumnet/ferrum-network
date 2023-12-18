@@ -18,7 +18,7 @@ name = "ferrum-network"
 
 [dependencies]
 clap = { version = "4.0.32", features = ["derive"] }
-codec = { package = "parity-scale-codec", version = "3.0.0" }
+codec = { package = "parity-scale-codec", version = "3.2.2" }
 futures = { version = "0.3.21" }
 hex-literal = "0.3.4"
 jsonrpsee = { version = "0.16.2", features = ["server"] }
@@ -35,9 +35,12 @@ sc-basic-authorship = { git = "https://github.com/paritytech/polkadot-sdk", "bra
 sc-chain-spec = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
 sc-cli = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
 sc-client-api = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
+sc-client-db = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
 sc-consensus = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
 sc-executor = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
 sc-network = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
+sc-network-sync = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
+sc-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
 sc-network-common = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
 sc-rpc = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
 sc-service = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
@@ -51,11 +54,15 @@ sp-application-crypto = { git = "https://github.com/paritytech/polkadot-sdk", "b
 sp-block-builder = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
 sp-blockchain = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
 sp-consensus-aura = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
+sc-consensus-manual-seal = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
+sc-rpc-api = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
 sp-core = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
+sp-inherents = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
 sp-io = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
 sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
 sp-keystore = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
 sp-offchain = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
+sc-offchain = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
 sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
 sp-session = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
 sp-timestamp = { git = "https://github.com/paritytech/polkadot-sdk", "branch" = "release-polkadot-v1.1.0" }
@@ -85,6 +92,7 @@ cumulus-relay-chain-minimal-node = { git = "https://github.com/paritytech/polkad
 
 # Frontier
 fc-cli = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v1.1.0" }
+fc-api = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v1.1.0" }
 fc-consensus = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v1.1.0" }
 fc-db = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v1.1.0" }
 fc-mapping-sync = { git = 'https://github.com/paritytech/frontier.git', default-features = false, branch = "polkadot-v1.1.0" }
@@ -99,7 +107,6 @@ fp-storage = { git = 'https://github.com/paritytech/frontier.git', default-featu
 
 # Local Dependencies
 ferrum-primitives = { path = "../primitives" }
-ferrum-rococo-runtime = { path = "../runtime/rococo" }
 ferrum-runtime = { path = "../runtime/kusama" }
 ferrum-testnet-runtime = { path = "../runtime/testnet" }
 pallet-quantum-portal = { path = "../pallets/quantum-portal" }

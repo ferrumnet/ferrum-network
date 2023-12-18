@@ -17,13 +17,14 @@
 
 use crate::primitives::{AccountId, Balance, Block, Hash};
 use cumulus_primitives_core::relay_chain::Nonce;
+use fc_db::kv::frontier_database_dir;
+use fc_db::DatabaseSource;
 use fc_rpc::{
     Eth, EthApiServer, EthBlockDataCacheTask, EthFilter, EthFilterApiServer, EthPubSub,
     EthPubSubApiServer, Net, NetApiServer, OverrideHandle, Web3, Web3ApiServer,
 };
 use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
 pub use fc_storage::overrides_handle;
-
 use jsonrpsee::RpcModule;
 use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
 use sc_client_api::{AuxStore, Backend, BlockchainEvents, StateBackend, StorageProvider};
@@ -42,8 +43,6 @@ use sp_runtime::traits::BlakeTwo256;
 use std::sync::Arc;
 use substrate_frame_rpc_system::{System, SystemApiServer};
 
-pub mod tracing;
-
 // TODO This is copied from frontier. It should be imported instead after
 // https://github.com/paritytech/frontier/issues/333 is solved
 pub fn open_frontier_backend<C>(
@@ -53,30 +52,39 @@ pub fn open_frontier_backend<C>(
 where
     C: sp_blockchain::HeaderBackend<Block>,
 {
-    let config_dir = config
-        .base_path
-        .as_ref()
-        .map(|base_path| base_path.config_dir(config.chain_spec.id()))
-        .unwrap_or_else(|| {
-            sc_service::BasePath::from_project("", "", "ferrum").config_dir(config.chain_spec.id())
-        });
+    let config_dir = config.base_path.path();
     let path = config_dir.join("frontier").join("db");
 
-    Ok(Arc::new(fc_db::Backend::<Block>::new(
+    Ok(Arc::new(fc_db::Backend::KeyValue(fc_db::kv::Backend::<
+        Block,
+    >::new(
         client,
-        &fc_db::DatabaseSettings {
-            source: fc_db::DatabaseSource::RocksDb {
-                path,
-                cache_size: 0,
+        &fc_db::kv::DatabaseSettings {
+            source: match config.database {
+                DatabaseSource::RocksDb { .. } => DatabaseSource::RocksDb {
+                    path: frontier_database_dir(config_dir, "db"),
+                    cache_size: 0,
+                },
+                DatabaseSource::ParityDb { .. } => DatabaseSource::ParityDb {
+                    path: frontier_database_dir(config_dir, "paritydb"),
+                },
+                DatabaseSource::Auto { .. } => DatabaseSource::Auto {
+                    rocksdb_path: frontier_database_dir(config_dir, "db"),
+                    paritydb_path: frontier_database_dir(config_dir, "paritydb"),
+                    cache_size: 0,
+                },
+                _ => {
+                    return Err("Supported db sources: `rocksdb` | `paritydb` | `auto`".to_string())
+                }
             },
         },
-    )?))
+    )?)))
 }
 
 #[derive(Clone)]
 pub struct TracingConfig {
-	pub tracing_requesters: crate::rpc::tracing::RpcRequesters,
-	pub trace_filter_max_count: u32,
+    //pub tracing_requesters: crate::rpc::tracing::RpcRequesters,
+    pub trace_filter_max_count: u32,
 }
 
 /// Full client dependencies
@@ -108,7 +116,7 @@ pub struct FullDeps<C, P, A: ChainApi> {
     /// Enable EVM RPC servers
     pub enable_evm_rpc: bool,
     /// Optional tracing config.
-	pub tracing_config: Option<TracingConfig>,
+    pub tracing_config: Option<TracingConfig>,
 }
 
 /// Instantiate all RPC extensions.
@@ -129,8 +137,8 @@ where
     C: sc_client_api::BlockBackend<Block>,
     C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>
         + pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>
-        + fp_rpc::ConvertTransactionRuntimeApi<Block>
-        + fp_rpc::EthereumRuntimeRPCApi<Block>
+        // + fp_rpc::ConvertTransactionRuntimeApi<Block>
+        // + fp_rpc::EthereumRuntimeRPCApi<Block>
         + BlockBuilder<Block>,
     P: TransactionPool<Block = Block> + Sync + Send + 'static,
     BE: Backend<Block> + 'static,
@@ -158,8 +166,8 @@ where
     C: sc_client_api::BlockBackend<Block>,
     C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>
         + pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>
-        + fp_rpc::ConvertTransactionRuntimeApi<Block>
-        + fp_rpc::EthereumRuntimeRPCApi<Block>
+        //+ fp_rpc::ConvertTransactionRuntimeApi<Block>
+        //+ fp_rpc::EthereumRuntimeRPCApi<Block>
         + BlockBuilder<Block>,
     P: TransactionPool<Block = Block> + Sync + Send + 'static,
     BE: Backend<Block> + 'static,
@@ -182,6 +190,7 @@ where
         overrides,
         block_data_cache,
         enable_evm_rpc,
+        ..
     } = deps;
 
     io.merge(System::new(client.clone(), pool.clone(), deny_unsafe).into_rpc())?;
@@ -194,47 +203,73 @@ where
 
     let no_tx_converter: Option<fp_rpc::NoTransactionConverter> = None;
 
-    io.merge(
-        Eth::new(
-            client.clone(),
-            pool.clone(),
-            graph,
-            no_tx_converter,
-            network.clone(),
-            Default::default(),
-            overrides.clone(),
-            frontier_backend.clone(),
-            is_authority,
-            block_data_cache.clone(),
-            fee_history_cache,
-            fee_history_limit,
-            // Allow 10x max allowed weight for non-transactional calls
-            10,
-        )
-        .into_rpc(),
-    )?;
+    // let pending_create_inherent_data_providers = move |_, _| async move {
+    // 	let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+    // 	// Create a dummy parachain inherent data provider which is required to pass
+    // 	// the checks by the para chain system. We use dummy values because in the 'pending context'
+    // 	// neither do we have access to the real values nor do we need them.
+    // 	let (relay_parent_storage_root, relay_chain_state) =
+    // 		RelayStateSproofBuilder::default().into_state_root_and_proof();
+    // 	let vfp = PersistedValidationData {
+    // 		// This is a hack to make `cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases`
+    // 		// happy. Relay parent number can't be bigger than u32::MAX.
+    // 		relay_parent_number: u32::MAX,
+    // 		relay_parent_storage_root,
+    // 		..Default::default()
+    // 	};
+    // 	let parachain_inherent_data = ParachainInherentData {
+    // 		validation_data: vfp,
+    // 		relay_chain_state: relay_chain_state,
+    // 		downward_messages: Default::default(),
+    // 		horizontal_messages: Default::default(),
+    // 	};
+    // 	Ok((timestamp, parachain_inherent_data))
+    // };
 
-    let max_past_logs: u32 = 10_000;
-    let max_stored_filters: usize = 500;
-    io.merge(
-        EthFilter::new(
-            client.clone(),
-            frontier_backend,
-            filter_pool,
-            max_stored_filters,
-            max_past_logs,
-            block_data_cache,
-        )
-        .into_rpc(),
-    )?;
+    // io.merge(
+    //     Eth::new(
+    //         client.clone(),
+    //         pool.clone(),
+    //         graph,
+    //         no_tx_converter,
+    //         network.clone(),
+    //         Default::default(),
+    //         overrides.clone(),
+    //         frontier_backend.clone(),
+    //         is_authority,
+    //         block_data_cache.clone(),
+    //         fee_history_cache,
+    //         fee_history_limit,
+    //         // Allow 10x max allowed weight for non-transactional calls
+    //         10,
+    //         forced_parent_hashes,
+    // 		pending_create_inherent_data_providers,
+    // 		Some(pending_consenus_data_provider),
+    //     )
+    //     .into_rpc(),
+    // )?;
 
-    io.merge(Net::new(client.clone(), network.clone(), true).into_rpc())?;
+    // let max_past_logs: u32 = 10_000;
+    // let max_stored_filters: usize = 500;
+    // io.merge(
+    //     EthFilter::new(
+    //         client.clone(),
+    //         frontier_backend,
+    //         filter_pool,
+    //         max_stored_filters,
+    //         max_past_logs,
+    //         block_data_cache,
+    //     )
+    //     .into_rpc(),
+    // )?;
 
-    io.merge(Web3::new(client.clone()).into_rpc())?;
+    // io.merge(Net::new(client.clone(), network.clone(), true).into_rpc())?;
 
-    io.merge(
-        EthPubSub::new(pool, client, network, subscription_task_executor, overrides).into_rpc(),
-    )?;
+    // io.merge(Web3::new(client.clone()).into_rpc())?;
+
+    // io.merge(
+    //     EthPubSub::new(pool, client, network, subscription_task_executor, overrides).into_rpc(),
+    // )?;
 
     Ok(io)
 }

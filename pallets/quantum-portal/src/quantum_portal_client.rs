@@ -93,7 +93,7 @@ where
                 Box::new(ParamKind::Address),   // sourceBeneficiary
                 Box::new(ParamKind::Address),   // token
                 Box::new(ParamKind::Uint(256)), // amount
-                Box::new(ParamKind::Array(Box::new(ParamKind::Bytes))),     // method
+                Box::new(ParamKind::Array(Box::new(ParamKind::Bytes))), // method
                 Box::new(ParamKind::Uint(256)), // gas
                 Box::new(ParamKind::Uint(256)), // fixedFee
             ]))),
@@ -202,18 +202,22 @@ impl<T: Config> QuantumPortalClient<T> {
     pub fn last_finalized_block(&self, chain_id: u64) -> ChainRequestResult<QpLocalBlock> {
         let signature = b"getLastFinalizedBlock(uint256)";
         let state_contract_address = self.contract.get_state_contract_address()?;
-        let res: Box<CallResponse> =
-            self.contract
-                .call(signature, &[Token::Uint(U256::from(chain_id))], Some(state_contract_address))?;
+        let res: Box<CallResponse> = self.contract.call(
+            signature,
+            &[Token::Uint(U256::from(chain_id))],
+            Some(state_contract_address),
+        )?;
         self.decode_local_block(res.result.as_slice())
     }
 
     pub fn last_local_block(&self, chain_id: u64) -> ChainRequestResult<QpLocalBlock> {
         let signature = b"getLastLocalBlock(uint256)";
         let state_contract_address = self.contract.get_state_contract_address()?;
-        let res: Box<CallResponse> =
-            self.contract
-                .call(signature, &[Token::Uint(U256::from(chain_id))], Some(state_contract_address))?;
+        let res: Box<CallResponse> = self.contract.call(
+            signature,
+            &[Token::Uint(U256::from(chain_id))],
+            Some(state_contract_address),
+        )?;
         self.decode_local_block(res.result.as_slice())
     }
 
@@ -258,7 +262,7 @@ impl<T: Config> QuantumPortalClient<T> {
             // MinedBlock
             Box::new(ParamKind::FixedBytes(32)), // blockHash
             Box::new(ParamKind::Address),        // miner
-            Box::new(ParamKind::Uint(256)),          // invalid block
+            Box::new(ParamKind::Uint(256)),      // invalid block
             Box::new(ParamKind::Uint(256)),      // stake
             Box::new(ParamKind::Uint(256)),      // totalValue
             Box::new(local_block_tuple()),
@@ -282,7 +286,7 @@ impl<T: Config> QuantumPortalClient<T> {
         block_nonce: u64,
         _finalizer_hash: H256,
         _finalizers: &[Vec<u8>],
-        verification_result: bool
+        verification_result: bool,
     ) -> ChainRequestResult<H256> {
         // because of sp_std, so here are the alternatives:
         // - Manually construct the function call as [u8].
@@ -326,7 +330,7 @@ impl<T: Config> QuantumPortalClient<T> {
         );
 
         // set this block nonce as invalid if verification failed
-        let invalid_block : Vec<Token> = if !verification_result {
+        let invalid_block: Vec<Token> = if !verification_result {
             vec![Token::Uint(U256::from(block_nonce))]
         } else {
             vec![]
@@ -335,7 +339,7 @@ impl<T: Config> QuantumPortalClient<T> {
         let inputs = [
             Token::Uint(U256::from(remote_chain_id)),
             Token::Uint(U256::from(block_nonce)),
-            Token::Array(invalid_block), 
+            Token::Array(invalid_block),
             finalizer_hash,
             Token::Array(finalizer_list),
             salt,
@@ -483,8 +487,8 @@ impl<T: Config> QuantumPortalClient<T> {
                     Token::Address(t.token),
                     Token::Uint(t.amount),
                     Token::Array(vec![Token::Bytes(t.method.clone())]),
-                    Token::Uint(U256::from(t.gas)),
-                    Token::Uint(U256::from(t.fixed_fee)),
+                    Token::Uint(t.gas),
+                    Token::Uint(t.fixed_fee),
                 ])
             })
             .collect();
@@ -515,8 +519,8 @@ impl<T: Config> QuantumPortalClient<T> {
                 expiry,
                 Token::Bytes(multi_sig),
             ],
-            Some(U256::from(1000000 as u32)), // None,
-            None, // Some(U256::from(60000000000 as u64)), // None,
+            Some(U256::from(1000000_u32)), // None,
+            None,                          // Some(U256::from(60000000000 as u64)), // None,
             U256::zero(),
             None,
             self.signer.from,
@@ -635,7 +639,7 @@ impl<T: Config> QuantumPortalClient<T> {
                 block.nonce,
                 H256::zero(),
                 &[self.signer.get_signer_address()],
-                verification_result
+                verification_result,
             )?))
         } else {
             log::info!("Nothing to finalize for ({})", chain_id);
@@ -693,7 +697,7 @@ impl<T: Config> QuantumPortalClient<T> {
             remote_chain,
         );
 
-        let assigned_miner = self.contract.get_miner_for_block(
+        let _assigned_miner = self.contract.get_miner_for_block(
             source_block.0.hash(),                      // block hash from txs
             source_block.0.timestamp,                   // block timestamp
             sp_io::offchain::timestamp().unix_millis(), // chain timestamp
@@ -802,12 +806,12 @@ impl<T: Config> QuantumPortalClient<T> {
 
         // ensure the transaction content is the same
         for transaction in source_txs.iter() {
-            if !mined_txs.contains(&transaction) {
+            if !mined_txs.contains(transaction) {
                 log::info!("Transaction content mismatch between source and mined txs");
                 return false;
             }
         }
 
-       return true;
+        true
     }
 }

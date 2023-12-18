@@ -38,9 +38,6 @@ use sp_runtime::{
     Perbill,
 };
 
-#[cfg(feature = "std")]
-pub use serde::{de::DeserializeOwned, Deserialize, Serialize};
-
 pub mod account_id20;
 pub mod xcm_primitives;
 pub use account_id20::*;

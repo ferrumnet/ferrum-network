@@ -2,6 +2,7 @@
 //!
 //! It includes the Verify and IdentifyAccount traits for the AccountId20
 use super::*;
+pub use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 /// Defines application identifier for crypto keys for the offchain signer
 ///
@@ -24,7 +25,6 @@ pub const OFFCHAIN_SIGNER_CONFIG_KEY: &[u8] = b"network_config";
 )]
 pub struct AccountId20(pub [u8; 20]);
 
-#[cfg(feature = "std")]
 impl_serde::impl_fixed_hash_serde!(AccountId20, 20);
 
 #[cfg(feature = "std")]
@@ -77,8 +77,17 @@ impl std::str::FromStr for AccountId20 {
     }
 }
 
-#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Eq, PartialEq, Clone, Encode, Decode, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(
+    Eq,
+    PartialEq,
+    Clone,
+    Encode,
+    Decode,
+    sp_core::RuntimeDebug,
+    TypeInfo,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub struct EthereumSignature(ecdsa::Signature);
 
 impl From<ecdsa::Signature> for EthereumSignature {

@@ -3,11 +3,9 @@ use serde::{Deserialize, Serialize};
 use sp_core::{Pair, Public};
 
 pub mod kusama;
-pub mod rococo;
 pub mod testnet;
 
 pub use kusama::KusamaChainSpec;
-pub use rococo::RococoChainSpec;
 pub use testnet::TestnetChainSpec;
 
 /// The default XCM version to set in genesis config.

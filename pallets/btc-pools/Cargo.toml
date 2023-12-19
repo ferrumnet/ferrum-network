@@ -20,7 +20,7 @@ scale-info = { version = "2.5.0", default-features = false, features = ["derive"
 frame-benchmarking = { git = 'https://github.com/paritytech/polkadot-sdk.git', default-features = false, branch = "release-polkadot-v1.1.0", optional = true }
 frame-support = { git = 'https://github.com/paritytech/polkadot-sdk.git', default-features = false, branch = "release-polkadot-v1.1.0" }
 frame-system = { git = 'https://github.com/paritytech/polkadot-sdk.git', default-features = false, branch = "release-polkadot-v1.1.0" }
-bitcoin = { version = "0.31.0" }
+bitcoin={ version = "0.29.1" }
 bitcoincore-rpc = "0.18.0"
 subxt = { version = "0.32.0" }
 subxt-signer = { version = "0.32.0", features = ["subxt"]}
@@ -28,12 +28,18 @@ hex = "0.4.3"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 sha256 = "1.4.0"
 bincode = "1.0"
+reqwest = { version = "0.11.23", features = ["blocking", "json"] }
 serde = { version = "1.0", features = ["derive"] }
-
-[dev-dependencies]
+ferrum-primitives = { default-features = false, path = "../../primitives" }
+log = { version = "0.4.14", default-features = false }
+sp-std = { git = 'https://github.com/paritytech/polkadot-sdk.git', default-features = false, branch = "release-polkadot-v1.1.0" }
+sp-runtime = { git = 'https://github.com/paritytech/polkadot-sdk.git', default-features = false, branch = "release-polkadot-v1.1.0" }
+electrum-client = "0.12.0"
 sp-core = { git = 'https://github.com/paritytech/polkadot-sdk.git', default-features = false, branch = "release-polkadot-v1.1.0" }
 sp-io = { git = 'https://github.com/paritytech/polkadot-sdk.git', default-features = false, branch = "release-polkadot-v1.1.0" }
-sp-runtime = { git = 'https://github.com/paritytech/polkadot-sdk.git', default-features = false, branch = "release-polkadot-v1.1.0" }
+secp256k1 = { version = "0.24.0", default-features = false, features = ["bitcoin_hashes"] }
+
+[dev-dependencies]
 
 [features]
 default = ["std"]
@@ -43,6 +49,12 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 	"scale-info/std",
+	"ferrum-primitives/std",
+	"log/std",
+	"sp-std/std",
+	"sp-runtime/std",
+	"sp-core/std",
+	"sp-io/std"
 ]
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
 try-runtime = ["frame-support/try-runtime"]

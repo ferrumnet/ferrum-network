@@ -1,111 +1,158 @@
-use bitcoin::{
-    absolute,
-    bip32::{ChildNumber, DerivationPath, Fingerprint, Xpriv, Xpub},
-    consensus,
-    consensus::encode,
-    ecdsa,
-    ecdsa::Signature,
-    hashes::Hash,
-    key::{TapTweak, XOnlyPublicKey},
-    opcodes::all::{
-        OP_CHECKSIG, OP_CHECKSIGADD, OP_CHECKSIGVERIFY, OP_CLTV, OP_DROP, OP_GREATERTHANOREQUAL,
-        OP_PUSHDATA1,
-    },
-    psbt::{self, Input, Output, Psbt, PsbtSighashType},
-    script,
-    secp256k1::{Secp256k1, Signing, Verification},
-    sighash::{self, SighashCache, TapSighash, TapSighashType},
-    taproot::{self, LeafVersion, TapLeafHash, TaprootBuilder, TaprootSpendInfo},
-    transaction, Address, Amount, Network,
-    Network::Regtest,
-    OutPoint, PublicKey, Script, ScriptBuf, Transaction, TxIn, TxOut, Witness,
-};
-use sha256::{digest, try_digest};
-use std::{env, thread, time};
-use subxt_signer::sr25519::dev;
+// Copyright 2019-2023 Ferrum Inc.
+// This file is part of Ferrum.
 
-mod btc_rpc;
+// Ferrum is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// Ferrum is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
+use super::*;
+use crate::PendingWithdrawals;
+use electrum_client::{Client, ElectrumApi};
+use sp_runtime::traits::Zero;
+pub mod types;
+use crate::offchain::btc_client::BTCClientSignature;
+use sp_core::sr25519;
+pub use types::*;
+
 mod btc_client;
 
-async fn btc_offchain_handler() -> Result<(), Box<dyn std::error::Error>> {
-    let args: Vec<String> = env::args().collect();
-    println!("args {:?}", args);
-    let key_type = args[1].clone();
+impl<T: Config> Pallet<T> {
+	pub fn execute_btc_pools_offchain_worker(
+		block_number: u64,
+		btc_config: types::BTCConfig,
+	) -> OffchainResult<()> {
+		// first handle any pending withdrawal requests
+		let pending_withdrawals = PendingWithdrawals::<T>::iter();
+		let pending_withdrawals = pending_withdrawals.collect::<Vec<_>>();
 
-    let key = if key_type == "alice" {
-        dev::alice()
-    } else {
-        dev::bob()
-    };
+		log::info!("BTC Pools : Pending withdrawals is {:?}", pending_withdrawals);
 
-    let utxos =
-        btc_rpc::fetch_utxos("bcrt1qyjnn9rkdnge9gnxjwghkk4zpp3e9yzrfnkld54".to_string()).await?;
-    println!("Found {} utxos for address", utxos.len());
+		for (recipient, amount) in pending_withdrawals {
+			let result = Self::handle_withdrawal_request(recipient.clone(), amount);
+			log::info!(
+				"BTC Pools : Withdrawal request for recipient : {:?}, processed {:?}",
+				recipient,
+				result
+			);
+		}
 
-    loop {
-        let withdrawals = subxt::get_pending_withdrawals().await?;
+		// check for any pending transactions
+		let pending_transactions = PendingTransactions::<T>::iter();
+		let pending_transactions = pending_transactions.collect::<Vec<_>>();
 
-        if let Some((address, amount)) = withdrawals {
-            let tx_hash = generate_taproot_output_transaction(address.clone(), amount.clone());
-            // post tx on chain
-            println!("Transaction hash {:?}", hex::encode(tx_hash.clone()));
-            subxt::submit_transaction(address, amount, tx_hash.clone(), key.clone()).await?;
+		log::info!("BTC Pools : Pending transactions is {:?}", pending_transactions);
 
-            // generate signature
-            let sign = generate_signature(tx_hash.clone());
-            println!("Transaction signature {:?}", hex::encode(sign.clone()));
+		for (hash, details) in pending_transactions {
+			let result =
+				Self::handle_pending_transaction(hash.clone(), details, btc_config.clone());
+			log::info!(
+				"BTC Pools : Pending transaction for hash : {:?}, processed {:?}",
+				hash,
+				result
+			);
+		}
 
-            // post signature onchain
-            subxt::submit_signature(tx_hash, sign, key.clone()).await?;
-        } else {
-            println!("No withdrawals found!")
-        }
+		Ok(())
+	}
 
-        tokio::time::sleep(tokio::time::Duration::from_millis(5000)).await;
-    }
+	pub fn handle_withdrawal_request(recipient: Vec<u8>, amount: u32) -> OffchainResult<()> {
+		// TODO : We should have some queue here, now everyone tries to submit and only first one
+		// works let prepare a transaction for this withdrawal request
+		let current_pool_address = CurrentPoolAddress::<T>::get();
 
-    Ok(())
-}
+		// pick all the known validators
+		let validators = RegisteredValidators::<T>::iter();
+		let validators = validators.map(|x| x.1).collect::<Vec<_>>();
 
-fn generate_taproot_output_transaction(
-    recipient: Vec<u8>,
-    amount: u32,
-    utxos: Vec<Utxo>,
-) -> Vec<u8> {
-    println!("Generating a new taproot transaction");
+		if validators.is_empty() {
+			panic!("No BTC validators found!");
+		}
 
-    // TODO : Fetch this key from onchain
-    let current_pool_key = "bcrt1q6wvagdd2k7un2ut8lvq8748mv7cvvxdrhaj46c";
+		let transaction = btc_client::BTCClient::generate_transaction_from_withdrawal_request(
+			recipient,
+			amount,
+			validators,
+			current_pool_address,
+		)
+		.unwrap()
+		.txid()
+		.as_ref()
+		.to_vec();
 
-    let selected_utxos = btc_rpc::filter_utxos(utxos, Amount::new(amount));
+		// push transaction to storage
+		PendingTransactions::<T>::insert::<Vec<u8>, TransactionDetails>(
+			transaction,
+			Default::default(),
+		);
 
-    // Your logic to create a Taproot transaction using the withdrawal and Taproot details.
-    // This is a placeholder, replace it with actual implementation based on your requirements.
+		Ok(())
+	}
 
-    let bytes = bincode::serialize(&transaction).unwrap();
-    digest(bytes).into()
-}
+	pub fn handle_pending_transaction(
+		hash: Vec<u8>,
+		details: TransactionDetails,
+		btc_config: types::BTCConfig,
+	) -> OffchainResult<()> {
+		let current_pool_address = CurrentPoolAddress::<T>::get();
 
-fn generate_signature(tx_hash: Vec<u8>) -> Vec<u8> {
-    println!("Generating a new taproot signature");
-    let from = dev::alice();
-    let sign = from.sign(&tx_hash);
-    return sign.as_ref().into();
-}
+		let mut key = [0u8; 32];
+		key[..32].copy_from_slice(&btc_config.signer_public_key);
+		let signer_address = sr25519::Public(key);
+		let signer = BTCClientSignature::from(signer_address);
 
-// Define the struct
-#[derive(serde::Serialize, serde::Deserialize)]
-struct TaprootTransaction {
-    // Transaction details
-    version: u32,
-    inputs: Vec<Utxo>,
-    outputs: Vec<TaprootOutput>,
-    lock_time: u32,
-}
+		// if we have not already signed, sign the transaction
+		if details.signatures.get(&signer.from.to_vec()).is_none() {
+			// sign transaction using our key
+			// TODO : Reconstruct the transaction and ensure that hash is valid
+			let signature = signer.sign(&hash).expect("Signing Failed!!");
 
-// Output struct
-#[derive(serde::Serialize, serde::Deserialize)]
-struct TaprootOutput {
-    value: u64,
-    script_pubkey: String,
+			// push the signature to storage
+			let _ =
+				PendingTransactions::<T>::try_mutate(hash.clone(), |details| -> Result<(), ()> {
+					let mut default = TransactionDetails::default();
+					let mut signatures = &mut details.as_mut().unwrap_or(&mut default).signatures;
+					signatures.insert(signer_address.to_vec(), signature.0.to_vec());
+
+					Self::deposit_event(Event::TransactionSignatureSubmitted {
+						hash: hash.clone(),
+						signature: signature.0.to_vec(),
+					});
+
+					// if above threshold, complete
+					if signatures.len() as u32 >= CurrentPoolThreshold::<T>::get() {
+						Self::deposit_event(Event::TransactionProcessed { hash });
+					}
+
+					Ok(())
+				});
+
+			return Ok(())
+		}
+		// if we have signed the transaction, if the threshold is reached, we broadcast to chain
+		else {
+			// TODO : We should have some queue here, now everyone tries to submit and only first
+			// one works
+			if details.signatures.len() as u32 >= CurrentPoolThreshold::<T>::get() {
+				// threshold reached, we can broadcast
+				let transaction = btc_client::BTCClient::broadcast_completed_transaction(
+					hash,
+					details.recipient,
+					details.amount,
+					details.signatures,
+					current_pool_address,
+				)
+				.unwrap();
+			}
+		}
+
+		Ok(())
+	}
 }

@@ -34,6 +34,7 @@ pub use types::*;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 pub mod client;
+pub mod frost_dkg;
 pub mod signer;
 pub mod types;
 

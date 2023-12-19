@@ -110,10 +110,10 @@ pub mod pallet {
 	// 				log::info!("Current block: {:?}", block_number);
 	// 				if let Err(e) = Self::execute_tx_scan(now, config) {
 	// 					log::warn!(
-    //                         "BTC Pools : Offchain worker failed to execute at block {:?} with error : {:?}",
-    //                         now,
-    //                         e,
-    //                     )
+	//                         "BTC Pools : Offchain worker failed to execute at block {:?} with
+	// error : {:?}",                         now,
+	//                         e,
+	//                     )
 	// 				}
 	// 			}
 	// 		}
@@ -124,10 +124,12 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-
 		#[pallet::call_index(1)]
 		#[pallet::weight(0)]
-		pub fn ext_record_seen_transactions(origin: OriginFor<T>, btc_address: Vec<u8>) -> DispatchResult {
+		pub fn ext_record_seen_transactions(
+			origin: OriginFor<T>,
+			btc_address: Vec<u8>,
+		) -> DispatchResult {
 			// TODO : Ensure the caller is allowed to submit withdrawals
 			let who = ensure_signed(origin)?;
 

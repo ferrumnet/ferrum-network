@@ -4,8 +4,7 @@ panic = 'unwind'
 [workspace]
 members = [
 	'node',
-	'pallets/btc-pools',
-	'pallets/btc-intent',
+	'pallets/*',
 	'runtime/*',
 	'precompiles/*',
 ]

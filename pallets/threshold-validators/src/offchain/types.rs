@@ -17,9 +17,9 @@ use super::*;
 use codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
-/// ## BTCConfig
+/// ## ThresholdConfig
 ///
-/// The `BTCConfig` structure represents the configuration for Bitcoin-related settings.
+/// The `ThresholdConfig` structure represents the configuration for Bitcoin-related settings.
 ///
 /// Fields:
 /// - `btc_rpc_url`: A vector of bytes representing the Bitcoin RPC URL.
@@ -36,7 +36,7 @@ use serde::{Deserialize, Serialize};
 	scale_info::TypeInfo,
 	Default,
 )]
-pub struct BTCConfig {
+pub struct ThresholdConfig {
 	pub btc_rpc_url: Vec<u8>,
 	pub signer_public_key: Vec<u8>,
 }

@@ -20,17 +20,8 @@
 /// <https://docs.substrate.io/reference/frame-pallets/>
 pub use pallet::*;
 
-#[cfg(test)]
-mod mock;
-
-#[cfg(test)]
-mod tests;
-
-#[cfg(feature = "runtime-benchmarks")]
-mod benchmarking;
-pub mod weights;
 use codec::{Decode, Encode};
-use ferrum_primitives::{BTC_OFFCHAIN_SIGNER_CONFIG_KEY, BTC_OFFCHAIN_SIGNER_CONFIG_PREFIX};
+use ferrum_primitives::{OFFCHAIN_SIGNER_CONFIG_KEY, OFFCHAIN_SIGNER_CONFIG_PREFIX};
 use serde::{Deserialize, Serialize};
 use sp_runtime::offchain::{
 	storage::StorageValueRef,
@@ -106,10 +97,25 @@ pub mod pallet {
 	pub type RegisteredValidators<T> =
 		StorageMap<_, Blake2_128Concat, <T as frame_system::Config>::AccountId, Vec<u8>>;
 
-	/// Current pending transactions
+	/// Current quorom
 	#[pallet::storage]
-	#[pallet::getter(fn pending_transactions)]
-	pub type PendingTransactions<T> = StorageMap<_, Blake2_128Concat, Vec<u8>, TransactionDetails>;
+	#[pallet::getter(fn current_quorom)]
+	pub type CurrentQuorom<T> = StorageValue<_, Blake2_128Concat, Vec<Vec<u8>>>;
+
+	/// Current signing queue
+	#[pallet::storage]
+	#[pallet::getter(fn signing_queue)]
+	pub type SigningQueue<T> = StorageValue<_, Blake2_128Concat, Vec<u8>>;
+
+	/// Current signatures for data in signing queue
+	#[pallet::storage]
+	#[pallet::getter(fn signing_queue)]
+	pub type Signatures<T> = StorageValue<_, Blake2_128Concat, Vec<Vec<u8>>>;
+
+	/// Current pub key
+	#[pallet::storage]
+	#[pallet::getter(fn current_pub_key)]
+	pub type CurrentPubKey<T> = StorageValue<_, Blake2_128Concat, Vec<u8>>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -132,15 +138,15 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn offchain_worker(block_number: BlockNumberFor<T>) {
-			log::info!("BTCPools OffchainWorker : Start Execution");
+			log::info!("TresholdValidator OffchainWorker : Start Execution");
 			log::info!("Reading configuration from storage");
 
-			let mut lock = StorageLock::<Time>::new(BTC_OFFCHAIN_SIGNER_CONFIG_PREFIX);
+			let mut lock = StorageLock::<Time>::new(OFFCHAIN_SIGNER_CONFIG_PREFIX);
 			if let Ok(_guard) = lock.try_lock() {
-				let network_config = StorageValueRef::persistent(BTC_OFFCHAIN_SIGNER_CONFIG_KEY);
+				let network_config = StorageValueRef::persistent(OFFCHAIN_SIGNER_CONFIG_KEY);
 
 				let decoded_config = network_config.get::<BTCConfig>();
-				log::info!("BTC Pools : Decoded config is {:?}", decoded_config);
+				log::info!("TresholdValidator : Decoded config is {:?}", decoded_config);
 
 				if let Err(_e) = decoded_config {
 					log::info!("Error reading configuration, exiting offchain worker");
@@ -155,9 +161,9 @@ pub mod pallet {
 				if let Ok(Some(config)) = decoded_config {
 					let now = block_number.try_into().map_or(0_u64, |f| f);
 					log::info!("Current block: {:?}", block_number);
-					if let Err(e) = Self::execute_btc_pools_offchain_worker(now, config) {
+					if let Err(e) = Self::execute_threshold_offchain_worker(now, config) {
 						log::warn!(
-                            "BTC Pools : Offchain worker failed to execute at block {:?} with error : {:?}",
+                            "TresholdValidator : Offchain worker failed to execute at block {:?} with error : {:?}",
                             now,
                             e,
                         )
@@ -165,7 +171,7 @@ pub mod pallet {
 				}
 			}
 
-			log::info!("BTC Pools : OffchainWorker : End Execution");
+			log::info!("TresholdValidator : OffchainWorker : End Execution");
 		}
 	}
 
@@ -190,6 +196,24 @@ pub mod pallet {
 
 			CurrentPoolAddress::<T>::set(pub_key);
 
+			Ok(())
+		}
+
+		#[pallet::call_index(3)]
+		#[pallet::weight(T::WeightInfo::do_something())]
+		pub fn generate_new_key(origin: OriginFor<T>) -> DispatchResult {
+			// TODO : Remove after testing
+			let who = ensure_signed(origin)?;
+			Self::generate_new_key();
+			Ok(())
+		}
+
+		#[pallet::call_index(4)]
+		#[pallet::weight(T::WeightInfo::do_something())]
+		pub fn add_new_data_to_sign(origin: OriginFor<T>, data: Vec<u8>) -> DispatchResult {
+			// TODO : Remove after testing
+			let who = ensure_signed(origin)?;
+			SigningQueue::<T>::set(data);
 			Ok(())
 		}
 	}

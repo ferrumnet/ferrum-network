@@ -321,7 +321,7 @@ impl BTCClient {
 		}
 
 		// final sanity checks, ensure our fee is sane
-        // TODO : Improve this to that we increase fee when a tx is delayed
+		// TODO : Improve this to that we increase fee when a tx is delayed
 		let min_fees = btc_client.estimate_fee(tx.get_size());
 		let rec_base_fees = Self::get_network_recommended_fee().unwrap();
 		let total_fees = rec_base_fees * tx.get_size() as u64;

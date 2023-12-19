@@ -17,8 +17,8 @@
 
 use fp_evm::{ExitRevert, PrecompileFailure, PrecompileHandle};
 use frame_support::{
-    dispatch::{GetDispatchInfo, PostDispatchInfo},
-    traits::ConstU32,
+	dispatch::{GetDispatchInfo, PostDispatchInfo},
+	traits::ConstU32,
 };
 use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_btc_pools::Call as BtcPoolsCall;
@@ -37,31 +37,31 @@ pub struct BtcPoolsPrecompile<Runtime>(PhantomData<Runtime>);
 #[precompile_utils::precompile]
 impl<Runtime> BtcPoolsPrecompile<Runtime>
 where
-    Runtime: pallet_btc_pools::Config + pallet_evm::Config + frame_system::Config,
-    <Runtime as frame_system::Config>::Hash: TryFrom<H256> + Into<H256>,
-    <Runtime as frame_system::Config>::RuntimeCall:
-        Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
-    <<Runtime as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin:
-        From<Option<Runtime::AccountId>>,
-    <Runtime as frame_system::Config>::Hash: Into<H256>,
-    <Runtime as frame_system::Config>::RuntimeCall: From<BtcPoolsCall<Runtime>>,
-    BlockNumberFor<Runtime>: From<u64>,
+	Runtime: pallet_btc_pools::Config + pallet_evm::Config + frame_system::Config,
+	<Runtime as frame_system::Config>::Hash: TryFrom<H256> + Into<H256>,
+	<Runtime as frame_system::Config>::RuntimeCall:
+		Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
+	<<Runtime as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin:
+		From<Option<Runtime::AccountId>>,
+	<Runtime as frame_system::Config>::Hash: Into<H256>,
+	<Runtime as frame_system::Config>::RuntimeCall: From<BtcPoolsCall<Runtime>>,
+	BlockNumberFor<Runtime>: From<u64>,
 {
-    #[precompile::public("registerBtcValidator(bytes32)")]
-    fn register_btc_validator(
-        handle: &mut impl PrecompileHandle,
-        submission: BoundedBytes<GetSubmissionSizeLimit>,
-    ) -> EvmResult {
-        // // Convert Ethereum address to Substrate account ID
-        // let permitted_caller = Runtime::AddressMapping::into_account_id(submission.0);
+	#[precompile::public("registerBtcValidator(bytes32)")]
+	fn register_btc_validator(
+		handle: &mut impl PrecompileHandle,
+		submission: BoundedBytes<GetSubmissionSizeLimit>,
+	) -> EvmResult {
+		// // Convert Ethereum address to Substrate account ID
+		// let permitted_caller = Runtime::AddressMapping::into_account_id(submission.0);
 
-        // let submission: Vec<u8> = submission.into();
+		// let submission: Vec<u8> = submission.into();
 
-        // let call = BtcPoolsCall::<Runtime>::register_btc_validator { submission };
+		// let call = BtcPoolsCall::<Runtime>::register_btc_validator { submission };
 
-        // // Dispatch the call using the RuntimeHelper
-        // <RuntimeHelper<Runtime>>::try_dispatch(handle, Some(origin).into(), call)?;
+		// // Dispatch the call using the RuntimeHelper
+		// <RuntimeHelper<Runtime>>::try_dispatch(handle, Some(origin).into(), call)?;
 
-        Ok(())
-    }
+		Ok(())
+	}
 }

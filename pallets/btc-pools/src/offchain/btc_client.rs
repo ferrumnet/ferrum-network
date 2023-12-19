@@ -324,7 +324,7 @@ impl BTCClient {
         // TODO : Improve this to that we increase fee when a tx is delayed
 		let min_fees = btc_client.estimate_fee(tx.get_size());
 		let rec_base_fees = Self::get_network_recommended_fee().unwrap();
-		let total_fees = base_fees * tx.get_size() as u64;
+		let total_fees = rec_base_fees * tx.get_size() as u64;
 
 		if (total_fees > MAX_PERMITTED_FEE_IN_SATS) {
 			panic!("Cannot spend fee above limit!")

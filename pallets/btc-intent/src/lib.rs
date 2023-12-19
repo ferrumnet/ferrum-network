@@ -28,10 +28,10 @@ use sp_runtime::offchain::{
 	storage_lock::{StorageLock, Time},
 };
 use sp_std::collections::btree_map::BTreeMap;
-pub mod offchain;
-use offchain::types::BTCConfig;
+// pub mod offchain;
+// use offchain::types::BTCConfig;
 
-use crate::offchain::btc_client::ListReceivedByAddressResult;
+// use crate::offchain::btc_client::ListReceivedByAddressResult;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -68,7 +68,7 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		WithdrawalSubmitted { address: Vec<u8>, amount: u32 },
-		TransactionSubmitted { address: Vec<u8>, amount: u32, hash: Vec<u8> },
+		TransactionProcessed { btc_address: Vec<u8> },
 		TransactionSignatureSubmitted { hash: Vec<u8>, signature: Vec<u8> },
 		TransactionProcessed { hash: Vec<u8> },
 	}
@@ -82,46 +82,60 @@ pub mod pallet {
 		StorageOverflow,
 	}
 
-	#[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn offchain_worker(block_number: BlockNumberFor<T>) {
-			log::info!("BTCPools OffchainWorker : Start Execution");
-			log::info!("Reading configuration from storage");
+	// #[pallet::hooks]
+	// impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+	// 	fn offchain_worker(block_number: BlockNumberFor<T>) {
+	// 		log::info!("BTCPools OffchainWorker : Start Execution");
+	// 		log::info!("Reading configuration from storage");
 
-			let mut lock = StorageLock::<Time>::new(BTC_OFFCHAIN_SIGNER_CONFIG_PREFIX);
-			if let Ok(_guard) = lock.try_lock() {
-				let network_config = StorageValueRef::persistent(BTC_OFFCHAIN_SIGNER_CONFIG_KEY);
+	// 		let mut lock = StorageLock::<Time>::new(BTC_OFFCHAIN_SIGNER_CONFIG_PREFIX);
+	// 		if let Ok(_guard) = lock.try_lock() {
+	// 			let network_config = StorageValueRef::persistent(BTC_OFFCHAIN_SIGNER_CONFIG_KEY);
 
-				let decoded_config = network_config.get::<BTCConfig>();
-				log::info!("BTC Pools : Decoded config is {:?}", decoded_config);
+	// 			let decoded_config = network_config.get::<BTCConfig>();
+	// 			log::info!("BTC Pools : Decoded config is {:?}", decoded_config);
 
-				if let Err(_e) = decoded_config {
-					log::info!("Error reading configuration, exiting offchain worker");
-					return
-				}
+	// 			if let Err(_e) = decoded_config {
+	// 				log::info!("Error reading configuration, exiting offchain worker");
+	// 				return
+	// 			}
 
-				if let Ok(None) = decoded_config {
-					log::info!("Configuration not found, exiting offchain worker");
-					return
-				}
+	// 			if let Ok(None) = decoded_config {
+	// 				log::info!("Configuration not found, exiting offchain worker");
+	// 				return
+	// 			}
 
-				if let Ok(Some(config)) = decoded_config {
-					let now = block_number.try_into().map_or(0_u64, |f| f);
-					log::info!("Current block: {:?}", block_number);
-					if let Err(e) = Self::execute_tx_scan(now, config) {
-						log::warn!(
-                            "BTC Pools : Offchain worker failed to execute at block {:?} with error : {:?}",
-                            now,
-                            e,
-                        )
-					}
-				}
-			}
+	// 			if let Ok(Some(config)) = decoded_config {
+	// 				let now = block_number.try_into().map_or(0_u64, |f| f);
+	// 				log::info!("Current block: {:?}", block_number);
+	// 				if let Err(e) = Self::execute_tx_scan(now, config) {
+	// 					log::warn!(
+    //                         "BTC Pools : Offchain worker failed to execute at block {:?} with error : {:?}",
+    //                         now,
+    //                         e,
+    //                     )
+	// 				}
+	// 			}
+	// 		}
 
-			log::info!("BTC Pools : OffchainWorker : End Execution");
-		}
-	}
+	// 		log::info!("BTC Pools : OffchainWorker : End Execution");
+	// 	}
+	//}
 
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {}
+	impl<T: Config> Pallet<T> {
+
+		#[pallet::call_index(1)]
+		#[pallet::weight(0)]
+		pub fn ext_record_seen_transactions(origin: OriginFor<T>, btc_address: Vec<u8>) -> DispatchResult {
+			// TODO : Ensure the caller is allowed to submit withdrawals
+			let who = ensure_signed(origin)?;
+
+			ProcessedTransactions::<T>::insert(btc_address.clone(), vec![]);
+
+			Self::deposit_event(Event::TransactionProcessed { btc_address });
+
+			Ok(())
+		}
+	}
 }

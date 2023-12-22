@@ -92,6 +92,7 @@ pub mod pallet {
 	#[pallet::getter(fn pending_withdrawals)]
 	pub type PendingWithdrawals<T> = StorageMap<_, Blake2_128Concat, Vec<u8>, u32>;
 
+	// Registered BOS validators
 	#[pallet::storage]
 	#[pallet::getter(fn registered_validators)]
 	pub type RegisteredValidators<T> =
@@ -103,6 +104,7 @@ pub mod pallet {
 	pub type CurrentQuorom<T> = StorageValue<_, Blake2_128Concat, Vec<Vec<u8>>>;
 
 	/// Current signing queue
+	// TODO : make a actual queue, we should be able to sign in parallel
 	#[pallet::storage]
 	#[pallet::getter(fn signing_queue)]
 	pub type SigningQueue<T> = StorageValue<_, Blake2_128Concat, Vec<u8>>;
@@ -179,22 +181,14 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::WeightInfo::do_something())]
-		pub fn register_validator(origin: OriginFor<T>, btc_address: Vec<u8>) -> DispatchResult {
-			// TODO : Ensure the caller is allowed to submit withdrawals
+		pub fn register_validator(origin: OriginFor<T>, pub_key: Vec<u8>) -> DispatchResult {
+			// TODO : Ensure the caller is actually allowed to be a validator
+			// We need to make sure that no-one is skipping the EVM precompile
+			// Solution : initial whitelist of those allowed to calls
+			// Needs to have a list of addresses that can whitelisted, can be updated by sudo
+			// Solution : Extrinsic should only be called by runtime proxy
 			let who = ensure_signed(origin)?;
-
-			RegisteredValidators::<T>::insert(who, btc_address);
-
-			Ok(())
-		}
-
-		#[pallet::call_index(2)]
-		#[pallet::weight(T::WeightInfo::do_something())]
-		pub fn set_current_pool_address(origin: OriginFor<T>, pub_key: Vec<u8>) -> DispatchResult {
-			// TODO : Ensure the caller is allowed to submit withdrawals
-			let who = ensure_signed(origin)?;
-
-			CurrentPoolAddress::<T>::set(pub_key);
+			RegisteredValidators::<T>::insert(who, pub_key);
 
 			Ok(())
 		}

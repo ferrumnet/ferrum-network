@@ -121,6 +121,8 @@ impl<T: Config> Pallet<T> {
 		let final_shares = Shares(client.prev_shares);
 		let key = final_shares.reconstruct_secret().unwrap();
 
+		let mut aggregator = SignatureAggregator::new(params, group_key, &message[..]);
+
 		let signature = key.sign(msg).expect("Signing with reconstructed key failed!");
 
 		Signatures::<T>::push(signature);

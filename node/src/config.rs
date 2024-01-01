@@ -50,7 +50,7 @@ pub struct NetworkConfig {
 
 pub fn convert(network_config: NetworkConfig) -> QpConfig {
 	let role_as_bytes: &[u8] = &network_config.role;
-	QpConfig {
+	let config = QpConfig {
 		network_vec: network_config
 			.network_vec
 			.into_iter()
@@ -63,7 +63,9 @@ pub fn convert(network_config: NetworkConfig) -> QpConfig {
 		pair_vec: network_config.pair_vec,
 		signer_public_key: network_config.signer_public_key,
 		role: role_as_bytes.into(),
-	}
+	};
+	config.validate().unwrap(); // fail if the config is invalid
+	config
 }
 
 pub fn read_config_from_file<P: AsRef<Path>>(path: P) -> Result<Config, String> {

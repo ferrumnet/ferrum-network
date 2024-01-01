@@ -18,10 +18,18 @@ use parity_scale_codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use sp_core::{H256, U256};
 use sp_std::{prelude::*, str};
+use scale_info::prelude::string::String;
+use parity_scale_codec::alloc::string::ToString;
 
 // Limit on how many pairs to mine,
 // The current limit is 6, means mining both ways on 3 seperate chains
 pub const MAX_PAIRS_TO_MINE: usize = 6;
+
+/// EVM ChainId for mainnet
+const QPN_EVM_MAINNET_CHAIN_ID: u64 = 26000;
+
+/// EVM ChainId for testnet
+const QPN_EVM_TESTNET_CHAIN_ID: u64 = 26100;
 
 #[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -82,6 +90,21 @@ pub struct QpConfig {
 	pub pair_vec: Vec<(u64, u64)>,
 	pub signer_public_key: Vec<u8>,
 	pub role: Role,
+}
+
+impl QpConfig {
+	pub fn validate(&self) -> Result<(), String> {
+		// ensure the source or destinagion is QPN
+		for (src, dest) in &self.pair_vec {
+			if src != &QPN_EVM_MAINNET_CHAIN_ID && dest != &QPN_EVM_MAINNET_CHAIN_ID {
+				if src != &QPN_EVM_TESTNET_CHAIN_ID && dest != &QPN_EVM_TESTNET_CHAIN_ID {
+					return Err("Invalid Config : One of the pairs need to be QPN EVM!".to_string())
+				}
+			}
+		}
+
+		Ok(())
+	}
 }
 
 #[derive(

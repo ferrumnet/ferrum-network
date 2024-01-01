@@ -4,8 +4,7 @@ panic = 'unwind'
 [workspace]
 members = [
 	'node',
-	'pallets/bos-validators',
-	'pallets/quantum-portal',
+	'pallets/*',
 	'runtime/*',
 	'precompiles/*',
 ]

@@ -22,15 +22,16 @@ pub use pallet::*;
 
 use codec::{Decode, Encode};
 use ferrum_primitives::{OFFCHAIN_SIGNER_CONFIG_KEY, OFFCHAIN_SIGNER_CONFIG_PREFIX};
+use frame_system::WeightInfo;
 use serde::{Deserialize, Serialize};
 use sp_runtime::offchain::{
 	storage::StorageValueRef,
 	storage_lock::{StorageLock, Time},
 };
 use sp_std::collections::btree_map::BTreeMap;
-pub use weights::*;
 pub mod offchain;
-use offchain::types::BTCConfig;
+use crate::offchain::types::OffchainResult;
+use offchain::types::ThresholdConfig;
 
 #[derive(
 	Clone,
@@ -48,6 +49,43 @@ pub struct TransactionDetails {
 	pub signatures: SignatureMap,
 	pub recipient: Vec<u8>,
 	pub amount: u32,
+}
+
+#[derive(
+	Clone,
+	Eq,
+	PartialEq,
+	Decode,
+	Encode,
+	Debug,
+	Serialize,
+	Deserialize,
+	scale_info::TypeInfo,
+	Default,
+)]
+pub struct Round1Package {
+	pub header: Vec<u8>,
+	/// The public commitment from the participant (C_i)
+	pub commitment: Vec<u8>,
+	/// The proof of knowledge of the temporary secret (σ_i = (R_i, μ_i))
+	pub proof_of_knowledge: Vec<u8>,
+}
+
+#[derive(
+	Clone,
+	Eq,
+	PartialEq,
+	Decode,
+	Encode,
+	Debug,
+	Serialize,
+	Deserialize,
+	scale_info::TypeInfo,
+	Default,
+)]
+pub struct Round2Package {
+	pub header: Vec<u8>,
+    pub signing_share: Vec<u8>,
 }
 
 pub type SignatureMap = BTreeMap<Vec<u8>, Vec<u8>>;
@@ -101,23 +139,34 @@ pub mod pallet {
 	/// Current quorom
 	#[pallet::storage]
 	#[pallet::getter(fn current_quorom)]
-	pub type CurrentQuorom<T> = StorageValue<_, Blake2_128Concat, Vec<Vec<u8>>>;
+	pub type CurrentQuorom<T> = StorageValue<_, Vec<Vec<u8>>, OptionQuery>;
 
 	/// Current signing queue
 	// TODO : make a actual queue, we should be able to sign in parallel
 	#[pallet::storage]
 	#[pallet::getter(fn signing_queue)]
-	pub type SigningQueue<T> = StorageValue<_, Blake2_128Concat, Vec<u8>>;
+	pub type SigningQueue<T> = StorageValue<_, Vec<u8>, OptionQuery>;
 
 	/// Current signatures for data in signing queue
 	#[pallet::storage]
-	#[pallet::getter(fn signing_queue)]
-	pub type Signatures<T> = StorageValue<_, Blake2_128Concat, Vec<Vec<u8>>>;
+	#[pallet::getter(fn signatures)]
+	pub type Signatures<T> = StorageValue<_, Vec<Vec<u8>>, OptionQuery>;
 
 	/// Current pub key
 	#[pallet::storage]
 	#[pallet::getter(fn current_pub_key)]
-	pub type CurrentPubKey<T> = StorageValue<_, Blake2_128Concat, Vec<u8>>;
+	pub type CurrentPubKey<T> = StorageValue<_, Vec<u8>, OptionQuery>;
+
+	// Registered BOS validators
+	#[pallet::storage]
+	#[pallet::getter(fn round_1_shares)]
+	pub type Round1Shares<T> =
+		StorageDoubleMap<_, Blake2_128Concat, u32, Blake2_128Concat, u32, Round1Package>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn round_2_shares)]
+	pub type Round2Shares<T> =
+		StorageDoubleMap<_, Blake2_128Concat, u32, Blake2_128Concat, u32, (Nonce, Round2Package)>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -147,7 +196,7 @@ pub mod pallet {
 			if let Ok(_guard) = lock.try_lock() {
 				let network_config = StorageValueRef::persistent(OFFCHAIN_SIGNER_CONFIG_KEY);
 
-				let decoded_config = network_config.get::<BTCConfig>();
+				let decoded_config = network_config.get::<ThresholdConfig>();
 				log::info!("TresholdValidator : Decoded config is {:?}", decoded_config);
 
 				if let Err(_e) = decoded_config {
@@ -180,7 +229,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::call_index(1)]
-		#[pallet::weight(T::WeightInfo::do_something())]
+		#[pallet::weight(0)]
 		pub fn register_validator(origin: OriginFor<T>, pub_key: Vec<u8>) -> DispatchResult {
 			// TODO : Ensure the caller is actually allowed to be a validator
 			// We need to make sure that no-one is skipping the EVM precompile
@@ -193,21 +242,12 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::call_index(3)]
-		#[pallet::weight(T::WeightInfo::do_something())]
-		pub fn generate_new_key(origin: OriginFor<T>) -> DispatchResult {
-			// TODO : Remove after testing
-			let who = ensure_signed(origin)?;
-			Self::generate_new_key();
-			Ok(())
-		}
-
 		#[pallet::call_index(4)]
-		#[pallet::weight(T::WeightInfo::do_something())]
+		#[pallet::weight(0)]
 		pub fn add_new_data_to_sign(origin: OriginFor<T>, data: Vec<u8>) -> DispatchResult {
 			// TODO : Remove after testing
 			let who = ensure_signed(origin)?;
-			SigningQueue::<T>::set(data);
+			SigningQueue::<T>::set(Some(data));
 			Ok(())
 		}
 	}

@@ -14,28 +14,22 @@
 // You should have received a copy of the GNU General Public License
 // along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
 use super::*;
-use electrum_client::{Client, ElectrumApi};
-use sp_runtime::traits::Zero;
-pub mod types;
-use ark_ec::{AffineRepr, CurveGroup};
-use ark_ff::PrimeField;
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::{collections::BTreeMap, io::Write, rand::RngCore, vec, vec::Vec, UniformRand};
-use bitcoin::Txid;
-use digest::Digest;
-use dock_crypto_utils::serde_utils::ArkObjectBytes;
-use schnorr_pok::{
-	compute_random_oracle_challenge, error::SchnorrError, impl_proof_of_knowledge_of_discrete_log,
+use crate::Config;
+use frost_secp256k1 as frost;
+use rand::thread_rng;
+use sp_runtime::DispatchResult;
+use sp_std::collections::BTreeMap;
+use crypto_box::{
+    aead::{generic_array::GenericArray, Aead, AeadInPlace, OsRng},
+    PublicKey, SecretKey,
 };
-use serde::{Deserialize, Serialize};
-use serde_with::serde_as;
-use sp_core::sr25519;
-pub use types::*;
-use zeroize::{Zeroize, ZeroizeOnDrop};
+use curve25519_dalek::EdwardsPoint;
+use hex_literal::hex;
+// pub mod types;
 
-pub mod client;
-pub mod frost_dkg;
-pub mod signer;
+// pub mod client;
+// pub mod frost_dkg;
+// pub mod signer;
 pub mod types;
 
 impl<T: Config> Pallet<T> {
@@ -45,87 +39,192 @@ impl<T: Config> Pallet<T> {
 	) -> OffchainResult<()> {
 		let current_pool_address = CurrentPoolAddress::<T>::get();
 
-		// TODO : Fix this, we need to optimise this, starting every time is wasteful
-		let _ = client::start();
+		let current_pub_key = current_pub_key();
 
-		// if something in signing queue, then initiate signing
-		let signing_queue = SigningQueue::<T>::get();
-
-		if signing_queue.is_some() {
-			initiate_signing(signing_queue, config);
-			SigningQueue::<T>::clear();
+		if current_pub_key.is_none() {
+			Self::initiate_keygen(config);
 		}
 
 		Ok(())
 	}
 
-	pub fn initiate_keygen(caller: T::AccountId, config: types::ThresholdConfig) -> DispatchResult {
+	pub fn initiate_keygen(config: types::ThresholdConfig) -> DispatchResult {
+		// if we have all round 1 shares, start round 2
+		let round_1_shares = Round1Shares::<T>::iter().len();
+		let round_2_shares = Round2Shares::<T>::iter().len();
+
+		// TODO : Change this calculate dynamically
+		if round_2_shares == 2 {
+			keygen_complete(config);
+		} else if round_1_shares == 2 {
+			keygen_round_two(config);
+		} else {
+			keygen_round_one(config);
+		}
+	}
+
+	pub fn keygen_round_one(config: types::ThresholdConfig) -> DispatchResult {
 		let participants = CurrentQuorom::<T>::get();
 		let threshold = CurrentPoolThreshold::<T>::get();
-		let schnorr_ctx = b"test-ctx";
-		let pub_key = signer::ThresholdSignature::new(config.signer_public_key);
-		let client = client::ThresholdClient::new();
 
-		let participant_id = participants.find_by_index(caller).unwrap();
-		let (round1_state, round1_msg) =
-			Round1State::start_with_random_secret::<StdRng, Blake2b512>(
-				rng,
-				participant_id as ParticipantId,
-				threshold as ShareId,
-				total as ShareId,
-				schnorr_ctx,
-				pub_key,
-			)
-			.unwrap();
+		// TODO : Ensure we have not already done round 1
+		// Round1Shares::<T>::get(
+		// 	receiver_participant_identifier,
+		// 	participant_identifier,
+		// 	round1_package,
+		// );
 
-		// Send the signature to the threshold signing function over the network
-		client.broadcast_message(round1_state.secret);
+		// TODO : Move this to DB
+		let mut round1_secret_packages = BTreeMap::new();
 
-		let mut all_round2_states = vec![];
+		////////////////////////////////////////////////////////////////////////////
+		// Key generation, Round 1
+		////////////////////////////////////////////////////////////////////////////
+		let participant_index = participants.find_by_index(caller).unwrap();
+		let participant_identifier = participant_index.try_into().expect("should be nonzero");
+		// ANCHOR: dkg_part1
+		let (round1_secret_package, round1_package) = frost::keys::dkg::part1(
+			participant_identifier,
+			participants.len(),
+			threshold,
+			&mut rng,
+		)?;
+		// ANCHOR_END: dkg_part1
 
-		// TODO : Improve this, we will keep on looping till next block
-		loop {
-			// loop till we receive a message
-			client.handle_client();
+		// Store the participant's secret package for later use.
+		// In practice each participant will store it in their own environment.
+		round1_secret_packages.insert(participant_identifier, round1_secret_package);
 
-			for msg in client.message_queue {
-				if !all_round2_states.contains(msg) {
-					all_round2_states.push(msg)
-				}
+		// "Send" the round 1 package to all other participants.
+		for receiver_participant_index in 1..=participants.len() {
+			if receiver_participant_index == participant_index {
+				continue
 			}
+			let receiver_participant_identifier: frost::Identifier =
+				receiver_participant_index.try_into().expect("should be nonzero");
 
-			if all_round2_states.len() == threshold {
-				break
-			}
+			// push everyone shares to storage
+			Round1Shares::<T>::insert(
+				receiver_participant_identifier,
+				participant_identifier,
+				round1_package,
+			);
 		}
 
-		let (share, pk, t_pk) = all_round2_states[i].clone().finish(pub_key).unwrap();
-
-		let key = feldman_dvss_dkg::reconstruct_threshold_public_key(all_round2_states, threshold)
-			.unwrap();
-
-		// post the key to chain
-		CurrentPubKey::<T>::put(key.to_vec());
-
-		client.prev_shares.set(all_round2_states);
+		// save our round1 secret to offchain worker storage
+		let key = Self::derived_key(frame_system::Module::<T>::block_number());
+		let data = IndexingData(b"round_1_share".to_vec(), number);
+		offchain_index::set(&key, &data.encode());
 
 		Ok(())
 	}
 
-	pub fn initiate_signing(msg: &str, config: types::ThresholdConfig) -> DispatchResult {
+	pub fn keygen_round_two(config: types::ThresholdConfig) -> DispatchResult {
 		let participants = CurrentQuorom::<T>::get();
 		let threshold = CurrentPoolThreshold::<T>::get();
-		let pub_key = signer::ThresholdSignature::new(config.signer_public_key);
-		let client = client::ThresholdClient::new();
 
-		let final_shares = Shares(client.prev_shares);
-		let key = final_shares.reconstruct_secret().unwrap();
+		// TODO : Ensure we did not already complete round 2
 
-		let mut aggregator = SignatureAggregator::new(params, group_key, &message[..]);
+		// TODO : Move this to DB
+		// TODO : Ensure this key can be saved and restored
+		let mut round2_secret_packages = BTreeMap::new();
 
-		let signature = key.sign(msg).expect("Signing with reconstructed key failed!");
+		////////////////////////////////////////////////////////////////////////////
+		// Key generation, Round 2
+		////////////////////////////////////////////////////////////////////////////
+		let participant_index = participants.find_by_index(caller).unwrap();
+		let participant_identifier = participant_index.try_into().expect("should be nonzero");
 
-		Signatures::<T>::push(signature);
+		// get all shares sent to us
+		let round_1_packages = Round1Shares::<T>::iter_prefix(participant_index);
+
+		// get our round1 secret to offchain worker storage
+		let key = Self::derived_key(frame_system::Module::<T>::block_number());
+		let data = IndexingData(b"round_1_share".to_vec(), number);
+		let round1_secret_package = offchain_index::get(&key);
+
+		// ANCHOR: dkg_part2
+		let (round2_secret_package, round2_packages) =
+			frost::keys::dkg::part2(round1_secret_package, round1_packages)?;
+		// ANCHOR_END: dkg_part2
+
+		// "Send" the round 1 package to all other participants.
+		for receiver_participant_index in 1..=participants.len() {
+			if receiver_participant_index == participant_index {
+				continue
+			}
+			let receiver_participant_identifier: frost::Identifier =
+				receiver_participant_index.try_into().expect("should be nonzero");
+
+			// Fetch the receiver participants pub key
+			// then encrypt with their private key
+			let secret_key = SecretKey::from(key);
+            let public_key = PublicKey::from(receiver_participant_index);
+            let nonce = GenericArray::from_slice(random_nonce());
+            let mut buffer = round_1_package.to_vec();
+
+            let tag = <Box>::new(&public_key, &secret_key)
+                .encrypt_in_place_detached(nonce, round_1_package, &mut buffer)
+                .unwrap();
+
+			// push everyone shares to storage
+			Round2Shares::<T>::insert(
+				receiver_participant_identifier,
+				participant_identifier,
+				tag,
+			);
+		}
+
+		// save our round2 secret to offchain worker storage
+		let key = Self::derived_key(frame_system::Module::<T>::block_number());
+		let data = IndexingData(b"round_2_share".to_vec(), number);
+		offchain_index::set(&key, &data.encode());
+
+		Ok(())
+	}
+
+	pub fn keygen_complete(config: types::ThresholdConfig) -> DispatchResult {
+		let participants = CurrentQuorom::<T>::get();
+		let threshold = CurrentPoolThreshold::<T>::get();
+
+		// TODO : Move this to DB
+		let mut round2_secret_packages = BTreeMap::new();
+
+		////////////////////////////////////////////////////////////////////////////
+		// Key generation, Round 2
+		////////////////////////////////////////////////////////////////////////////
+		let participant_index = participants.find_by_index(caller).unwrap();
+		let participant_identifier = participant_index.try_into().expect("should be nonzero");
+
+		// get all shares sent to us
+		let round_1_packages = Round1Shares::<T>::iter_prefix(participant_index);
+		let round_2_packages = Round2Shares::<T>::iter_prefix(participant_index);
+
+		// get our round2 secret to offchain worker storage
+		let key = Self::derived_key(frame_system::Module::<T>::block_number());
+		let data = IndexingData(b"round_2_share".to_vec(), number);
+		let round1_secret_package = offchain_index::get(&key);
+
+		// decrypt key share
+		let secret_key = SecretKey::from(key);
+       	let public_key = PublicKey::from(receiver_participant_index);
+		let nonce = GenericArray::from_slice(random_nonce());
+		let mut buffer = round_1_package.to_vec();
+
+		let round2_package = <Box>::new(&public_key, &secret_key)
+		 	.decrypt(nonce, round_2_packages, &mut buffer)
+		    .unwrap();
+
+		// ANCHOR: dkg_part3
+		let (key_package, pubkey_package) = frost::keys::dkg::part3(
+			round2_secret_package,
+			round1_packages,
+			round2_packages,
+		)?;
+		// ANCHOR_END: dkg_part3
+
+		// push the key to storage
+		CurrentPubKey::<T>::set(pubkey_package)
 
 		Ok(())
 	}

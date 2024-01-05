@@ -19,6 +19,9 @@ use serde::{Deserialize, Serialize};
 use sp_core::{H256, U256};
 use sp_std::{prelude::*, str};
 
+pub type ChainId = u64;
+pub type BlockNumber = u64;
+
 // Limit on how many pairs to mine,
 // The current limit is 6, means mining both ways on 3 seperate chains
 pub const MAX_PAIRS_TO_MINE: usize = 6;

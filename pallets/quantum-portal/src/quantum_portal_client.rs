@@ -93,7 +93,7 @@ where
                 Box::new(ParamKind::Address),   // sourceBeneficiary
                 Box::new(ParamKind::Address),   // token
                 Box::new(ParamKind::Uint(256)), // amount
-                Box::new(ParamKind::Bytes),     // method
+                Box::new(ParamKind::Array(ParamKind::Bytes)),     // method
                 Box::new(ParamKind::Uint(256)), // gas
                 Box::new(ParamKind::Uint(256)), // fixedFee
             ]))),
@@ -145,9 +145,9 @@ fn decode_remote_transaction_from_tuple(dec: &[Token]) -> ChainRequestResult<QpT
             let source_beneficiary = source_beneficiary.clone().to_address().unwrap();
             let token = token.clone().to_address().unwrap();
             let amount = amount.clone().to_uint().unwrap();
-            let method = method.clone().to_bytes().unwrap();
-            let gas = gas.clone().to_uint().unwrap();
             let fixed_fee = fixed_fee.clone().to_uint().unwrap();
+            let method = method[0].clone().to_bytes().unwrap();
+            let gas = gas.clone().to_uint().unwrap().as_u64();
             Ok(QpTransaction {
                 timestamp,
                 remote_contract,
@@ -482,7 +482,7 @@ impl<T: Config> QuantumPortalClient<T> {
                     Token::Address(t.source_beneficiary),
                     Token::Address(t.token),
                     Token::Uint(t.amount),
-                    Token::Bytes(t.method.clone()),
+                    Token::Array(vec![Token::Bytes(t.method.clone())]),
                     Token::Uint(U256::from(t.gas)),
                     Token::Uint(U256::from(t.fixed_fee)),
                 ])

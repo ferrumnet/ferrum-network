@@ -198,73 +198,74 @@ where
 
 	let no_tx_converter: Option<fp_rpc::NoTransactionConverter> = None;
 
-	// let pending_create_inherent_data_providers = move |_, _| async move {
-	// 	let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
-	// 	// Create a dummy parachain inherent data provider which is required to pass
-	// 	// the checks by the para chain system. We use dummy values because in the 'pending context'
-	// 	// neither do we have access to the real values nor do we need them.
-	// 	let (relay_parent_storage_root, relay_chain_state) =
-	// 		RelayStateSproofBuilder::default().into_state_root_and_proof();
-	// 	let vfp = PersistedValidationData {
-	// 		// This is a hack to make `cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases`
-	// 		// happy. Relay parent number can't be bigger than u32::MAX.
-	// 		relay_parent_number: u32::MAX,
-	// 		relay_parent_storage_root,
-	// 		..Default::default()
-	// 	};
-	// 	let parachain_inherent_data = ParachainInherentData {
-	// 		validation_data: vfp,
-	// 		relay_chain_state: relay_chain_state,
-	// 		downward_messages: Default::default(),
-	// 		horizontal_messages: Default::default(),
-	// 	};
-	// 	Ok((timestamp, parachain_inherent_data))
-	// };
+	let pending_create_inherent_data_providers = move |_, _| async move {
+		let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+		// Create a dummy parachain inherent data provider which is required to pass
+		// the checks by the para chain system. We use dummy values because in the 'pending context'
+		// neither do we have access to the real values nor do we need them.
+		let (relay_parent_storage_root, relay_chain_state) =
+			RelayStateSproofBuilder::default().into_state_root_and_proof();
+		let vfp = PersistedValidationData {
+			// This is a hack to make
+			// `cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases` happy. Relay parent
+			// number can't be bigger than u32::MAX.
+			relay_parent_number: u32::MAX,
+			relay_parent_storage_root,
+			..Default::default()
+		};
+		let parachain_inherent_data = ParachainInherentData {
+			validation_data: vfp,
+			relay_chain_state,
+			downward_messages: Default::default(),
+			horizontal_messages: Default::default(),
+		};
+		Ok((timestamp, parachain_inherent_data))
+	};
 
-	// io.merge(
-	//     Eth::new(
-	//         client.clone(),
-	//         pool.clone(),
-	//         graph,
-	//         no_tx_converter,
-	//         network.clone(),
-	//         Default::default(),
-	//         overrides.clone(),
-	//         frontier_backend.clone(),
-	//         is_authority,
-	//         block_data_cache.clone(),
-	//         fee_history_cache,
-	//         fee_history_limit,
-	//         // Allow 10x max allowed weight for non-transactional calls
-	//         10,
-	//         forced_parent_hashes,
-	// 		pending_create_inherent_data_providers,
-	// 		Some(pending_consenus_data_provider),
-	//     )
-	//     .into_rpc(),
-	// )?;
+	io.merge(
+		Eth::new(
+			client.clone(),
+			pool.clone(),
+			graph,
+			no_tx_converter,
+			network.clone(),
+			Default::default(),
+			overrides.clone(),
+			frontier_backend.clone(),
+			is_authority,
+			block_data_cache.clone(),
+			fee_history_cache,
+			fee_history_limit,
+			// Allow 10x max allowed weight for non-transactional calls
+			10,
+			forced_parent_hashes,
+			pending_create_inherent_data_providers,
+			Some(pending_consenus_data_provider),
+		)
+		.into_rpc(),
+	)?;
 
-	// let max_past_logs: u32 = 10_000;
-	// let max_stored_filters: usize = 500;
-	// io.merge(
-	//     EthFilter::new(
-	//         client.clone(),
-	//         frontier_backend,
-	//         filter_pool,
-	//         max_stored_filters,
-	//         max_past_logs,
-	//         block_data_cache,
-	//     )
-	//     .into_rpc(),
-	// )?;
+	let max_past_logs: u32 = 10_000;
+	let max_stored_filters: usize = 500;
+	io.merge(
+		EthFilter::new(
+			client.clone(),
+			frontier_backend,
+			filter_pool,
+			max_stored_filters,
+			max_past_logs,
+			block_data_cache,
+		)
+		.into_rpc(),
+	)?;
 
-	// io.merge(Net::new(client.clone(), network.clone(), true).into_rpc())?;
+	io.merge(Net::new(client.clone(), network.clone(), true).into_rpc())?;
 
-	// io.merge(Web3::new(client.clone()).into_rpc())?;
+	io.merge(Web3::new(client.clone()).into_rpc())?;
 
-	// io.merge(
-	//     EthPubSub::new(pool, client, network, subscription_task_executor, overrides).into_rpc(),
-	// )?;
+	io.merge(
+		EthPubSub::new(pool, client, network, subscription_task_executor, overrides).into_rpc(),
+	)?;
 
 	Ok(io)
 }

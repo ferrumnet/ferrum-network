@@ -1,0 +1,27 @@
+[settings]
+timeout = 1000
+
+[relaychain]
+default_command = "~/Documents/polkadot-sdk/target/release/polkadot"
+chain = "rococo-local"
+
+  [[relaychain.nodes]]
+  name = "alice"
+
+  [[relaychain.nodes]]
+  name = "bob"
+
+  [[relaychain.nodes]]
+  name = "charlie"
+
+# Waiting for https://github.com/paritytech/zombienet/issues/890
+# [[parachains]]
+# id = 1000
+# chain = "dev"
+# cumulus_based = true
+# add_to_genesis = true
+# register_para = true
+
+#   [parachains.collator]
+#   name = "collator01"
+#   command = "~/Documents/ferrum/ferrum-network/target/release/ferrum-network"

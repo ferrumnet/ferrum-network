@@ -20,26 +20,23 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::pallet_prelude::Weight;
-use frame_support::weights::constants::ExtrinsicBaseWeight;
-use frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND;
-use frame_support::weights::WeightToFeeCoefficient;
-use frame_support::weights::WeightToFeeCoefficients;
-use frame_support::weights::WeightToFeePolynomial;
+use frame_support::{
+	pallet_prelude::Weight,
+	weights::{
+		constants::{ExtrinsicBaseWeight, WEIGHT_REF_TIME_PER_SECOND},
+		WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
+	},
+};
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sha3::{Digest, Keccak256};
 use smallvec::smallvec;
-use sp_core::offchain::KeyTypeId;
-use sp_core::{ecdsa, H160, H256};
+use sp_core::{ecdsa, offchain::KeyTypeId, H160, H256};
 use sp_runtime::{
-    generic,
-    traits::{BlakeTwo256, IdentifyAccount, Verify},
-    Perbill,
+	generic,
+	traits::{BlakeTwo256, IdentifyAccount, Verify},
+	Perbill,
 };
-
-#[cfg(feature = "std")]
-pub use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 pub mod account_id20;
 pub mod xcm_primitives;
@@ -77,14 +74,14 @@ pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 
 /// Money matters.
 pub mod currency {
-    use super::*;
-    pub const MILLICENTS: Balance = 1_000_000_000;
-    pub const CENTS: Balance = 1_000 * MILLICENTS; // assume this is worth about a cent.
-    pub const DOLLARS: Balance = 100 * CENTS;
+	use super::*;
+	pub const MILLICENTS: Balance = 1_000_000_000;
+	pub const CENTS: Balance = 1_000 * MILLICENTS; // assume this is worth about a cent.
+	pub const DOLLARS: Balance = 100 * CENTS;
 
-    pub const fn deposit(items: u32, bytes: u32) -> Balance {
-        items as Balance * 15 * CENTS + (bytes as Balance) * 6 * CENTS
-    }
+	pub const fn deposit(items: u32, bytes: u32) -> Balance {
+		items as Balance * 15 * CENTS + (bytes as Balance) * 6 * CENTS
+	}
 }
 
 /// This determines the average expected block time that we are targeting.
@@ -121,8 +118,8 @@ pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 
 /// We allow for 0.5 of a second of compute with a 12 second average block time.
 pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
-    WEIGHT_REF_TIME_PER_SECOND.saturating_div(2),
-    cumulus_primitives_core::relay_chain::MAX_POV_SIZE as u64,
+	WEIGHT_REF_TIME_PER_SECOND.saturating_div(2),
+	cumulus_primitives_core::relay_chain::MAX_POV_SIZE as u64,
 );
 
 /// Handles converting a weight scalar to a fee value, based on the scale and granularity of the
@@ -137,17 +134,17 @@ pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
 ///   - Setting it to `1` will cause the literal `#[weight = x]` values to be charged.
 pub struct WeightToFee;
 impl WeightToFeePolynomial for WeightToFee {
-    type Balance = Balance;
-    fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-        // in Rococo, extrinsic base weight (smallest non-zero weight) is mapped to 1 MILLIUNIT:
-        // in our template, we map to 1/10 of that, or 1/10 MILLIUNIT
-        let p = MILLIUNIT / 10;
-        let q = 100 * Balance::from(ExtrinsicBaseWeight::get().ref_time());
-        smallvec![WeightToFeeCoefficient {
-            degree: 1,
-            negative: false,
-            coeff_frac: Perbill::from_rational(p % q, q),
-            coeff_integer: p / q,
-        }]
-    }
+	type Balance = Balance;
+	fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
+		// in Rococo, extrinsic base weight (smallest non-zero weight) is mapped to 1 MILLIUNIT:
+		// in our template, we map to 1/10 of that, or 1/10 MILLIUNIT
+		let p = MILLIUNIT / 10;
+		let q = 100 * Balance::from(ExtrinsicBaseWeight::get().ref_time());
+		smallvec![WeightToFeeCoefficient {
+			degree: 1,
+			negative: false,
+			coeff_frac: Perbill::from_rational(p % q, q),
+			coeff_integer: p / q,
+		}]
+	}
 }

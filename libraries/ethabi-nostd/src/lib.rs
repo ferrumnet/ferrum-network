@@ -20,19 +20,19 @@ pub mod token;
 pub mod util;
 
 pub use crate::{
-    // decoder::decode,
-    encoder::{encode, encode_function},
-    // event::Event,
-    param::{Param, ParamKind},
-    token::Token,
+	// decoder::decode,
+	encoder::{encode, encode_function},
+	// event::Event,
+	param::{Param, ParamKind},
+	token::Token,
 };
 
 #[derive(Debug)]
 pub enum Error {
-    /// Invalid entity such as a bad function name.
-    InvalidName,
-    /// Invalid data.
-    InvalidData,
+	/// Invalid entity such as a bad function name.
+	InvalidName,
+	/// Invalid data.
+	InvalidData,
 }
 
 /// ABI Address

@@ -29,48 +29,45 @@ mod precompile_name_from_address;
 struct Bytes(Vec<u8>);
 
 impl ::std::fmt::Debug for Bytes {
-    #[inline]
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> ::std::fmt::Result {
-        let data = &self.0;
-        write!(f, "[")?;
-        if !data.is_empty() {
-            write!(f, "{:#04x}u8", data[0])?;
-            for unit in data.iter().skip(1) {
-                write!(f, ", {:#04x}", unit)?;
-            }
-        }
-        write!(f, "]")
-    }
+	#[inline]
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> ::std::fmt::Result {
+		let data = &self.0;
+		write!(f, "[")?;
+		if !data.is_empty() {
+			write!(f, "{:#04x}u8", data[0])?;
+			for unit in data.iter().skip(1) {
+				write!(f, ", {:#04x}", unit)?;
+			}
+		}
+		write!(f, "]")
+	}
 }
 
 #[proc_macro]
 pub fn keccak256(input: TokenStream) -> TokenStream {
-    let lit_str = parse_macro_input!(input as LitStr);
+	let lit_str = parse_macro_input!(input as LitStr);
 
-    let hash = Keccak256::digest(lit_str.value().as_bytes());
+	let hash = Keccak256::digest(lit_str.value().as_bytes());
 
-    let bytes = Bytes(hash.to_vec());
-    let eval_str = format!("{:?}", bytes);
-    let eval_ts: proc_macro2::TokenStream = eval_str.parse().unwrap_or_else(|_| {
-        panic!(
-            "Failed to parse the string \"{}\" to TokenStream.",
-            eval_str
-        );
-    });
-    quote!(#eval_ts).into()
+	let bytes = Bytes(hash.to_vec());
+	let eval_str = format!("{:?}", bytes);
+	let eval_ts: proc_macro2::TokenStream = eval_str.parse().unwrap_or_else(|_| {
+		panic!("Failed to parse the string \"{}\" to TokenStream.", eval_str);
+	});
+	quote!(#eval_ts).into()
 }
 
 #[proc_macro_attribute]
 pub fn precompile(attr: TokenStream, input: TokenStream) -> TokenStream {
-    precompile::main(attr, input)
+	precompile::main(attr, input)
 }
 
 #[proc_macro_attribute]
 pub fn precompile_name_from_address(attr: TokenStream, input: TokenStream) -> TokenStream {
-    precompile_name_from_address::main(attr, input)
+	precompile_name_from_address::main(attr, input)
 }
 
 #[proc_macro_derive(Codec)]
 pub fn derive_codec(input: TokenStream) -> TokenStream {
-    derive_codec::main(input)
+	derive_codec::main(input)
 }

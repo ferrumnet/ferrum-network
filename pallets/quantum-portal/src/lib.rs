@@ -29,16 +29,24 @@ pub mod pallet {
 		chain_utils::{ChainRequestError, ChainUtils},
 		contract_client::{ContractClient, ContractClientSignature},
 		qp_types,
-		qp_types::{QpConfig, QpNetworkItem, Role},
+		qp_types::{BlockNumber, ChainId, QpConfig, QpNetworkItem, Role},
 		quantum_portal_client::QuantumPortalClient,
 		quantum_portal_service::QuantumPortalService,
 	};
+
 	// Re-import necessary items from core and other external crates.
 	use crate::qp_types::MAX_PAIRS_TO_MINE;
 	use core::convert::TryInto;
 	use ferrum_primitives::{OFFCHAIN_SIGNER_CONFIG_KEY, OFFCHAIN_SIGNER_CONFIG_PREFIX};
 	use frame_support::{pallet_prelude::*, traits::UnixTime};
-	use frame_system::pallet_prelude::*;
+	use frame_system::{
+		offchain::{
+			AppCrypto, CreateSignedTransaction, SendSignedTransaction, SendUnsignedTransaction,
+			SignedPayload, Signer, SigningTypes, SubmitTransaction,
+		},
+		pallet_prelude::*,
+	};
+	use sp_core::crypto::KeyTypeId;
 	use sp_runtime::offchain::{
 		storage::StorageValueRef,
 		storage_lock::{StorageLock, Time},
@@ -50,20 +58,24 @@ pub mod pallet {
 		frame_system::offchain::CreateSignedTransaction<Call<Self>> + frame_system::Config
 	{
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+
 		type RuntimeCall: From<frame_system::Call<Self>>;
+
 		type Timestamp: UnixTime;
+
+		// The identifier type for an offchain worker.
+		//type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
 	}
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
-	#[pallet::event]
-	pub enum Event<T: Config> {}
-
 	#[pallet::error]
-	pub enum Error<T> {}
+	pub enum Error<T> {
+		/// A finalizer was not found
+		FinalizerNotFound,
+	}
 
 	pub enum OffchainErr {
 		RPCError(ChainRequestError),
@@ -78,6 +90,27 @@ pub mod pallet {
 			}
 		}
 	}
+
+	/// Current pending finalize signatures
+	#[pallet::storage]
+	#[pallet::getter(fn pending_finalize_transaction)]
+	pub type PendingFinalizeSignatures<T> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		ChainId,
+		Blake2_128Concat,
+		BlockNumber,
+		Vec<(<T as frame_system::Config>::AccountId, Vec<u8>)>,
+	>;
+
+	/// Current registered finalizers by chainId
+	#[pallet::storage]
+	pub type RegisteredFinalizers<T> =
+		StorageMap<_, Blake2_128Concat, ChainId, Vec<<T as frame_system::Config>::AccountId>>;
+
+	/// Current finalizer signature thresholds by chainId
+	#[pallet::storage]
+	pub type FinalizerThreshold<T> = StorageMap<_, Blake2_128Concat, ChainId, u32>;
 
 	pub type OffchainResult<A> = Result<A, OffchainErr>;
 
@@ -190,6 +223,116 @@ pub mod pallet {
 		}
 	}
 
+	#[pallet::event]
+	#[pallet::generate_deposit(fn deposit_event)]
+	pub enum Event<T: Config> {
+		/// Added a new finalizer
+		FinalizerAdded { chain_id: ChainId, finalizer: T::AccountId },
+		/// Removed finalizer for chain
+		FinalizerRemoved { chain_id: ChainId, finalizer: T::AccountId },
+		/// A signature was submitted
+		SignatureSubmitted {
+			chain_id: ChainId,
+			block_number: BlockNumber,
+			finalizer: T::AccountId,
+			signature: Vec<u8>,
+		},
+		/// Finalizer threshold set
+		FinalizerThresholdSet { chain_id: ChainId, threshold: u32 },
+	}
+
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {}
+	impl<T: Config> Pallet<T> {
+		#[pallet::call_index(0)]
+		#[pallet::weight(0)]
+		pub fn register_finalizer(
+			origin: OriginFor<T>,
+			chain_id: ChainId,
+			finalizer: T::AccountId,
+		) -> DispatchResult {
+			let caller = ensure_signed(origin);
+
+			RegisteredFinalizers::<T>::try_mutate(
+				chain_id,
+				|current_finalizers| -> DispatchResult {
+					let current_finalizers =
+						current_finalizers.get_or_insert_with(Default::default);
+					current_finalizers.push(finalizer.clone());
+					Self::deposit_event(Event::FinalizerAdded { chain_id, finalizer });
+					Ok(())
+				},
+			)
+		}
+
+		#[pallet::call_index(1)]
+		#[pallet::weight(0)]
+		pub fn remove_finalizer(
+			origin: OriginFor<T>,
+			chain_id: ChainId,
+			finalizer: T::AccountId,
+		) -> DispatchResult {
+			let caller = ensure_signed(origin);
+
+			RegisteredFinalizers::<T>::try_mutate(
+				chain_id,
+				|current_finalizers| -> DispatchResult {
+					let current_finalizers =
+						current_finalizers.get_or_insert_with(Default::default);
+					let index = current_finalizers
+						.iter()
+						.position(|x| *x == finalizer.clone())
+						.ok_or(Error::<T>::FinalizerNotFound)?;
+					current_finalizers.remove(index);
+					Self::deposit_event(Event::FinalizerRemoved { chain_id, finalizer });
+					Ok(())
+				},
+			)
+		}
+
+		#[pallet::call_index(2)]
+		#[pallet::weight(0)]
+		pub fn submit_signature(
+			origin: OriginFor<T>,
+			chain_id: ChainId,
+			block_number: BlockNumber,
+			signature: Vec<u8>,
+		) -> DispatchResult {
+			let caller = ensure_signed(origin)?;
+
+			// ensure the caller is a registered finalizer
+			let finalizers =
+				RegisteredFinalizers::<T>::get(chain_id).ok_or(Error::<T>::FinalizerNotFound)?;
+			ensure!(finalizers.contains(&caller), Error::<T>::FinalizerNotFound);
+
+			// insert the signature to storage
+			PendingFinalizeSignatures::<T>::try_mutate(
+				chain_id,
+				block_number,
+				|signatures| -> DispatchResult {
+					let signatures = signatures.get_or_insert_with(Default::default);
+					signatures.push((caller.clone(), signature.clone()));
+					Self::deposit_event(Event::SignatureSubmitted {
+						chain_id,
+						finalizer: caller,
+						block_number,
+						signature,
+					});
+					Ok(())
+				},
+			)
+		}
+
+		#[pallet::call_index(3)]
+		#[pallet::weight(0)]
+		pub fn set_finalizer_threshold(
+			origin: OriginFor<T>,
+			chain_id: ChainId,
+			threshold: u32,
+		) -> DispatchResult {
+			let caller = ensure_signed(origin);
+			FinalizerThreshold::<T>::insert(chain_id, threshold);
+			Self::deposit_event(Event::FinalizerThresholdSet { chain_id, threshold });
+			Ok(())
+		}
+	}
 }

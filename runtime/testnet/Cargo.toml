@@ -93,6 +93,7 @@ precompile-utils = { path = "../../precompiles/utils", default-features = false 
 ferrum-primitives = { default-features = false, path = "../../primitives" }
 pallet-quantum-portal = { default-features = false, path = "../../pallets/quantum-portal" }
 pallet-transaction-pauser = { default-features = false, path = "../../pallets/transaction-pauser" }
+pallet-evm-precompile-quantum-portal = { default-features = false, path = "../../precompiles/quantum-portal" }
 
 [features]
 default = [

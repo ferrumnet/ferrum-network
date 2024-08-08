@@ -427,32 +427,28 @@ where
 		}
 
 		// just a sanity check to make sure the keystore is populated correctly
-		// let ecdsa_keys: Vec<sp_core::ecdsa::Public> =
-		//     sp_keystore::Keystore::ecdsa_public_keys(
-		//         &*keystore,
-		//         ferrum_primitives::OFFCHAIN_SIGNER_KEY_TYPE,
-		//     );
-		// println!("ECDSA KEYS in keystore {ecdsa_keys:?}");
+		let ecdsa_keys: Vec<sp_core::ecdsa::Public> = sp_keystore::Keystore::ecdsa_public_keys(
+			&*keystore,
+			ferrum_primitives::OFFCHAIN_SIGNER_KEY_TYPE,
+		);
+		println!("ECDSA KEYS in keystore {ecdsa_keys:?}");
 	}
 
 	// Frontier offchain DB task. Essential.
 	// Maps emulated ethereum data to substrate native data.
-	// task_manager.spawn_essential_handle().spawn(
-	//     "frontier-mapping-sync-worker",
-	//     Some("frontier"),
-	//     fc_mapping_sync::kv::MappingSyncWorker::new(
-	//         client.import_notification_stream(),
-	//         Duration::new(6, 0),
-	//         client.clone(),
-	//         backend.clone(),
-	//         overrides.clone(),
-	//         frontier_backend.clone(),
-	//         3,
-	//         0,
-	//         fc_mapping_sync::SyncStrategy::Parachain,
-	//     )
-	//     .for_each(|()| futures::future::ready(())),
-	// );
+	spawn_frontier_tasks(
+		&task_manager,
+		client.clone(),
+		backend,
+		frontier_backend,
+		filter_pool,
+		overrides,
+		fee_history_cache,
+		fee_history_cache_limit,
+		sync_service.clone(),
+		pubsub_notification_sinks,
+	)
+	.await;
 
 	// Frontier `EthFilterApi` maintenance. Manages the pool of user-created Filters.
 	// Each filter is allowed to stay in the pool for 100 blocks.
@@ -487,21 +483,21 @@ where
 		prometheus_registry.clone(),
 	));
 
-	// let ethapi_cmd = rpc_config.ethapi.clone();
-	// let tracing_requesters =
-	// 	// if ethapi_cmd.contains(&EthApi::Debug) || ethapi_cmd.contains(&EthApi::Trace) {
-	// 	// 	crate::rpc::tracing::spawn_tracing_tasks(
-	// 	// 		&task_manager,
-	// 	// 		client.clone(),
-	// 	// 		backend.clone(),
-	// 	// 		frontier_backend.clone(),
-	// 	// 		overrides.clone(),
-	// 	// 		&rpc_config,
-	// 	// 		prometheus_registry.clone(),
-	// 	// 	)
-	// 	// } else {
-	// 		crate::rpc::tracing::RpcRequesters { debug: None, trace: None }
-	// 	//};
+	let ethapi_cmd = rpc_config.ethapi.clone();
+	let tracing_requesters =
+		if ethapi_cmd.contains(&EthApi::Debug) || ethapi_cmd.contains(&EthApi::Trace) {
+			crate::rpc::tracing::spawn_tracing_tasks(
+				&task_manager,
+				client.clone(),
+				backend.clone(),
+				frontier_backend.clone(),
+				overrides.clone(),
+				&rpc_config,
+				prometheus_registry.clone(),
+			)
+		} else {
+			crate::rpc::tracing::RpcRequesters { debug: None, trace: None }
+		};
 
 	let rpc_builder = {
 		let client = client.clone();

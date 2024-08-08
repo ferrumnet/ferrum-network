@@ -23,6 +23,10 @@ use crate::{
 	Config,
 };
 use ethabi_nostd::{decoder::decode, ParamKind, Token};
+use frame_system::offchain::{
+	AppCrypto, CreateSignedTransaction, SendSignedTransaction, SendUnsignedTransaction,
+	SignedPayload, Signer, SigningTypes, SubmitTransaction,
+};
 use sp_core::{H256, U256};
 use sp_std::{marker::PhantomData, prelude::*};
 
@@ -298,6 +302,179 @@ impl<T: Config> QuantumPortalClient<T> {
 			expiry.clone(),
 		)?;
 
+		let signer = Signer::<T, T::AuthorityId>::all_accounts();
+		if !signer.can_sign() {
+			return Err(ChainRequestError::ErrorGettingJsonRpcResponse)
+		}
+
+		let results = signer.send_signed_transaction(|_account| {
+			// Received price is wrapped into a call to `submit_price` public function of this
+			// pallet. This means that the transaction, when executed, will simply call that
+			// function passing `price` as an argument.
+			crate::Call::submit_signature {
+				chain_id: remote_chain_id,
+				block_number: block_nonce,
+				signature: multi_sig.clone(),
+			}
+		});
+
+		Ok(Default::default())
+	}
+
+	pub fn post_finalize_transaction(
+		&self,
+		remote_chain_id: u64,
+		block_nonce: u64,
+		_finalizer_hash: H256,
+		_finalizers: &[Vec<u8>],
+		verification_result: bool,
+	) -> ChainRequestResult<H256> {
+		// because of sp_std, so here are the alternatives:
+		// - Manually construct the function call as [u8].
+		// function finalize(
+		// 	uint256 remoteChainId,
+		// 	uint256 blockNonce,
+		// 	bytes32 finalizersHash,
+		// 	address[] memory finalizers
+		// ) ...
+		// The last item is a bit complicated, but for now we pass an empty array.
+		// Support buytes and dynamic arrays in future
+		let finalizer_list: Vec<Token> = vec![];
+
+		let (block_details, _) = self.mined_block_by_nonce(remote_chain_id, block_nonce)?;
+
+		let method_signature =
+            b"finalizeSingleSigner(uint256,uint256,uint256[],bytes32,address[],bytes32,uint64,bytes)";
+
+		let salt = Token::FixedBytes(block_details.block_hash.as_ref().to_vec());
+		let finalizer_hash = Token::FixedBytes(block_details.block_hash.as_ref().to_vec());
+
+		let current_timestamp = block_details.block_metadata.timestamp;
+		// expirt 1hr from now
+		let expiry_buffer = core::time::Duration::from_secs(3600u64);
+		let expiry_time = current_timestamp.saturating_add(expiry_buffer.as_secs());
+		let expiry = Token::Uint(U256::from(expiry_time));
+
+		let multi_sigs = PendingFinalizeSignatures::<T>::get(remote_chain_id, block_nonce)
+			.expect("Should contain signatures");
+
+		// Compute multisig format
+		// This computation makes it match the implementation we have in qp smart contracts repo
+		// refer https://github.com/ferrumnet/quantum-portal-smart-contracts/blob/326341cdfcb55052437393228f1d58e014c90f7b/test/common/Eip712Utils.ts#L93
+		let mut multi_sigs_combined: Vec<u8> = Default::default();
+		for sig in multi_sigs {
+			multi_sigs_combined.extend(sig);
+		}
+		let mut multisig_compressed: Vec<u8> = multi_sigs_combined.0[0..64].to_vec();
+		multisig_compressed.extend([28u8]);
+		multisig_compressed.extend([0u8; 31]);
+
+		log::info!(
+			"Extended signature of size {}: {}",
+			multisig_compressed.len(),
+			sp_std::str::from_utf8(
+				ChainUtils::bytes_to_hex(multisig_compressed.as_slice()).as_slice()
+			)
+			.unwrap()
+		);
+
+		log::info!(
+			"Encoded Multisig generated : {:?}",
+			sp_std::str::from_utf8(
+				ChainUtils::bytes_to_hex(multisig_compressed.as_slice()).as_slice()
+			)
+			.unwrap()
+		);
+
+		// set this block nonce as invalid if verification failed
+		let invalid_block: Vec<Token> =
+			if !verification_result { vec![Token::Uint(U256::from(block_nonce))] } else { vec![] };
+
+		let inputs = [
+			Token::Uint(U256::from(remote_chain_id)),
+			Token::Uint(U256::from(block_nonce)),
+			Token::Array(invalid_block),
+			finalizer_hash,
+			Token::Array(finalizer_list),
+			salt,
+			expiry,
+			Token::Bytes(multi_sig),
+		];
+
+		let recipient_address = self.contract.get_ledger_manager_address()?;
+
+		let res = self.contract.send(
+			method_signature,
+			&inputs,
+			None, //Some(U256::from(1000000 as u64)), // None,
+			None, //Some(U256::from(10000000000 as u64)), // None,
+			U256::zero(),
+			None,
+			self.signer.from,
+			&self.signer,
+			recipient_address,
+		)?;
+
+		Ok(Default::default())
+	}
+
+	pub fn post_finalizer_transaction(
+		&self,
+		remote_chain_id: u64,
+		block_nonce: u64,
+		_finalizer_hash: H256,
+		_finalizers: &[Vec<u8>],
+		verification_result: bool,
+	) -> ChainRequestResult<H256> {
+		// because of sp_std, so here are the alternatives:
+		// - Manually construct the function call as [u8].
+		// function finalize(
+		// 	uint256 remoteChainId,
+		// 	uint256 blockNonce,
+		// 	bytes32 finalizersHash,
+		// 	address[] memory finalizers
+		// ) ...
+		// The last item is a bit complicated, but for now we pass an empty array.
+		// Support buytes and dynamic arrays in future
+		let finalizer_list: Vec<Token> = vec![];
+
+		let (block_details, _) = self.mined_block_by_nonce(remote_chain_id, block_nonce)?;
+
+		let method_signature =
+            b"finalizeSingleSigner(uint256,uint256,uint256[],bytes32,address[],bytes32,uint64,bytes)";
+
+		let salt = Token::FixedBytes(block_details.block_hash.as_ref().to_vec());
+		let finalizer_hash = Token::FixedBytes(block_details.block_hash.as_ref().to_vec());
+
+		let current_timestamp = block_details.block_metadata.timestamp;
+		// expirt 1hr from now
+		let expiry_buffer = core::time::Duration::from_secs(3600u64);
+		let expiry_time = current_timestamp.saturating_add(expiry_buffer.as_secs());
+		let expiry = Token::Uint(U256::from(expiry_time));
+
+		let multi_sig = self.generate_multi_signature(
+			remote_chain_id,
+			block_nonce,
+			finalizer_hash.clone(),
+			finalizer_list.clone(),
+			salt.clone(),
+			expiry.clone(),
+		)?;
+
+		// let signer = Signer::<T, T::AuthorityId>::all_accounts();
+		// if !signer.can_sign() {
+		// 	return Err(
+		// 		ChainRequestError::ErrorGettingJsonRpcResponse
+		// 	)
+		// }
+
+		// let results = signer.send_signed_transaction(|_account| {
+		// 	// Received price is wrapped into a call to `submit_price` public function of this
+		// 	// pallet. This means that the transaction, when executed, will simply call that
+		// 	// function passing `price` as an argument.
+		// 	crate::Call::submit_signature { chain_id : remote_chain_id, block_number: block_nonce,
+		// signature: multi_sig.clone() } });
+
 		log::info!(
 			"Encoded Multisig generated : {:?}",
 			sp_std::str::from_utf8(ChainUtils::bytes_to_hex(multi_sig.as_slice()).as_slice())
@@ -332,7 +509,8 @@ impl<T: Config> QuantumPortalClient<T> {
 			&self.signer,
 			recipient_address,
 		)?;
-		Ok(res)
+
+		Ok(Default::default())
 	}
 
 	/// Returns the multiSignature to sign finalize transactions
@@ -604,14 +782,30 @@ impl<T: Config> QuantumPortalClient<T> {
 			// verify data before finalization
 			let verification_result = Self::compare_and_verify_mined_block(&source_txs, &mined_txs);
 
-			log::info!("Calling mgr.finalize({}, {})", chain_id, block.nonce);
-			Ok(Some(self.create_finalize_transaction(
-				chain_id,
-				block.nonce,
-				H256::zero(),
-				&[self.signer.get_signer_address()],
-				verification_result,
-			)?))
+			// if we have enough signers for finalize then we post transaction onchain
+			let multi_sigs = PendingFinalizeSignatures::<T>::get(chain_id, block.nonce);
+			let threshold = FinalizerThreshold::<T>::get(chain_id);
+
+			if multi_sigs.len() > threshold {
+				log::info!("Calling mgr.post_transaction({}, {})", chain_id, block.nonce);
+				Ok(Some(self.post_finalize_transaction(
+					chain_id,
+					block.nonce,
+					H256::zero(),
+					&[self.signer.get_signer_address()],
+					verification_result,
+				)?))
+			} else {
+				// we dont have threshold so try to sign and post
+				log::info!("Calling mgr.finalize({}, {})", chain_id, block.nonce);
+				Ok(Some(self.create_finalize_transaction(
+					chain_id,
+					block.nonce,
+					H256::zero(),
+					&[self.signer.get_signer_address()],
+					verification_result,
+				)?))
+			}
 		} else {
 			log::info!("Nothing to finalize for ({})", chain_id);
 			Ok(None)

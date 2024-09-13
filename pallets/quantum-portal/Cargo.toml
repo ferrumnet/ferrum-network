@@ -30,19 +30,19 @@ byte-slice-cast = { version = "1.2.1", default-features = false, features = [] }
 ethabi-nostd = { path = "../../libraries/ethabi-nostd", default-features = false }
 ethereum = { version = "0.14.0", default-features = false }
 ferrum-primitives = { default-features = false, path = "../../primitives" }
-frame-support = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.12.0" }
-frame-system = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.12.0" }
+frame-support = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.11.0" }
+frame-system = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.11.0" }
 hex = { version = "0.4.3", default-features = false }
 hex-literal = "0.3.4"
 libsecp256k1 = { version = "0.7.0", default-features = false, features = ['static-context'] }
 numtoa = { version = "0.2.4", default-features = false }
 rlp = { version = "0.5.1", default-features = false }
-sp-application-crypto = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.12.0" }
-sp-arithmetic = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.12.0" }
-sp-core = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.12.0" }
-sp-io = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.12.0" }
-sp-runtime = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.12.0" }
-sp-std = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.12.0" }
+sp-application-crypto = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.11.0" }
+sp-arithmetic = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.11.0" }
+sp-core = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.11.0" }
+sp-io = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.11.0" }
+sp-runtime = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.11.0" }
+sp-std = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.11.0" }
 tiny-keccak = { version = "2.0.2", features = ["sha3", "keccak"] }
 
 [features]

@@ -22,6 +22,29 @@ interface QuantumPortalFinalizerPrecompile {
     ) external;
 
     /**
+     * @notice Get Finalizers
+     * @dev Retrieves the list of finalizers for a specific chain ID.
+     * @param chainId The unique identifier of the blockchain.
+     * @return The list of finalizers for the specified chain ID.
+     */
+    function getFinalizers(
+        uint256 chainId
+    ) external view returns (address[] memory);
+
+    /**
+     * @notice Add Finalizer
+     * @dev Adds a finalizer for a specific chain ID at a specified index.
+     * @param chainId The unique identifier of the blockchain.
+     * @param index The index at which to add the finalizer.
+     * @param finalizer The address of the finalizer to add.
+     */
+    function addFinalizer(
+        uint256 chainId,
+        uint256 index,
+        address finalizer
+    ) external;
+
+    /**
      * @notice Remove Finalizer
      * @dev Removes a registered finalizer for a specific chain ID.
      * @param chainId The unique identifier of the blockchain.

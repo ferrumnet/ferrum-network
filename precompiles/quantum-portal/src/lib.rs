@@ -21,11 +21,12 @@ use frame_support::{
 	dispatch::{GetDispatchInfo, PostDispatchInfo},
 	traits::ConstU32,
 };
+use sp_core::U256;
 use sp_core::H160;
 use sp_runtime::traits::{Dispatchable, StaticLookup};
 use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_evm::AddressMapping;
-use pallet_quantum_portal::Call as QuantumPortalCall;
+// use pallet_quantum_portal::Call as QuantumPortalCall;
 use sp_core::H256;
 use sp_std::{marker::PhantomData, vec::Vec};
 use precompile_utils::{prelude::*, solidity::revert::revert_as_bytes};
@@ -45,57 +46,58 @@ pub struct QuantumPortalPrecompile<Runtime>(PhantomData<Runtime>);
 #[precompile_utils::precompile]
 impl<Runtime> QuantumPortalPrecompile<Runtime>
 where
-	Runtime: pallet_quantum_portal::Config + pallet_evm::pallet::Config + frame_system::pallet::Config,
+	Runtime: pallet_evm::pallet::Config + frame_system::pallet::Config,
 	<Runtime as frame_system::Config>::RuntimeCall:
 		Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
 	<<Runtime as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin:
 		From<Option<<Runtime as frame_system::Config>::AccountId>>,
 		<Runtime as frame_system::Config>::AccountId: Into<H160>,
-		<Runtime as frame_system::Config>::RuntimeCall: From<QuantumPortalCall<Runtime>>,
 {
-	#[precompile::public("registerFinalizer(u64)")]
+	#[precompile::public("registerFinalizer(uint256,address)")]
 	fn register_finalizer(
 		handle: &mut impl PrecompileHandle,
-		chain_id: u64,
+		chain_id: U256,
+		finalizer: Address,
 	) -> EvmResult {
 		let origin = Runtime::AddressMapping::into_account_id(handle.context().caller);
 
-		let call = QuantumPortalCall::<Runtime>::register_finalizer { finalizer : origin.clone(), chain_id };
+		// let call = QuantumPortalCall::<Runtime>::register_finalizer { finalizer : origin.clone(), chain_id };
 
-		// Dispatch the call using the RuntimeHelper
-		<RuntimeHelper<Runtime>>::try_dispatch(handle, Some(origin).into(), call.into(), 0)?;
+		// // Dispatch the call using the RuntimeHelper
+		// <RuntimeHelper<Runtime>>::try_dispatch(handle, Some(origin).into(), call.into(), 0)?;
 
 		Ok(())
 	}
 
-	#[precompile::public("removeFinalizer(u64)")]
+	#[precompile::public("removeFinalizer(uint256,address)")]
 	fn remove_finalizer(
 		handle: &mut impl PrecompileHandle,
-		chain_id: u64,
+		chain_id: U256,
+		finalizer: Address,
 	) -> EvmResult {
 		let origin = Runtime::AddressMapping::into_account_id(handle.context().caller);
 
-		let call = QuantumPortalCall::<Runtime>::remove_finalizer { finalizer : origin.clone(), chain_id };
+		// let call = QuantumPortalCall::<Runtime>::remove_finalizer { finalizer : origin.clone(), chain_id };
 
-		// Dispatch the call using the RuntimeHelper
-		<RuntimeHelper<Runtime>>::try_dispatch(handle, Some(origin).into(), call.into(), 0)?;
+		// // Dispatch the call using the RuntimeHelper
+		// <RuntimeHelper<Runtime>>::try_dispatch(handle, Some(origin).into(), call.into(), 0)?;
 
 		Ok(())
 	}
 
-	#[precompile::public("setThreshold(u64)")]
-	fn set_threshold(
-		handle: &mut impl PrecompileHandle,
-		chain_id: u64,
-		threshold: u32,
-	) -> EvmResult {
-		let origin = Runtime::AddressMapping::into_account_id(handle.context().caller);
+	// #[precompile::public("setThreshold(u64)")]
+	// fn set_threshold(
+	// 	handle: &mut impl PrecompileHandle,
+	// 	chain_id: u64,
+	// 	threshold: u32,
+	// ) -> EvmResult {
+	// 	let origin = Runtime::AddressMapping::into_account_id(handle.context().caller);
 
-		let call = QuantumPortalCall::<Runtime>::set_finalizer_threshold { chain_id, threshold };
+	// 	// let call = QuantumPortalCall::<Runtime>::set_finalizer_threshold { chain_id, threshold };
 
-		// Dispatch the call using the RuntimeHelper
-		<RuntimeHelper<Runtime>>::try_dispatch(handle, Some(origin).into(), call.into(), 0)?;
+	// 	// // Dispatch the call using the RuntimeHelper
+	// 	// <RuntimeHelper<Runtime>>::try_dispatch(handle, Some(origin).into(), call.into(), 0)?;
 
-		Ok(())
-	}
+	// 	Ok(())
+	// }
 }

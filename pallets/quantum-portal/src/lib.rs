@@ -64,7 +64,7 @@ pub mod pallet {
 		type Timestamp: UnixTime;
 
 		// The identifier type for an offchain worker.
-		//type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
+		type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
 	}
 
 	#[pallet::pallet]

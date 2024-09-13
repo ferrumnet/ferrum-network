@@ -20,7 +20,7 @@ use crate::{
 	contract_client::{ContractClient, ContractClientSignature},
 	eip_712_utils::EIP712Utils,
 	qp_types::{QpLocalBlock, QpRemoteBlock, QpTransaction},
-	Config,
+	Config, FinalizerThreshold, PendingFinalizeSignatures,
 };
 use ethabi_nostd::{decoder::decode, ParamKind, Token};
 use frame_system::offchain::{
@@ -186,23 +186,15 @@ impl<T: Config> QuantumPortalClient<T> {
 
 	pub fn last_finalized_block(&self, chain_id: u64) -> ChainRequestResult<QpLocalBlock> {
 		let signature = b"getLastFinalizedBlock(uint256)";
-		let state_contract_address = self.contract.get_state_contract_address()?;
-		let res: Box<CallResponse> = self.contract.call(
-			signature,
-			&[Token::Uint(U256::from(chain_id))],
-			Some(state_contract_address),
-		)?;
+		let res: Box<CallResponse> =
+			self.contract.call(signature, &[Token::Uint(U256::from(chain_id))], None)?;
 		self.decode_local_block(res.result.as_slice())
 	}
 
 	pub fn last_local_block(&self, chain_id: u64) -> ChainRequestResult<QpLocalBlock> {
 		let signature = b"getLastLocalBlock(uint256)";
-		let state_contract_address = self.contract.get_state_contract_address()?;
-		let res: Box<CallResponse> = self.contract.call(
-			signature,
-			&[Token::Uint(U256::from(chain_id))],
-			Some(state_contract_address),
-		)?;
+		let res: Box<CallResponse> =
+			self.contract.call(signature, &[Token::Uint(U256::from(chain_id))], None)?;
 		self.decode_local_block(res.result.as_slice())
 	}
 
@@ -362,10 +354,10 @@ impl<T: Config> QuantumPortalClient<T> {
 		// This computation makes it match the implementation we have in qp smart contracts repo
 		// refer https://github.com/ferrumnet/quantum-portal-smart-contracts/blob/326341cdfcb55052437393228f1d58e014c90f7b/test/common/Eip712Utils.ts#L93
 		let mut multi_sigs_combined: Vec<u8> = Default::default();
-		for sig in multi_sigs {
+		for (_signer, sig) in multi_sigs {
 			multi_sigs_combined.extend(sig);
 		}
-		let mut multisig_compressed: Vec<u8> = multi_sigs_combined.0[0..64].to_vec();
+		let mut multisig_compressed: Vec<u8> = multi_sigs_combined[0..64].to_vec();
 		multisig_compressed.extend([28u8]);
 		multisig_compressed.extend([0u8; 31]);
 
@@ -398,7 +390,7 @@ impl<T: Config> QuantumPortalClient<T> {
 			Token::Array(finalizer_list),
 			salt,
 			expiry,
-			Token::Bytes(multi_sig),
+			Token::Bytes(multisig_compressed),
 		];
 
 		let recipient_address = self.contract.get_ledger_manager_address()?;
@@ -784,17 +776,29 @@ impl<T: Config> QuantumPortalClient<T> {
 
 			// if we have enough signers for finalize then we post transaction onchain
 			let multi_sigs = PendingFinalizeSignatures::<T>::get(chain_id, block.nonce);
-			let threshold = FinalizerThreshold::<T>::get(chain_id);
+			let threshold = FinalizerThreshold::<T>::get(chain_id).unwrap_or_default();
 
-			if multi_sigs.len() > threshold {
-				log::info!("Calling mgr.post_transaction({}, {})", chain_id, block.nonce);
-				Ok(Some(self.post_finalize_transaction(
-					chain_id,
-					block.nonce,
-					H256::zero(),
-					&[self.signer.get_signer_address()],
-					verification_result,
-				)?))
+			if let Some(multi_sigs) = multi_sigs {
+				if multi_sigs.len() > threshold as usize {
+					log::info!("Calling mgr.post_transaction({}, {})", chain_id, block.nonce);
+					Ok(Some(self.post_finalize_transaction(
+						chain_id,
+						block.nonce,
+						H256::zero(),
+						&[self.signer.get_signer_address()],
+						verification_result,
+					)?))
+				} else {
+					// we dont have threshold so try to sign and post
+					log::info!("Calling mgr.finalize({}, {})", chain_id, block.nonce);
+					Ok(Some(self.create_finalize_transaction(
+						chain_id,
+						block.nonce,
+						H256::zero(),
+						&[self.signer.get_signer_address()],
+						verification_result,
+					)?))
+				}
 			} else {
 				// we dont have threshold so try to sign and post
 				log::info!("Calling mgr.finalize({}, {})", chain_id, block.nonce);

@@ -9,7 +9,7 @@ description = "ETH ABI-encode/decode nostd. Forked from: https://github.com/Snow
 
 [dependencies]
 ethereum-types = { version = "0.14.1", default-features = false }
-sp-std = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.1.0" }
+sp-std = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.12.0" }
 tiny-keccak = { version = "2.0.2", features = ["sha3", "keccak"] }
 
 [dev-dependencies]

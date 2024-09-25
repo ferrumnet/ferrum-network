@@ -1,4 +1,4 @@
-// Copyright 2019-2023 Ferrum Inc.
+// Copyright 2019-2024 Ferrum Inc.
 // This file is part of Ferrum.
 
 // Ferrum is free software: you can redistribute it and/or modify
@@ -23,9 +23,10 @@ mod service;
 mod cli;
 mod command;
 mod config;
+mod eth;
 mod primitives;
 mod rpc;
 
 fn main() -> sc_cli::Result<()> {
-    command::run()
+	command::run()
 }

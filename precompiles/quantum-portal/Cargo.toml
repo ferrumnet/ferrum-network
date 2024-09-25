@@ -1,9 +1,10 @@
 [package]
-name = "pallet-evm-precompile-balances-erc20"
+name = "pallet-evm-precompile-quantum-portal"
 authors = ['PureStake']
 description = "A Precompile to expose a Balances pallet through an ERC20-compliant interface."
 edition = "2021"
 version = "0.1.0"
+
 
 [dependencies]
 log = { workspace = true }
@@ -22,6 +23,7 @@ sp-io = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 ferrum-primitives = { workspace = true }
+pallet-quantum-portal = { workspace = true }
 
 # Frontier
 fp-evm = { workspace = true }
@@ -52,5 +54,6 @@ std = [
 	"sp-core/std",
 	"sp-io/std",
 	"sp-std/std",
-	"ferrum-primitives/std"
+	"ferrum-primitives/std",
+	"pallet-quantum-portal/std",
 ]

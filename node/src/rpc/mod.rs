@@ -1,240 +1,100 @@
-// Copyright 2019-2023 Ferrum Inc.
-// This file is part of Ferrum.
-
-// Ferrum is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// Ferrum is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
-//! Ferrum RPCs implementation.
-
-use crate::primitives::{AccountId, Balance, Block, Hash};
-use cumulus_primitives_core::relay_chain::Nonce;
-use fc_rpc::{
-    Eth, EthApiServer, EthBlockDataCacheTask, EthFilter, EthFilterApiServer, EthPubSub,
-    EthPubSubApiServer, Net, NetApiServer, OverrideHandle, Web3, Web3ApiServer,
-};
-use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
-pub use fc_storage::overrides_handle;
-
-use jsonrpsee::RpcModule;
-use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
-use sc_client_api::{AuxStore, Backend, BlockchainEvents, StateBackend, StorageProvider};
-use sc_network::NetworkService;
-use sc_rpc::dev::DevApiServer;
-pub use sc_rpc::{DenyUnsafe, SubscriptionTaskExecutor};
-use sc_transaction_pool::{ChainApi, Pool};
-use sc_transaction_pool_api::TransactionPool;
-use sp_api::ProvideRuntimeApi;
-use sp_block_builder::BlockBuilder;
-use sp_blockchain::{
-    Backend as BlockchainBackend, Error as BlockChainError, HeaderBackend, HeaderMetadata,
-};
-use sp_runtime::traits::BlakeTwo256;
+//! A collection of node-specific RPC methods.
 
 use std::sync::Arc;
-use substrate_frame_rpc_system::{System, SystemApiServer};
 
-pub mod tracing;
+use futures::channel::mpsc;
+use jsonrpsee::RpcModule;
+// Substrate
+use sc_client_api::{
+	backend::{Backend, StorageProvider},
+	client::BlockchainEvents,
+	AuxStore, UsageProvider,
+};
+use sc_consensus_manual_seal::rpc::EngineCommand;
+use sc_rpc::SubscriptionTaskExecutor;
+use sc_rpc_api::DenyUnsafe;
+use sc_service::TransactionPool;
+use sc_transaction_pool::ChainApi;
+use sp_api::{CallApiAt, ProvideRuntimeApi};
+use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
+use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+use sp_inherents::CreateInherentDataProviders;
+use sp_runtime::traits::Block as BlockT;
+// Runtime
+use crate::primitives::{AccountId, Balance, Block, Hash, Nonce};
 
-// TODO This is copied from frontier. It should be imported instead after
-// https://github.com/paritytech/frontier/issues/333 is solved
-pub fn open_frontier_backend<C>(
-    client: Arc<C>,
-    config: &sc_service::Configuration,
-) -> Result<Arc<fc_db::Backend<Block>>, String>
+mod eth;
+pub use self::eth::{create_eth, EthDeps};
+
+/// Full client dependencies.
+pub struct FullDeps<C, P, A: ChainApi, CT, CIDP> {
+	/// The client instance to use.
+	pub client: Arc<C>,
+	/// Transaction pool instance.
+	pub pool: Arc<P>,
+	/// Whether to deny unsafe calls
+	pub deny_unsafe: DenyUnsafe,
+	/// Manual seal command sink
+	pub command_sink: Option<mpsc::Sender<EngineCommand<Hash>>>,
+	/// Ethereum-compatibility specific dependencies.
+	pub eth: EthDeps<Block, C, P, A, CT, CIDP>,
+}
+
+pub struct DefaultEthConfig<C, BE>(std::marker::PhantomData<(C, BE)>);
+
+impl<C, BE> fc_rpc::EthConfig<Block, C> for DefaultEthConfig<C, BE>
 where
-    C: sp_blockchain::HeaderBackend<Block>,
+	C: StorageProvider<Block, BE> + Sync + Send + 'static,
+	BE: Backend<Block> + 'static,
 {
-    let config_dir = config
-        .base_path
-        .as_ref()
-        .map(|base_path| base_path.config_dir(config.chain_spec.id()))
-        .unwrap_or_else(|| {
-            sc_service::BasePath::from_project("", "", "ferrum").config_dir(config.chain_spec.id())
-        });
-    let path = config_dir.join("frontier").join("db");
-
-    Ok(Arc::new(fc_db::Backend::<Block>::new(
-        client,
-        &fc_db::DatabaseSettings {
-            source: fc_db::DatabaseSource::RocksDb {
-                path,
-                cache_size: 0,
-            },
-        },
-    )?))
+	type EstimateGasAdapter = ();
+	type RuntimeStorageOverride =
+		fc_rpc::frontier_backend_client::SystemAccountId20StorageOverride<Block, C, BE>;
 }
 
-#[derive(Clone)]
-pub struct TracingConfig {
-	pub tracing_requesters: crate::rpc::tracing::RpcRequesters,
-	pub trace_filter_max_count: u32,
-}
-
-/// Full client dependencies
-pub struct FullDeps<C, P, A: ChainApi> {
-    /// The client instance to use.
-    pub client: Arc<C>,
-    /// Transaction pool instance.
-    pub pool: Arc<P>,
-    /// Graph pool instance.
-    pub graph: Arc<Pool<A>>,
-    /// Network service
-    pub network: Arc<NetworkService<Block, Hash>>,
-    /// Whether to deny unsafe calls
-    pub deny_unsafe: DenyUnsafe,
-    /// The Node authority flag
-    pub is_authority: bool,
-    /// Frontier Backend.
-    pub frontier_backend: Arc<fc_db::Backend<Block>>,
-    /// EthFilterApi pool.
-    pub filter_pool: FilterPool,
-    /// Maximum fee history cache size.                                                                                    
-    pub fee_history_limit: u64,
-    /// Fee history cache.
-    pub fee_history_cache: FeeHistoryCache,
-    /// Ethereum data access overrides.
-    pub overrides: Arc<OverrideHandle<Block>>,
-    /// Cache for Ethereum block data.
-    pub block_data_cache: Arc<EthBlockDataCacheTask<Block>>,
-    /// Enable EVM RPC servers
-    pub enable_evm_rpc: bool,
-    /// Optional tracing config.
-	pub tracing_config: Option<TracingConfig>,
-}
-
-/// Instantiate all RPC extensions.
-pub fn create_full<C, P, BE, A>(
-    deps: FullDeps<C, P, A>,
-    subscription_task_executor: SubscriptionTaskExecutor,
+/// Instantiate all Full RPC extensions.
+pub fn create_full<C, P, BE, A, CT, CIDP>(
+	deps: FullDeps<C, P, A, CT, CIDP>,
+	subscription_task_executor: SubscriptionTaskExecutor,
+	pubsub_notification_sinks: Arc<
+		fc_mapping_sync::EthereumBlockNotificationSinks<
+			fc_mapping_sync::EthereumBlockNotification<Block>,
+		>,
+	>,
 ) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>>
 where
-    C: ProvideRuntimeApi<Block>
-        + HeaderBackend<Block>
-        + AuxStore
-        + StorageProvider<Block, BE>
-        + HeaderMetadata<Block, Error = BlockChainError>
-        + BlockchainEvents<Block>
-        + Send
-        + Sync
-        + 'static,
-    C: sc_client_api::BlockBackend<Block>,
-    C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>
-        + pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>
-        + fp_rpc::ConvertTransactionRuntimeApi<Block>
-        + fp_rpc::EthereumRuntimeRPCApi<Block>
-        + BlockBuilder<Block>,
-    P: TransactionPool<Block = Block> + Sync + Send + 'static,
-    BE: Backend<Block> + 'static,
-    BE::State: StateBackend<BlakeTwo256>,
-    BE::Blockchain: BlockchainBackend<Block>,
-    A: ChainApi<Block = Block> + 'static,
+	C: CallApiAt<Block> + ProvideRuntimeApi<Block>,
+	C::Api: sp_block_builder::BlockBuilder<Block>,
+	C::Api: sp_consensus_aura::AuraApi<Block, AuraId>,
+	C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
+	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
+	C::Api: fp_rpc::ConvertTransactionRuntimeApi<Block>,
+	C::Api: fp_rpc::EthereumRuntimeRPCApi<Block>,
+	C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError> + 'static,
+	C: BlockchainEvents<Block> + AuxStore + UsageProvider<Block> + StorageProvider<Block, BE>,
+	BE: Backend<Block> + 'static,
+	P: TransactionPool<Block = Block> + 'static,
+	A: ChainApi<Block = Block> + 'static,
+	CIDP: CreateInherentDataProviders<Block, ()> + Send + 'static,
+	CT: fp_rpc::ConvertTransaction<<Block as BlockT>::Extrinsic> + Send + Sync + 'static,
 {
-    create_full_rpc(deps, subscription_task_executor)
-}
+	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
+	use sc_consensus_manual_seal::rpc::{ManualSeal, ManualSealApiServer};
+	use substrate_frame_rpc_system::{System, SystemApiServer};
 
-fn create_full_rpc<C, P, BE, A>(
-    deps: FullDeps<C, P, A>,
-    subscription_task_executor: SubscriptionTaskExecutor,
-) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>>
-where
-    C: ProvideRuntimeApi<Block>
-        + HeaderBackend<Block>
-        + AuxStore
-        + StorageProvider<Block, BE>
-        + HeaderMetadata<Block, Error = BlockChainError>
-        + BlockchainEvents<Block>
-        + Send
-        + Sync
-        + 'static,
-    C: sc_client_api::BlockBackend<Block>,
-    C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>
-        + pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>
-        + fp_rpc::ConvertTransactionRuntimeApi<Block>
-        + fp_rpc::EthereumRuntimeRPCApi<Block>
-        + BlockBuilder<Block>,
-    P: TransactionPool<Block = Block> + Sync + Send + 'static,
-    BE: Backend<Block> + 'static,
-    BE::State: StateBackend<BlakeTwo256>,
-    BE::Blockchain: BlockchainBackend<Block>,
-    A: ChainApi<Block = Block> + 'static,
-{
-    let mut io = RpcModule::new(());
-    let FullDeps {
-        client,
-        pool,
-        graph,
-        network,
-        deny_unsafe,
-        is_authority,
-        frontier_backend,
-        filter_pool,
-        fee_history_limit,
-        fee_history_cache,
-        overrides,
-        block_data_cache,
-        enable_evm_rpc,
-    } = deps;
+	let mut io = RpcModule::new(());
+	let FullDeps { client, pool, deny_unsafe, command_sink, eth } = deps;
 
-    io.merge(System::new(client.clone(), pool.clone(), deny_unsafe).into_rpc())?;
-    io.merge(TransactionPayment::new(client.clone()).into_rpc())?;
-    io.merge(sc_rpc::dev::Dev::new(client.clone(), deny_unsafe).into_rpc())?;
+	io.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
+	io.merge(TransactionPayment::new(client).into_rpc())?;
 
-    if !enable_evm_rpc {
-        return Ok(io);
-    }
+	// Ethereum compatibility RPCs
+	let io = create_eth::<_, _, _, _, _, _, _, DefaultEthConfig<C, BE>>(
+		io,
+		eth,
+		subscription_task_executor,
+		pubsub_notification_sinks,
+	)?;
 
-    let no_tx_converter: Option<fp_rpc::NoTransactionConverter> = None;
-
-    io.merge(
-        Eth::new(
-            client.clone(),
-            pool.clone(),
-            graph,
-            no_tx_converter,
-            network.clone(),
-            Default::default(),
-            overrides.clone(),
-            frontier_backend.clone(),
-            is_authority,
-            block_data_cache.clone(),
-            fee_history_cache,
-            fee_history_limit,
-            // Allow 10x max allowed weight for non-transactional calls
-            10,
-        )
-        .into_rpc(),
-    )?;
-
-    let max_past_logs: u32 = 10_000;
-    let max_stored_filters: usize = 500;
-    io.merge(
-        EthFilter::new(
-            client.clone(),
-            frontier_backend,
-            filter_pool,
-            max_stored_filters,
-            max_past_logs,
-            block_data_cache,
-        )
-        .into_rpc(),
-    )?;
-
-    io.merge(Net::new(client.clone(), network.clone(), true).into_rpc())?;
-
-    io.merge(Web3::new(client.clone()).into_rpc())?;
-
-    io.merge(
-        EthPubSub::new(pool, client, network, subscription_task_executor, overrides).into_rpc(),
-    )?;
-
-    Ok(io)
+	Ok(io)
 }

@@ -17,20 +17,21 @@ categories = [
 	"pallet",
 	"offchain worker",
 ]
+
 [dependencies]
-array-bytes = "4.1"
-log = { version = "0.4.14", default-features = false }
-parity-scale-codec = { default-features = false, features = ['derive'], version = '3.1.2' }
-scale-info = { default-features = false, features = ['derive'], version = '2.1.2' }
+array-bytes = { workspace = true }
+log = { workspace = true }
+codec = { workspace = true }
+scale-info = { workspace = true }
 # Substrate packages
-ferrum-primitives = { default-features = false, path = "../../primitives" }
-frame-support = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.1.0" }
-frame-system = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.1.0" }
-sp-arithmetic = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.1.0" }
-sp-core = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.1.0" }
-sp-io = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.1.0" }
-sp-runtime = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.1.0" }
-sp-std = { git = 'https://github.com/paritytech/polkadot-sdk', default-features = false, branch = "release-polkadot-v1.1.0" }
+ferrum-primitives = { workspace = true }
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+sp-arithmetic = { workspace = true }
+sp-core = { workspace = true }
+sp-io = { workspace = true }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
 
 [features]
 default = ['std']
@@ -38,10 +39,13 @@ std = [
 	'frame-support/std',
 	'frame-system/std',
 	'log/std',
-	'parity-scale-codec/std',
+	'codec/std',
 	'sp-arithmetic/std',
 	'sp-io/std',
 	'sp-runtime/std',
 	'sp-std/std',
+	'scale-info/std',
+	'ferrum-primitives/std',
+	'sp-core/std',
 ]
 try-runtime = ["frame-support/try-runtime"]

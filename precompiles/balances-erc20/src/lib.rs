@@ -18,7 +18,6 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use ferrum_primitives::SYSTEM_ACCOUNT_SIZE;
 use fp_evm::PrecompileHandle;
 use frame_support::{
 	dispatch::{GetDispatchInfo, PostDispatchInfo},

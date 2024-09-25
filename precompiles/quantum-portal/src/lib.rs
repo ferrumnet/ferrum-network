@@ -1,4 +1,4 @@
-// Copyright 2019-2023 Ferrum Inc.
+// Copyright 2019-2024 Ferrum Inc.
 // This file is part of Ferrum.
 
 // Ferrum is free software: you can redistribute it and/or modify
@@ -23,20 +23,20 @@
 // limitations under the License.
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use fp_evm::{ExitRevert, PrecompileFailure, PrecompileHandle};
+use fp_evm::PrecompileHandle;
 use frame_support::{
 	dispatch::{GetDispatchInfo, PostDispatchInfo},
 	traits::ConstU32,
 };
-use frame_system::pallet_prelude::BlockNumberFor;
+
 use pallet_evm::AddressMapping;
 use pallet_quantum_portal::Call as QuantumPortalCall;
-use precompile_utils::{prelude::*, solidity::revert::revert_as_bytes};
+use precompile_utils::prelude::*;
 use sp_core::H160;
-use sp_core::H256;
+
 use sp_core::U256;
-use sp_runtime::traits::{Dispatchable, StaticLookup};
-use sp_std::{marker::PhantomData, vec::Vec};
+use sp_runtime::traits::Dispatchable;
+use sp_std::marker::PhantomData;
 
 pub const SUBMISSION_SIZE_LIMIT: u32 = u32::MAX;
 type GetSubmissionSizeLimit = ConstU32<SUBMISSION_SIZE_LIMIT>;
@@ -62,7 +62,7 @@ where
 	fn register_finalizer(
 		handle: &mut impl PrecompileHandle,
 		chain_id: U256,
-		finalizer: Address,
+		_finalizer: Address,
 	) -> EvmResult {
 		let origin = Runtime::AddressMapping::into_account_id(handle.context().caller);
 
@@ -73,7 +73,7 @@ where
 		};
 
 		// Dispatch the call using the RuntimeHelper
-		<RuntimeHelper<Runtime>>::try_dispatch(handle, Some(origin).into(), call.into())?;
+		<RuntimeHelper<Runtime>>::try_dispatch(handle, Some(origin).into(), call)?;
 
 		Ok(())
 	}
@@ -82,7 +82,7 @@ where
 	fn remove_finalizer(
 		handle: &mut impl PrecompileHandle,
 		chain_id: U256,
-		finalizer: Address,
+		_finalizer: Address,
 	) -> EvmResult {
 		let origin = Runtime::AddressMapping::into_account_id(handle.context().caller);
 
@@ -91,7 +91,7 @@ where
 			QuantumPortalCall::<Runtime>::remove_finalizer { finalizer: origin.clone(), chain_id };
 
 		// Dispatch the call using the RuntimeHelper
-		<RuntimeHelper<Runtime>>::try_dispatch(handle, Some(origin).into(), call.into())?;
+		<RuntimeHelper<Runtime>>::try_dispatch(handle, Some(origin).into(), call)?;
 
 		Ok(())
 	}

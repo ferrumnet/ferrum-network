@@ -18,6 +18,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use ferrum_primitives::SYSTEM_ACCOUNT_SIZE;
 use fp_evm::PrecompileHandle;
 use frame_support::{
 	dispatch::{GetDispatchInfo, PostDispatchInfo},
@@ -137,9 +138,9 @@ pub type BalanceOf<Runtime, Instance = ()> =
 pub type ApprovesStorage<Runtime, Instance> = StorageDoubleMap<
 	<Instance as InstanceToPrefix>::ApprovesPrefix,
 	Blake2_128Concat,
-	<Runtime as frame_system::Config>::AccountId,
+	<Runtime as frame_system::pallet::Config>::AccountId,
 	Blake2_128Concat,
-	<Runtime as frame_system::Config>::AccountId,
+	<Runtime as frame_system::pallet::Config>::AccountId,
 	BalanceOf<Runtime, Instance>,
 >;
 
@@ -183,9 +184,12 @@ where
 	Metadata: Erc20Metadata,
 	Instance: InstanceToPrefix + 'static,
 	Runtime: pallet_balances::Config<Instance> + pallet_evm::Config + pallet_timestamp::Config,
-	Runtime::RuntimeCall: Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
-	Runtime::RuntimeCall: From<pallet_balances::Call<Runtime, Instance>>,
-	<Runtime::RuntimeCall as Dispatchable>::RuntimeOrigin: From<Option<Runtime::AccountId>>,
+	<Runtime as frame_system::pallet::Config>::RuntimeCall:
+		Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
+	<Runtime as frame_system::pallet::Config>::RuntimeCall:
+		From<pallet_balances::Call<Runtime, Instance>>,
+	<<Runtime as frame_system::pallet::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin:
+		From<Option<<Runtime as frame_system::pallet::Config>::AccountId>>,
 	BalanceOf<Runtime, Instance>: TryFrom<U256> + Into<U256>,
 	<Runtime as pallet_timestamp::Config>::Moment: Into<U256>,
 {
@@ -206,7 +210,8 @@ where
 		handle.record_db_read::<Runtime>(116)?;
 
 		let owner: H160 = owner.into();
-		let owner: Runtime::AccountId = Runtime::AddressMapping::into_account_id(owner);
+		let owner: <Runtime as frame_system::pallet::Config>::AccountId =
+			Runtime::AddressMapping::into_account_id(owner);
 
 		Ok(pallet_balances::Pallet::<Runtime, Instance>::usable_balance(&owner).into())
 	}
@@ -284,11 +289,10 @@ where
 			RuntimeHelper::<Runtime>::try_dispatch(
 				handle,
 				Some(origin).into(),
-				pallet_balances::Call::<Runtime, Instance>::transfer {
+				pallet_balances::Call::<Runtime, Instance>::transfer_allow_death {
 					dest: Runtime::Lookup::unlookup(to),
 					value,
 				},
-				SYSTEM_ACCOUNT_SIZE,
 			)?;
 		}
 
@@ -350,11 +354,10 @@ where
 			RuntimeHelper::<Runtime>::try_dispatch(
 				handle,
 				Some(from).into(),
-				pallet_balances::Call::<Runtime, Instance>::transfer {
+				pallet_balances::Call::<Runtime, Instance>::transfer_allow_death {
 					dest: Runtime::Lookup::unlookup(to),
 					value,
 				},
-				SYSTEM_ACCOUNT_SIZE,
 			)?;
 		}
 
@@ -394,7 +397,7 @@ where
 	fn deposit(handle: &mut impl PrecompileHandle) -> EvmResult {
 		// Deposit only makes sense for the native currency.
 		if !Metadata::is_native_currency() {
-			return Err(RevertReason::UnknownSelector.into())
+			return Err(RevertReason::UnknownSelector.into());
 		}
 
 		let caller: Runtime::AccountId =
@@ -403,7 +406,7 @@ where
 		let amount = Self::u256_to_amount(handle.context().apparent_value)?;
 
 		if amount.into() == U256::from(0u32) {
-			return Err(revert("deposited amount must be non-zero"))
+			return Err(revert("deposited amount must be non-zero"));
 		}
 
 		handle.record_log_costs_manual(2, 32)?;
@@ -412,11 +415,10 @@ where
 		RuntimeHelper::<Runtime>::try_dispatch(
 			handle,
 			Some(precompile).into(),
-			pallet_balances::Call::<Runtime, Instance>::transfer {
+			pallet_balances::Call::<Runtime, Instance>::transfer_allow_death {
 				dest: Runtime::Lookup::unlookup(caller),
 				value: amount,
 			},
-			SYSTEM_ACCOUNT_SIZE,
 		)?;
 
 		log2(
@@ -434,19 +436,19 @@ where
 	fn withdraw(handle: &mut impl PrecompileHandle, value: U256) -> EvmResult {
 		// Withdraw only makes sense for the native currency.
 		if !Metadata::is_native_currency() {
-			return Err(RevertReason::UnknownSelector.into())
+			return Err(RevertReason::UnknownSelector.into());
 		}
 
 		handle.record_log_costs_manual(2, 32)?;
 
 		let account_amount: U256 = {
-			let owner: Runtime::AccountId =
+			let owner: <Runtime as frame_system::pallet::Config>::AccountId =
 				Runtime::AddressMapping::into_account_id(handle.context().caller);
 			pallet_balances::Pallet::<Runtime, Instance>::usable_balance(&owner).into()
 		};
 
 		if value > account_amount {
-			return Err(revert("Trying to withdraw more than owned"))
+			return Err(revert("Trying to withdraw more than owned"));
 		}
 
 		log2(

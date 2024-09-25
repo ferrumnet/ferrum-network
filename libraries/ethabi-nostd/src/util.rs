@@ -15,7 +15,7 @@ use sp_std::prelude::*; //vec::{Vec};
 /// Converts a vector of bytes with len equal n * 32, to a vector of slices.
 pub fn slice_data(data: &[u8]) -> Result<Vec<Word>, Error> {
 	if data.len() % 32 != 0 {
-		return Err(Error::InvalidData)
+		return Err(Error::InvalidData);
 	}
 
 	let times = data.len() / 32;

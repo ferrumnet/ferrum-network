@@ -25,20 +25,20 @@ struct BytesTaken {
 
 fn as_u32(slice: &Word) -> Result<u32, Error> {
 	if !slice[..28].iter().all(|x| *x == 0) {
-		return Err(Error::InvalidData)
+		return Err(Error::InvalidData);
 	}
 
-	let result = ((slice[28] as u32) << 24) +
-		((slice[29] as u32) << 16) +
-		((slice[30] as u32) << 8) +
-		(slice[31] as u32);
+	let result = ((slice[28] as u32) << 24)
+		+ ((slice[29] as u32) << 16)
+		+ ((slice[30] as u32) << 8)
+		+ (slice[31] as u32);
 
 	Ok(result)
 }
 
 fn as_bool(slice: &Word) -> Result<bool, Error> {
 	if !slice[..31].iter().all(|x| *x == 0) {
-		return Err(Error::InvalidData)
+		return Err(Error::InvalidData);
 	}
 
 	Ok(slice[31] == 1)
@@ -48,7 +48,7 @@ fn as_bool(slice: &Word) -> Result<bool, Error> {
 pub fn decode(types: &[ParamKind], data: &[u8]) -> Result<Vec<Token>, Error> {
 	let is_empty_bytes_valid_encoding = types.iter().all(|t| t.is_empty_bytes_valid_encoding());
 	if !is_empty_bytes_valid_encoding && data.is_empty() {
-		return Err(Error::InvalidName)
+		return Err(Error::InvalidName);
 	}
 	let slices = slice_data(data)?;
 	let mut tokens = Vec::with_capacity(types.len());

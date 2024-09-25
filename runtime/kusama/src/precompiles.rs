@@ -3,9 +3,12 @@ use pallet_evm_precompile_balances_erc20::{Erc20BalancesPrecompile, Erc20Metadat
 use pallet_evm_precompile_blake2::Blake2F;
 use pallet_evm_precompile_bn128::{Bn128Add, Bn128Mul, Bn128Pairing};
 use pallet_evm_precompile_modexp::Modexp;
+use pallet_evm_precompile_quantum_portal::QuantumPortalPrecompile;
 use pallet_evm_precompile_sha3fips::Sha3FIPS256;
 use pallet_evm_precompile_simple::{ECRecover, ECRecoverPublicKey, Identity, Ripemd160, Sha256};
 use precompile_utils::precompile_set::*;
+
+// use crate::QuantumPortal;
 
 pub struct NativeErc20Metadata;
 
@@ -89,6 +92,12 @@ pub type FrontierPrecompiles<R> = PrecompileSetBuilder<
 				PrecompileAt<
 					AddressU64<2050>,
 					Erc20BalancesPrecompile<R, NativeErc20Metadata>,
+					(CallableByContract, CallableByPrecompile),
+				>,
+				// Ferrum specific precompiles:
+				PrecompileAt<
+					AddressU64<2066>,
+					QuantumPortalPrecompile<R>,
 					(CallableByContract, CallableByPrecompile),
 				>,
 			),

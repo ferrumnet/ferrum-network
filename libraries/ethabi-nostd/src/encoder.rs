@@ -55,10 +55,10 @@ impl Mediate {
 		match *self {
 			Mediate::Raw(ref raw) => 32 * raw.len() as u32,
 			Mediate::RawTuple(ref mediates) => 32 * mediates.len() as u32,
-			Mediate::Prefixed(_) |
-			Mediate::PrefixedArray(_) |
-			Mediate::PrefixedArrayWithLength(_) |
-			Mediate::PrefixedTuple(_) => 32,
+			Mediate::Prefixed(_)
+			| Mediate::PrefixedArray(_)
+			| Mediate::PrefixedArrayWithLength(_)
+			| Mediate::PrefixedTuple(_) => 32,
 		}
 	}
 
@@ -66,12 +66,15 @@ impl Mediate {
 		match *self {
 			Mediate::Raw(_) | Mediate::RawTuple(_) => 0,
 			Mediate::Prefixed(ref pre) => pre.len() as u32 * 32,
-			Mediate::PrefixedArray(ref mediates) =>
-				mediates.iter().fold(0, |acc, m| acc + m.head_len() + m.tail_len()),
-			Mediate::PrefixedArrayWithLength(ref mediates) =>
-				mediates.iter().fold(32, |acc, m| acc + m.head_len() + m.tail_len()),
-			Mediate::PrefixedTuple(ref mediates) =>
-				mediates.iter().fold(0, |acc, m| acc + m.head_len() + m.tail_len()),
+			Mediate::PrefixedArray(ref mediates) => {
+				mediates.iter().fold(0, |acc, m| acc + m.head_len() + m.tail_len())
+			},
+			Mediate::PrefixedArrayWithLength(ref mediates) => {
+				mediates.iter().fold(32, |acc, m| acc + m.head_len() + m.tail_len())
+			},
+			Mediate::PrefixedTuple(ref mediates) => {
+				mediates.iter().fold(0, |acc, m| acc + m.head_len() + m.tail_len())
+			},
 		}
 	}
 
@@ -79,10 +82,10 @@ impl Mediate {
 		match *self {
 			Mediate::Raw(ref raw) => raw.clone(),
 			Mediate::RawTuple(ref raw) => raw.iter().flat_map(|mediate| mediate.head(0)).collect(),
-			Mediate::Prefixed(_) |
-			Mediate::PrefixedArray(_) |
-			Mediate::PrefixedArrayWithLength(_) |
-			Mediate::PrefixedTuple(_) => vec![pad_u32(suffix_offset)],
+			Mediate::Prefixed(_)
+			| Mediate::PrefixedArray(_)
+			| Mediate::PrefixedArrayWithLength(_)
+			| Mediate::PrefixedTuple(_) => vec![pad_u32(suffix_offset)],
 		}
 	}
 

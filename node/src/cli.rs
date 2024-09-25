@@ -1,28 +1,8 @@
-// Copyright 2019-2023 Ferrum Inc.
-// This file is part of Ferrum.
-
-// Ferrum is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// Ferrum is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
-#![allow(clippy::all, deprecated)]
+use crate::eth::EthConfiguration;
 use std::path::PathBuf;
-
 /// Sub-commands supported by the collator.
 #[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
-	/// Key management cli utilities
-	#[clap(subcommand)]
-	Key(sc_cli::KeySubcommand),
-
 	/// Build a chain specification.
 	BuildSpec(sc_cli::BuildSpecCmd),
 
@@ -44,8 +24,11 @@ pub enum Subcommand {
 	/// Remove the whole chain.
 	PurgeChain(cumulus_client_cli::PurgeChainCmd),
 
-	/// Export the genesis state of the parachain.
-	ExportGenesisState(cumulus_client_cli::ExportGenesisStateCommand),
+	/// Export the genesis head data of the parachain.
+	///
+	/// Head data is the encoded block header.
+	#[command(alias = "export-genesis-state")]
+	ExportGenesisHead(cumulus_client_cli::ExportGenesisHeadCommand),
 
 	/// Export the genesis wasm of the parachain.
 	ExportGenesisWasm(cumulus_client_cli::ExportGenesisWasmCommand),
@@ -54,38 +37,33 @@ pub enum Subcommand {
 	/// The pallet benchmarking moved to the `pallet` sub-command.
 	#[command(subcommand)]
 	Benchmark(frame_benchmarking_cli::BenchmarkCmd),
-
-	/// Try some testing command against a specified runtime state.
-	#[cfg(feature = "try-runtime")]
-	TryRuntime(try_runtime_cli::TryRuntimeCmd),
-
-	/// Errors since the binary was not build with `--features try-runtime`.
-	#[cfg(not(feature = "try-runtime"))]
-	TryRuntime,
 }
 
-#[allow(missing_docs)]
-#[derive(Debug, clap::Parser)]
-pub struct FerrumCmd {
-	#[clap(long, value_parser)]
-	pub config_file_path: Option<std::path::PathBuf>,
-}
-
+const AFTER_HELP_EXAMPLE: &str = color_print::cstr!(
+	r#"<bold><underline>Examples:</></>
+   <bold>parachain-template-node build-spec --disable-default-bootnode > plain-parachain-chainspec.json</>
+           Export a chainspec for a local testnet in json format.
+   <bold>parachain-template-node --chain plain-parachain-chainspec.json --tmp -- --chain rococo-local</>
+           Launch a full node with chain specification loaded from plain-parachain-chainspec.json.
+   <bold>parachain-template-node</>
+           Launch a full node with default parachain <italic>local-testnet</> and relay chain <italic>rococo-local</>.
+   <bold>parachain-template-node --collator</>
+           Launch a collator with default parachain <italic>local-testnet</> and relay chain <italic>rococo-local</>.
+ "#
+);
 #[derive(Debug, clap::Parser)]
 #[command(
 	propagate_version = true,
 	args_conflicts_with_subcommands = true,
 	subcommand_negates_reqs = true
 )]
+#[clap(after_help = AFTER_HELP_EXAMPLE)]
 pub struct Cli {
 	#[command(subcommand)]
 	pub subcommand: Option<Subcommand>,
 
 	#[command(flatten)]
 	pub run: cumulus_client_cli::RunCmd,
-
-	#[command(flatten)]
-	pub config: FerrumCmd,
 
 	/// Disable automatic hardware benchmarks.
 	///
@@ -100,6 +78,9 @@ pub struct Cli {
 	/// Relay chain arguments
 	#[arg(raw = true)]
 	pub relay_chain_args: Vec<String>,
+
+	#[command(flatten)]
+	pub eth: EthConfiguration,
 }
 
 #[derive(Debug)]

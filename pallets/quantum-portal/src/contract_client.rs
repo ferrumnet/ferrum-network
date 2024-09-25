@@ -74,7 +74,8 @@ impl ContractClientSignature {
 
 	pub fn get_signer_address(&self) -> Vec<u8> {
 		log::info!("Signer address is : {:?}", self.from);
-		self._signer.as_ref().to_vec()
+		//self._signer.as_ref().to_vec()
+		vec![0; 20]
 	}
 }
 
@@ -260,8 +261,9 @@ impl ContractClient {
 			Some(v) => v,
 		};
 		let gas_limit_val = match gas_limit {
-			None =>
-				self.estimate_gas(encoded_bytes_slice.as_slice(), &value, from, recipient_address)?,
+			None => {
+				self.estimate_gas(encoded_bytes_slice.as_slice(), &value, from, recipient_address)?
+			},
 			Some(v) => v,
 		};
 		let gas_price_val = match gas_price {

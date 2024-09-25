@@ -17,3 +17,6 @@ pub type Balance = u128;
 
 /// Some way of identifying an account on the chain.
 pub type AccountId = ferrum_primitives::AccountId20;
+
+/// Nonce of an account.
+pub type Nonce = u32;

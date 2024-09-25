@@ -62,9 +62,6 @@ pub mod pallet {
 		type RuntimeCall: From<frame_system::Call<Self>>;
 
 		type Timestamp: UnixTime;
-
-		// The identifier type for an offchain worker.
-		type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
 	}
 
 	#[pallet::pallet]
@@ -75,6 +72,7 @@ pub mod pallet {
 	pub enum Error<T> {
 		/// A finalizer was not found
 		FinalizerNotFound,
+		OffchainUnsignedTxSignedPayload,
 	}
 
 	pub enum OffchainErr {
@@ -185,12 +183,12 @@ pub mod pallet {
 
 				if let Err(_e) = decoded_config {
 					log::info!("Error reading configuration, exiting offchain worker");
-					return
+					return;
 				}
 
 				if let Ok(None) = decoded_config {
 					log::info!("Configuration not found, exiting offchain worker");
-					return
+					return;
 				}
 
 				if let Ok(Some(config)) = decoded_config {
@@ -198,13 +196,13 @@ pub mod pallet {
 
 					if expected_role == Role::None {
 						log::info!("Not a miner or finalizer, exiting offchain worker");
-						return
+						return;
 					}
 
 					// ensure pairs configured are within limit
 					if config.pair_vec.len() > MAX_PAIRS_TO_MINE {
 						log::info!("Too many pairs configured, this may lead to performance issues, maximum allowed is {:?}, Exiting", MAX_PAIRS_TO_MINE);
-						return
+						return;
 					}
 
 					let now = block_number.try_into().map_or(0_u64, |f| f);
@@ -258,7 +256,7 @@ pub mod pallet {
 					let current_finalizers =
 						current_finalizers.get_or_insert_with(Default::default);
 					current_finalizers.push(finalizer.clone());
-					Self::deposit_event(Event::FinalizerAdded { chain_id, finalizer });
+					//Self::deposit_event(Event::FinalizerAdded { chain_id, finalizer });
 					Ok(())
 				},
 			)
@@ -283,7 +281,7 @@ pub mod pallet {
 						.position(|x| *x == finalizer.clone())
 						.ok_or(Error::<T>::FinalizerNotFound)?;
 					current_finalizers.remove(index);
-					Self::deposit_event(Event::FinalizerRemoved { chain_id, finalizer });
+					//Self::deposit_event(Event::FinalizerRemoved { chain_id, finalizer });
 					Ok(())
 				},
 			)

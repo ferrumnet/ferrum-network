@@ -52,7 +52,7 @@ impl<T: Config> QuantumPortalService<T> {
 		log::info!("Current pending txs {:?}", tx);
 		if tx.is_empty() {
 			log::info!("No lock! We can go ahead");
-			return Ok(true)
+			return Ok(true);
 		}
 		log::info!("LOCKED! {:?}", tx.get(0).unwrap());
 		Ok(false)
@@ -83,7 +83,7 @@ impl<T: Config> QuantumPortalService<T> {
 				remote_chain,
 				local_chain
 			);
-			return Ok(())
+			return Ok(());
 		}
 		self.lock()?;
 		let tx = self.stored_pending_transactions(9999)?;
@@ -159,7 +159,7 @@ impl<T: Config> QuantumPortalService<T> {
 				"There are already {} pending transactions. Ignoring this round",
 				live_txs.len()
 			);
-			return Ok(())
+			return Ok(());
 		}
 		let local_client: &QuantumPortalClient<T> =
 			&self.clients[self.find_client_idx(local_chain)];
@@ -265,8 +265,9 @@ impl<T: Config> QuantumPortalService<T> {
 		// then return false
 		let (chain_id1, _chain_id2, timestamp, tx_id) = match t {
 			PendingTransaction::MineTransaction(c1, c2, timestamp, tid) => (c1, c2, timestamp, tid),
-			PendingTransaction::FinalizeTransaction(c, timestamp, tid) =>
-				(c, &0_u64, timestamp, tid),
+			PendingTransaction::FinalizeTransaction(c, timestamp, tid) => {
+				(c, &0_u64, timestamp, tid)
+			},
 			PendingTransaction::None => panic!("tx is none"),
 		};
 		let client = &self.clients[self.find_client_idx(*chain_id1)];
@@ -304,7 +305,7 @@ impl<T: Config> QuantumPortalService<T> {
 				false
 			},
 			TransactionStatus::Pending => true,
-			TransactionStatus::NotFound =>
+			TransactionStatus::NotFound => {
 				if (timestamp + TIMEOUT) < client.now {
 					log::error!(
 						"The transaction is timed out! Please investigate {} - {}",
@@ -315,7 +316,8 @@ impl<T: Config> QuantumPortalService<T> {
 					false
 				} else {
 					true
-				},
+				}
+			},
 		};
 		Ok(res)
 	}

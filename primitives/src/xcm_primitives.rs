@@ -119,7 +119,7 @@ impl XcmToEthereum for EthereumXcmTransactionV1 {
 	fn into_transaction_v2(&self, nonce: U256, chain_id: u64) -> Option<TransactionV2> {
 		// We dont support creates for now
 		if self.action == TransactionAction::Create {
-			return None
+			return None;
 		}
 		let from_tuple_to_access_list = |t: &Vec<(H160, Vec<H256>)>| -> AccessList {
 			t.iter()
@@ -128,8 +128,9 @@ impl XcmToEthereum for EthereumXcmTransactionV1 {
 		};
 
 		let (gas_price, max_fee) = match &self.fee_payment {
-			EthereumXcmFee::Manual(fee_config) =>
-				(fee_config.gas_price, fee_config.max_fee_per_gas),
+			EthereumXcmFee::Manual(fee_config) => {
+				(fee_config.gas_price, fee_config.max_fee_per_gas)
+			},
 			EthereumXcmFee::Auto => (None, Some(U256::zero())),
 		};
 		match (gas_price, max_fee) {
@@ -193,7 +194,7 @@ impl XcmToEthereum for EthereumXcmTransactionV2 {
 	fn into_transaction_v2(&self, nonce: U256, chain_id: u64) -> Option<TransactionV2> {
 		// We dont support creates for now
 		if self.action == TransactionAction::Create {
-			return None
+			return None;
 		}
 		let from_tuple_to_access_list = |t: &Vec<(H160, Vec<H256>)>| -> AccessList {
 			t.iter()

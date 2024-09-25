@@ -4,6 +4,10 @@
 use super::*;
 pub use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
+/// System account size in bytes = Pallet_Name_Hash (16) + Storage_name_hash (16) +
+/// Blake2_128Concat (16) + AccountId (20) + AccountInfo (4 + 12 + AccountData (4* 16)) = 148
+pub const SYSTEM_ACCOUNT_SIZE: u64 = 148;
+
 /// Defines application identifier for crypto keys for the offchain signer
 ///
 /// When an offchain worker is signing transactions it's going to request keys from type
@@ -51,6 +55,25 @@ impl core::fmt::Debug for AccountId20 {
 impl From<[u8; 20]> for AccountId20 {
 	fn from(bytes: [u8; 20]) -> Self {
 		Self(bytes)
+	}
+}
+
+// NOTE: the implementation is lossy, and is intended to be used
+// only to convert from Polkadot accounts to AccountId20.
+// See https://github.com/moonbeam-foundation/moonbeam/pull/2315#discussion_r1205830577
+// DO NOT USE IT FOR ANYTHING ELSE.
+impl From<[u8; 32]> for AccountId20 {
+	fn from(bytes: [u8; 32]) -> Self {
+		let mut buffer = [0u8; 20];
+		buffer.copy_from_slice(&bytes[..20]);
+		Self(buffer)
+	}
+}
+
+impl From<sp_runtime::AccountId32> for AccountId20 {
+	fn from(account: sp_runtime::AccountId32) -> Self {
+		let bytes: &[u8; 32] = account.as_ref();
+		Self::from(*bytes)
 	}
 }
 
@@ -108,8 +131,8 @@ impl sp_runtime::traits::Verify for EthereumSignature {
 			Ok(pubkey) => {
 				// TODO This conversion could use a comment. Why H256 first, then H160?
 				// TODO actually, there is probably just a better way to go from Keccak digest.
-				AccountId20(H160::from(H256::from_slice(Keccak256::digest(pubkey).as_slice())).0) ==
-					*signer
+				AccountId20(H160::from(H256::from_slice(Keccak256::digest(pubkey).as_slice())).0)
+					== *signer
 			},
 			Err(sp_io::EcdsaVerifyError::BadRS) => {
 				log::error!(target: "evm", "Error recovering: Incorrect value of R or S");

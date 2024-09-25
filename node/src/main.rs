@@ -23,6 +23,7 @@ mod service;
 mod cli;
 mod command;
 mod config;
+mod eth;
 mod primitives;
 mod rpc;
 

@@ -224,7 +224,7 @@ fn fetch_json_rpc_body(base_url: &str, req: &JsonRpcRequest) -> Result<Vec<u8>, 
 
 	if response.code != 200 {
 		log::error!("Unexpected http request status code: {}", response.code);
-		return Err(ChainRequestError::ErrorGettingJsonRpcResponse)
+		return Err(ChainRequestError::ErrorGettingJsonRpcResponse);
 	}
 
 	Ok(body)

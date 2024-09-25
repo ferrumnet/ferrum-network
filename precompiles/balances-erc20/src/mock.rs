@@ -1,20 +1,3 @@
-// Copyright 2019-2023 Ferrum Inc.
-// This file is part of Ferrum.
-
-// Ferrum is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// Ferrum is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with Ferrum.  If not, see <http://www.gnu.org/licenses/>.
-// This file is based on the following GNU-licensed codebase:
-
 // Copyright 2019-2022 PureStake Inc.
 // This file is part of Moonbeam.
 
@@ -32,19 +15,21 @@
 // along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Testing utilities.
+
 use super::*;
 
 use frame_support::{construct_runtime, parameter_types, traits::Everything, weights::Weight};
 use pallet_evm::{EnsureAddressNever, EnsureAddressRoot};
 use precompile_utils::{precompile_set::*, testing::MockAccount};
-use sp_core::{H256, U256};
-use sp_runtime::traits::{BlakeTwo256, IdentityLookup};
+use sp_core::{ConstU32, H256, U256};
+use sp_runtime::{
+	traits::{BlakeTwo256, IdentityLookup},
+	BuildStorage,
+};
 
 pub type AccountId = MockAccount;
 pub type Balance = u128;
-pub type BlockNumber = u32;
-pub type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
-pub type Block = frame_system::mocking::MockBlock<Runtime>;
+pub type Block = frame_system::mocking::MockBlockU32<Runtime>;
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 250;
@@ -55,14 +40,14 @@ impl frame_system::Config for Runtime {
 	type BaseCallFilter = Everything;
 	type DbWeight = ();
 	type RuntimeOrigin = RuntimeOrigin;
-	type Index = u64;
-
+	type RuntimeTask = RuntimeTask;
+	type Nonce = u64;
+	type Block = Block;
 	type RuntimeCall = RuntimeCall;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = sp_runtime::generic::Header<BlockNumber, BlakeTwo256>;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type Version = ();
@@ -76,6 +61,11 @@ impl frame_system::Config for Runtime {
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = ();
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
+	type SingleBlockMigrations = ();
+	type MultiBlockMigrator = ();
+	type PreInherents = ();
+	type PostInherents = ();
+	type PostTransactions = ();
 }
 
 parameter_types! {
@@ -102,11 +92,11 @@ impl pallet_balances::Config for Runtime {
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
-	type FreezeIdentifier = ();
-	type MaxFreezes = ConstU32<0>;
-	type RuntimeHoldReason = RuntimeHoldReason;
-	type MaxHolds = ConstU32<0>;
 	type WeightInfo = ();
+	type RuntimeHoldReason = ();
+	type FreezeIdentifier = ();
+	type MaxFreezes = ();
+	type RuntimeFreezeReason = ();
 }
 
 pub type Precompiles<R> = PrecompileSetBuilder<
@@ -116,14 +106,22 @@ pub type Precompiles<R> = PrecompileSetBuilder<
 
 pub type PCall = Erc20BalancesPrecompileCall<Runtime, NativeErc20Metadata, ()>;
 
-const BLOCK_GAS_LIMIT: u64 = 75_000_000;
 const MAX_POV_SIZE: u64 = 5 * 1024 * 1024;
+/// Block storage limit in bytes. Set to 40 KB.
+const BLOCK_STORAGE_LIMIT: u64 = 40 * 1024;
 
 parameter_types! {
-	pub BlockGasLimit: U256 = U256::from(BLOCK_GAS_LIMIT);
-	pub const GasLimitPovSizeRatio: u64 = BLOCK_GAS_LIMIT.saturating_div(MAX_POV_SIZE);
-	pub PrecompilesValue: FrontierPrecompiles<Runtime> = FrontierPrecompiles::<_>::new();
-	pub WeightPerGas: Weight = Weight::from_parts(weight_per_gas(BLOCK_GAS_LIMIT, NORMAL_DISPATCH_RATIO, MILLISECS_PER_BLOCK), 0);
+	pub BlockGasLimit: U256 = U256::from(u64::MAX);
+	pub PrecompilesValue: Precompiles<Runtime> = Precompiles::new();
+	pub const WeightPerGas: Weight = Weight::from_parts(1, 0);
+	pub GasLimitPovSizeRatio: u64 = {
+		let block_gas_limit = BlockGasLimit::get().min(u64::MAX.into()).low_u64();
+		block_gas_limit.saturating_div(MAX_POV_SIZE)
+	};
+	pub GasLimitStorageGrowthRatio: u64 = {
+		let block_gas_limit = BlockGasLimit::get().min(u64::MAX.into()).low_u64();
+		block_gas_limit.saturating_div(BLOCK_STORAGE_LIMIT)
+	};
 }
 
 impl pallet_evm::Config for Runtime {
@@ -139,24 +137,25 @@ impl pallet_evm::Config for Runtime {
 	type PrecompilesType = Precompiles<Self>;
 	type PrecompilesValue = PrecompilesValue;
 	type ChainId = ();
-	type OnCreate = ();
 	type OnChargeTransaction = ();
 	type BlockGasLimit = BlockGasLimit;
 	type BlockHashMapping = pallet_evm::SubstrateBlockHashMapping<Self>;
 	type FindAuthor = ();
+	type OnCreate = ();
+	type GasLimitPovSizeRatio = GasLimitPovSizeRatio;
+	type SuicideQuickClearLimit = ConstU32<0>;
+	type GasLimitStorageGrowthRatio = GasLimitStorageGrowthRatio;
+	type Timestamp = Timestamp;
+	type WeightInfo = pallet_evm::weights::SubstrateWeight<Runtime>;
 }
 
 // Configure a mock runtime to test the pallet.
 construct_runtime!(
-	pub enum Runtime where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic,
-	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Evm: pallet_evm::{Pallet, Call, Storage, Event<T>},
-		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
+	pub enum Runtime	{
+		System: frame_system,
+		Balances: pallet_balances,
+		Evm: pallet_evm,
+		Timestamp: pallet_timestamp,
 	}
 );
 
@@ -186,10 +185,15 @@ impl Erc20Metadata for NativeErc20Metadata {
 	}
 }
 
-#[derive(Default)]
 pub(crate) struct ExtBuilder {
 	// endowed accounts with balances
 	balances: Vec<(AccountId, Balance)>,
+}
+
+impl Default for ExtBuilder {
+	fn default() -> ExtBuilder {
+		ExtBuilder { balances: vec![] }
+	}
 }
 
 impl ExtBuilder {
@@ -199,8 +203,8 @@ impl ExtBuilder {
 	}
 
 	pub(crate) fn build(self) -> sp_io::TestExternalities {
-		let mut t = frame_system::GenesisConfig::default()
-			.build_storage::<Runtime>()
+		let mut t = frame_system::GenesisConfig::<Runtime>::default()
+			.build_storage()
 			.expect("Frame system builds valid default genesis config");
 
 		pallet_balances::GenesisConfig::<Runtime> { balances: self.balances }

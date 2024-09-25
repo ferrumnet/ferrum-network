@@ -74,32 +74,36 @@ impl Token {
 		match *self {
 			Token::Address(_) => *param_type == ParamKind::Address,
 			Token::Bytes(_) => *param_type == ParamKind::Bytes,
-			Token::Int(_) =>
+			Token::Int(_) => {
 				if let ParamKind::Int(_) = *param_type {
 					true
 				} else {
 					false
-				},
-			Token::Uint(_) =>
+				}
+			},
+			Token::Uint(_) => {
 				if let ParamKind::Uint(_) = *param_type {
 					true
 				} else {
 					false
-				},
+				}
+			},
 			Token::Bool(_) => *param_type == ParamKind::Bool,
 			Token::String(_) => *param_type == ParamKind::String,
-			Token::FixedBytes(ref bytes) =>
+			Token::FixedBytes(ref bytes) => {
 				if let ParamKind::FixedBytes(size) = *param_type {
 					size >= bytes.len()
 				} else {
 					false
-				},
-			Token::Array(ref tokens) =>
+				}
+			},
+			Token::Array(ref tokens) => {
 				if let ParamKind::Array(ref param_type) = *param_type {
 					tokens.iter().all(|t| t.type_check(param_type))
 				} else {
 					false
-				},
+				}
+			},
 			Token::FixedArray(ref tokens) => {
 				if let ParamKind::FixedArray(ref param_type, size) = *param_type {
 					size == tokens.len() && tokens.iter().all(|t| t.type_check(param_type))
@@ -107,12 +111,13 @@ impl Token {
 					false
 				}
 			},
-			Token::Tuple(ref tokens) =>
+			Token::Tuple(ref tokens) => {
 				if let ParamKind::Tuple(ref param_type) = *param_type {
 					tokens.iter().enumerate().all(|(i, t)| t.type_check(&param_type[i]))
 				} else {
 					false
-				},
+				}
+			},
 		}
 	}
 

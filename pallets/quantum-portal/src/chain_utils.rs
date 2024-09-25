@@ -98,7 +98,7 @@ pub const EMPTY_HASH: H256 = H256([
 impl ChainUtils {
 	pub fn hex_to_u64(s: &[u8]) -> Result<u64, ChainRequestError> {
 		if s.len() < 2 {
-			return Err(ChainRequestError::ConversionError)
+			return Err(ChainRequestError::ConversionError);
 		}
 		let hexb = if s[0] == b'0' && s[1] == b'x' { &s[2..] } else { s };
 		let hex = str::from_utf8(hexb).map_err(|e| {
@@ -136,7 +136,7 @@ impl ChainUtils {
 
 	pub fn hex_to_bytes(data: &[u8]) -> Result<Vec<u8>, ChainRequestError> {
 		if data.len() % 2 != 0 {
-			return Err(ChainRequestError::ConversionError)
+			return Err(ChainRequestError::ConversionError);
 		}
 		let data = ChainUtils::hex_remove_0x(data)?;
 		let mut out = vec![0; data.len() / 2];
@@ -174,7 +174,7 @@ impl ChainUtils {
 	#[allow(suspicious_double_ref_op)]
 	pub fn hex_add_0x(s: &[u8]) -> Vec<u8> {
 		if s.len() >= 2 && s[0] == b'0' && s[1] == b'x' {
-			return Vec::from(s.clone())
+			return Vec::from(s.clone());
 		}
 		let mut zx = vec![b'0', b'x'];
 		zx.extend(s);
@@ -183,7 +183,7 @@ impl ChainUtils {
 
 	pub fn hex_remove_0x(s: &[u8]) -> Result<&[u8], ChainRequestError> {
 		if s.len() < 2 {
-			return Err(ChainRequestError::ConversionError)
+			return Err(ChainRequestError::ConversionError);
 		}
 		Ok(if s[0] == b'0' && s[1] == b'x' { &s[2..] } else { s })
 	}
@@ -209,7 +209,7 @@ impl ChainUtils {
 			})
 			.collect();
 		if fmted.is_empty() {
-			return vec![b'0', b'x', b'0']
+			return vec![b'0', b'x', b'0'];
 		}
 		let mut zx = vec![b'0', b'x'];
 		zx.extend(fmted.into_iter().map(|i| i + b'0'));

@@ -16,6 +16,7 @@
 
 use super::*;
 use frame_support::{ensure, traits::Get};
+use pallet_evm::AddressMapping;
 use sp_core::H256;
 use sp_io::hashing::keccak_256;
 use sp_std::vec::Vec;
@@ -37,9 +38,12 @@ where
 	Metadata: Erc20Metadata,
 	Instance: InstanceToPrefix + 'static,
 	Runtime: pallet_balances::Config<Instance> + pallet_evm::Config + pallet_timestamp::Config,
-	Runtime::RuntimeCall: Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
-	Runtime::RuntimeCall: From<pallet_balances::Call<Runtime, Instance>>,
-	<Runtime::RuntimeCall as Dispatchable>::RuntimeOrigin: From<Option<Runtime::AccountId>>,
+	<Runtime as frame_system::pallet::Config>::RuntimeCall:
+		Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
+	<Runtime as frame_system::pallet::Config>::RuntimeCall:
+		From<pallet_balances::Call<Runtime, Instance>>,
+	<<Runtime as frame_system::pallet::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin:
+		From<Option<<Runtime as frame_system::pallet::Config>::AccountId>>,
 	BalanceOf<Runtime, Instance>: TryFrom<U256> + Into<U256>,
 	<Runtime as pallet_timestamp::Config>::Moment: Into<U256>,
 {
@@ -132,8 +136,10 @@ where
 				Erc20BalancesPrecompile::<Runtime, Metadata, Instance>::u256_to_amount(value)
 					.unwrap_or_else(|_| Bounded::max_value());
 
-			let owner: Runtime::AccountId = Runtime::AddressMapping::into_account_id(owner);
-			let spender: Runtime::AccountId = Runtime::AddressMapping::into_account_id(spender);
+			let owner: <Runtime as frame_system::pallet::Config>::AccountId =
+				Runtime::AddressMapping::into_account_id(owner);
+			let spender: <Runtime as frame_system::pallet::Config>::AccountId =
+				Runtime::AddressMapping::into_account_id(spender);
 			ApprovesStorage::<Runtime, Instance>::insert(owner, spender, amount);
 		}
 

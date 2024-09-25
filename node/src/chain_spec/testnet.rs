@@ -16,14 +16,14 @@
 use super::*;
 use cumulus_primitives_core::ParaId;
 use ferrum_testnet_runtime::{
-	AccountId, AuraId, EthereumConfig, ParachainInfoConfig, EXISTENTIAL_DEPOSIT,
+	AccountId, AuraId, EthereumConfig, ParachainInfoConfig, RuntimeGenesisConfig,
+	EXISTENTIAL_DEPOSIT,
 };
 use sc_service::ChainType;
 use std::str::FromStr;
 
 /// Specialized `TestnetChainSpec` for the normal parachain runtime.
-pub type TestnetChainSpec =
-	sc_service::GenericChainSpec<ferrum_testnet_runtime::GenesisConfig, Extensions>;
+pub type TestnetChainSpec = sc_service::GenericChainSpec<(), Extensions>;
 
 /// Generate collator keys from seed.
 ///
@@ -46,42 +46,38 @@ pub fn development_config() -> TestnetChainSpec {
 	properties.insert("tokenDecimals".into(), 18.into());
 	properties.insert("ss58Format".into(), 42.into());
 
-	TestnetChainSpec::from_genesis(
-		// Name
-		"Ferrum Development",
-		// ID
-		"dev",
-		ChainType::Development,
-		move || {
-			testnet_genesis(
-				// initial collators.
-				vec![
-					(
-						AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
-						get_collator_keys_from_seed("Alice"),
-					),
-					(
-						AccountId::from_str("977D8B2C924dB8a92340e9bb58e6C0d876de9D60").unwrap(),
-						get_collator_keys_from_seed("Bob"),
-					),
-				],
-				// Endowed Accounts
-				vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
-				// Sudo Key
-				AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
-				1000.into(),
-			)
-		},
-		Vec::new(),
-		None,
-		None,
-		None,
-		None,
+	#[allow(deprecated)]
+	TestnetChainSpec::builder(
+		ferrum_runtime::WASM_BINARY.expect("WASM binary was not built, please build it!"),
 		Extensions {
-			relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
+			relay_chain: "rococo-local".into(),
+			// You MUST set this to the correct network!
 			para_id: 1000,
 		},
 	)
+	.with_name("Quantum Portal Network Testnet")
+	.with_id("quantum_portal_network_testnet")
+	.with_chain_type(ChainType::Live)
+	.with_properties(properties)
+	.with_genesis_config_patch(testnet_genesis(
+		// Sudo Key
+		AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
+		// Pre-funded accounts
+		vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
+		// Initial PoA authorities
+		vec![
+			(
+				AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
+				get_collator_keys_from_seed("Alice"),
+			),
+			(
+				AccountId::from_str("977D8B2C924dB8a92340e9bb58e6C0d876de9D60").unwrap(),
+				get_collator_keys_from_seed("Bob"),
+			),
+		],
+		1000.into(),
+	))
+	.build()
 }
 
 #[allow(dead_code)]
@@ -92,48 +88,38 @@ pub fn local_testnet_config() -> TestnetChainSpec {
 	properties.insert("tokenDecimals".into(), 18.into());
 	properties.insert("ss58Format".into(), 42.into());
 
-	TestnetChainSpec::from_genesis(
-		// Name
-		"Ferrum Testnet",
-		// ID
-		"testnet_local",
-		ChainType::Local,
-		move || {
-			testnet_genesis(
-				// initial collators.
-				vec![
-					(
-						AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
-						get_collator_keys_from_seed("Alice"),
-					),
-					(
-						AccountId::from_str("977D8B2C924dB8a92340e9bb58e6C0d876de9D60").unwrap(),
-						get_collator_keys_from_seed("Bob"),
-					),
-				],
-				// Endowed Accounts
-				vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
-				// Sudo Key
-				AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
-				1000.into(),
-			)
-		},
-		// Bootnodes
-		Vec::new(),
-		// Telemetry
-		None,
-		// Protocol ID
-		Some("template-local"),
-		// Fork ID
-		None,
-		// Properties
-		Some(properties),
-		// Extensions
+	#[allow(deprecated)]
+	TestnetChainSpec::builder(
+		ferrum_runtime::WASM_BINARY.expect("WASM binary was not built, please build it!"),
 		Extensions {
-			relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
+			relay_chain: "rococo-local".into(),
+			// You MUST set this to the correct network!
 			para_id: 1000,
 		},
 	)
+	.with_name("Quantum Portal Network Local")
+	.with_id("quantum_portal_network_local")
+	.with_chain_type(ChainType::Local)
+	.with_properties(properties)
+	.with_genesis_config_patch(testnet_genesis(
+		// Sudo Key
+		AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
+		// Pre-funded accounts
+		vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
+		// Initial PoA authorities
+		vec![
+			(
+				AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
+				get_collator_keys_from_seed("Alice"),
+			),
+			(
+				AccountId::from_str("977D8B2C924dB8a92340e9bb58e6C0d876de9D60").unwrap(),
+				get_collator_keys_from_seed("Bob"),
+			),
+		],
+		1000.into(),
+	))
+	.build()
 }
 
 pub fn alpha_testnet_config() -> TestnetChainSpec {
@@ -143,110 +129,72 @@ pub fn alpha_testnet_config() -> TestnetChainSpec {
 	properties.insert("tokenDecimals".into(), 18.into());
 	properties.insert("ss58Format".into(), 42.into());
 
-	TestnetChainSpec::from_genesis(
-		// Name
-		"Ferrum Testnet",
-		// ID
-		"testnet_alpha",
-		ChainType::Live,
-		move || {
-			testnet_genesis(
-				// initial collators.
-				vec![
-					(
-						AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
-						get_collator_keys_from_seed("Alice"),
-					),
-					(
-						AccountId::from_str("977D8B2C924dB8a92340e9bb58e6C0d876de9D60").unwrap(),
-						get_collator_keys_from_seed("Bob"),
-					),
-				],
-				// Endowed Accounts
-				vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
-				// Sudo Key
-				AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
-				1000.into(),
-			)
-		},
-		// Bootnodes
-		Vec::new(),
-		// Telemetry
-		None,
-		// Protocol ID
-		Some("ferrum-alpha-testnet"),
-		// Fork ID
-		None,
-		// Properties
-		Some(properties),
-		// Extensions
+	#[allow(deprecated)]
+	TestnetChainSpec::builder(
+		ferrum_runtime::WASM_BINARY.expect("WASM binary was not built, please build it!"),
 		Extensions {
-			relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
+			relay_chain: "rococo-local".into(),
+			// You MUST set this to the correct network!
 			para_id: 1000,
 		},
 	)
+	.with_name("Quantum Portal Network Testnet")
+	.with_id("quantum_portal_network_testnet")
+	.with_chain_type(ChainType::Live)
+	.with_properties(properties)
+	.with_genesis_config_patch(testnet_genesis(
+		// Sudo Key
+		AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
+		// Pre-funded accounts
+		vec![AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap()],
+		// Initial PoA authorities
+		vec![
+			(
+				AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
+				get_collator_keys_from_seed("Alice"),
+			),
+			(
+				AccountId::from_str("977D8B2C924dB8a92340e9bb58e6C0d876de9D60").unwrap(),
+				get_collator_keys_from_seed("Bob"),
+			),
+		],
+		1000.into(),
+	))
+	.build()
 }
 
 fn testnet_genesis(
-	invulnerables: Vec<(AccountId, AuraId)>,
-	endowed_accounts: Vec<AccountId>,
 	root_key: AccountId,
+	endowed_accounts: Vec<AccountId>,
+	invulnerables: Vec<(AccountId, AuraId)>,
 	id: ParaId,
-) -> ferrum_testnet_runtime::GenesisConfig {
-	ferrum_testnet_runtime::GenesisConfig {
-		system: ferrum_testnet_runtime::SystemConfig {
-			code: ferrum_testnet_runtime::WASM_BINARY
-				.expect("WASM binary was not build, please build it!")
-				.to_vec(),
-			..Default::default()
+) -> serde_json::Value {
+	serde_json::json!({
+		"balances": {
+			"balances": endowed_accounts.iter().cloned().map(|k| (k, EXISTENTIAL_DEPOSIT * 1000)).collect::<Vec<_>>(),
 		},
-		balances: ferrum_testnet_runtime::BalancesConfig {
-			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 80)).collect(),
+		"parachainInfo": {
+			"parachainId": id,
 		},
-		parachain_info: ferrum_testnet_runtime::ParachainInfoConfig {
-			parachain_id: id,
-			..Default::default()
+		"collatorSelection": {
+			"invulnerables": invulnerables.iter().cloned().map(|(acc, _)| acc).collect::<Vec<_>>(),
+			"candidacyBond": EXISTENTIAL_DEPOSIT * 16,
 		},
-		collator_selection: ferrum_testnet_runtime::CollatorSelectionConfig {
-			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
-			candidacy_bond: EXISTENTIAL_DEPOSIT * 16,
-			..Default::default()
-		},
-		session: ferrum_testnet_runtime::SessionConfig {
-			keys: invulnerables
+		"session": {
+			"keys": invulnerables
 				.into_iter()
 				.map(|(acc, aura)| {
 					(
-						acc,                       // account id
-						acc,                       // validator id
+						acc.clone(),                 // account id
+						acc,                         // validator id
 						ferrum_session_keys(aura), // session keys
 					)
 				})
-				.collect(),
+			.collect::<Vec<_>>(),
 		},
-		// no need to pass anything to aura, in fact it will panic if we do. Session will take care
-		// of this.
-		aura: Default::default(),
-		aura_ext: Default::default(),
-		parachain_system: Default::default(),
-		sudo: ferrum_testnet_runtime::SudoConfig {
-			// Assign network admin rights.
-			key: Some(root_key),
+		"polkadotXcm": {
+			"safeXcmVersion": Some(SAFE_XCM_VERSION),
 		},
-		polkadot_xcm: ferrum_testnet_runtime::PolkadotXcmConfig {
-			safe_xcm_version: Some(SAFE_XCM_VERSION),
-			..Default::default()
-		},
-		evm: Default::default(),
-		ethereum: ferrum_testnet_runtime::EthereumConfig { ..Default::default() },
-		dynamic_fee: Default::default(),
-		base_fee: Default::default(),
-		// technical_committee: ferrum_testnet_runtime::TechnicalCommitteeConfig {
-		//     members: vec![
-		//         AccountId::from_str("e04cc55ebee1cbce552f250e85c57b70b2e2625b").unwrap(),
-		//         AccountId::from_str("977D8B2C924dB8a92340e9bb58e6C0d876de9D60").unwrap(),
-		//     ],
-		//     phantom: Default::default(),
-		// },
-	}
+		"sudo": { "key": Some(root_key) }
+	})
 }

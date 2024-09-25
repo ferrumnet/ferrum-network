@@ -20,7 +20,7 @@ use crate::{
 	contract_client::{ContractClient, ContractClientSignature},
 	eip_712_utils::EIP712Utils,
 	qp_types::{QpLocalBlock, QpRemoteBlock, QpTransaction},
-	Config, FinalizerThreshold, PendingFinalizeSignatures,
+	Config, Error, FinalizerThreshold, PendingFinalizeSignatures,
 };
 use ethabi_nostd::{decoder::decode, ParamKind, Token};
 use frame_system::offchain::{
@@ -294,21 +294,14 @@ impl<T: Config> QuantumPortalClient<T> {
 			expiry.clone(),
 		)?;
 
-		let signer = Signer::<T, T::AuthorityId>::all_accounts();
-		if !signer.can_sign() {
-			return Err(ChainRequestError::ErrorGettingJsonRpcResponse)
-		}
+		let call = crate::Call::submit_signature {
+			chain_id: remote_chain_id,
+			block_number: block_nonce,
+			signature: multi_sig.clone(),
+		};
 
-		let results = signer.send_signed_transaction(|_account| {
-			// Received price is wrapped into a call to `submit_price` public function of this
-			// pallet. This means that the transaction, when executed, will simply call that
-			// function passing `price` as an argument.
-			crate::Call::submit_signature {
-				chain_id: remote_chain_id,
-				block_number: block_nonce,
-				signature: multi_sig.clone(),
-			}
-		});
+		let _ = SubmitTransaction::<T, crate::Call<T>>::submit_unsigned_transaction(call.into())
+			.map_err(|_| <Error<T>>::OffchainUnsignedTxSignedPayload);
 
 		Ok(Default::default())
 	}
@@ -823,7 +816,7 @@ impl<T: Config> QuantumPortalClient<T> {
 		let block_ready = remote_client.is_local_block_ready(local_chain)?;
 		log::info!("local block ready? {}", block_ready);
 		if !block_ready {
-			return Ok(None)
+			return Ok(None);
 		}
 		log::info!("Getting last local block");
 		let last_block = remote_client.last_local_block(local_chain)?;
@@ -833,13 +826,13 @@ impl<T: Config> QuantumPortalClient<T> {
 			remote_chain, last_block.nonce, local_chain, last_mined_block.nonce);
 		if last_mined_block.nonce >= last_block.nonce {
 			log::info!("Nothing to mine!");
-			return Ok(None)
+			return Ok(None);
 		}
 		log::info!("Last block is on chain1 for target {} is {}", local_chain, last_block.nonce);
 		let mined_block = self.mined_block_by_nonce(remote_chain, last_block.nonce)?;
 		let already_mined = !mined_block.0.block_hash.eq(&ZERO_HASH);
 		if already_mined {
-			return Err(ChainRequestError::RemoteBlockAlreadyMined)
+			return Err(ChainRequestError::RemoteBlockAlreadyMined);
 		}
 		log::info!("Getting source block?");
 		let source_block = remote_client
@@ -958,14 +951,14 @@ impl<T: Config> QuantumPortalClient<T> {
 				source_txs.len(),
 				mined_txs.len()
 			);
-			return false
+			return false;
 		}
 
 		// ensure the transaction content is the same
 		for transaction in source_txs.iter() {
 			if !mined_txs.contains(transaction) {
 				log::info!("Transaction content mismatch between source and mined txs");
-				return false
+				return false;
 			}
 		}
 
